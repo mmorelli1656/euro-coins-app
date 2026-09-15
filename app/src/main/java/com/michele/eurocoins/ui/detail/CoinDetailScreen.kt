@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.displayCountry
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -49,7 +50,7 @@ fun CoinDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(coin?.paese?.let { "$it · ${coin?.anno}" } ?: "") },
+                title = { Text(coin?.let { "${it.displayCountry()} · ${it.anno}" } ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -142,11 +143,11 @@ private fun InfoGrid(coin: Coin) {
     } ?: "Unknown"
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        InfoRow("Issuing country", coin.zeccaEmittente)
+        InfoRow("Issuing country", coin.displayCountry())
         InfoRow("Mintage", tiraturaFormatted)
         if (coin.paese in PAESI_TIRATURA_SOSPETTA && coin.tiratura != null) {
             Text(
-                text = "For ${coin.paese}, this figure is most likely the country's " +
+                text = "For ${coin.displayCountry()}, this figure is most likely the country's " +
                     "authorized quota for the period, not the actual mintage of " +
                     "this specific coin — see NOTES.md in the data pipeline.",
                 style = MaterialTheme.typography.labelSmall,

@@ -20,7 +20,9 @@ class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
             coins
         } else {
             coins.filter {
-                it.paese.contains(q, ignoreCase = true) || it.tema.contains(q, ignoreCase = true)
+                it.zeccaRaw.contains(q, ignoreCase = true) ||
+                    it.paese.contains(q, ignoreCase = true) ||
+                    it.tema.contains(q, ignoreCase = true)
             }
         }
         CoinListUiState(

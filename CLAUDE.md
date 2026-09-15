@@ -82,13 +82,29 @@ lingua da servire.
   hardcoded in Kotlin.
 - Testo che viene dal dataset (`tema`, `noteStoriche`) → già inglese perché
   la fonte BCE scrive in inglese; mostrato verbatim, nessuna traduzione.
-- `paese` / `zeccaEmittente` / `licenzaImmagine` restano invece **valori
-  italiani** anche loro presi verbatim dal dataset (nomi enum scelti in
-  italiano nella pipeline, es. `"Città del Vaticano"`,
-  `"Copyright zecca emittente (uso editoriale)"`). Non li traduciamo qui:
-  tradurli lato app significherebbe mantenere una mappa italiano→inglese
-  duplicata rispetto allo schema pydantic della pipeline, che si
-  disallineerebbe silenziosamente ad ogni nuovo valore enum aggiunto là.
+- **Nome del paese mostrato in UI → `Coin.displayCountry()`
+  ([CountryNames.kt](app/src/main/java/com/michele/eurocoins/data/CountryNames.kt)),
+  non `paese`/`zeccaEmittente` direttamente.** Sotto, la fonte è `zeccaRaw`:
+  il testo originale così come letto dalla fonte BCE (in inglese:
+  `"Belgium"`, `"Croatia"`...), salvato dalla pipeline prima di qualsiasi
+  mapping sull'enum `ZeccaEmittente` (che invece usa nomi italiani, es.
+  `"Città del Vaticano"`). Non è una traduzione fatta da noi.
+  `zeccaRaw` però **non è consistente su tutti i record dello stesso
+  paese**: verificato sull'intero dataset che 2 dei 24 paesi hanno pagine
+  BCE che scrivono il nome in modo diverso — `"Vatican"` (20 monete) vs
+  `"Vatican City"` (14), `"Netherlands"` (3) vs `"The Netherlands"` (1).
+  `displayCountry()` normalizza solo questi 2 casi (chiave sul `paese`
+  stabile), fallback a `zeccaRaw` per tutti gli altri. `paese`/
+  `zeccaEmittente` restano nell'entity Room e nella ricerca (come
+  fallback, insieme a `zeccaRaw`) per compatibilità con lo schema
+  pydantic della pipeline, ma non vengono più renderizzati direttamente.
+- `licenzaImmagine` resta invece un **valore italiano** mostrato verbatim
+  (es. `"Copyright zecca emittente (uso editoriale)"`): a differenza del
+  nome paese, per questo campo la pipeline non salva un testo originale
+  in inglese da cui attingere, quindi tradurlo qui richiederebbe
+  costruire una mappa italiano→inglese duplicata rispetto all'enum
+  `LicenzaImmagine` della pipeline, che si disallineerebbe silenziosamente
+  ad ogni nuovo valore aggiunto là. Non lo facciamo.
 - **Se in futuro serve l'italiano come lingua dei contenuti**, arriverà come
   dato aggiuntivo dalla pipeline (una nuova fonte/campo), non come
   traduzione automatica del dataset esistente — vedi il commento su

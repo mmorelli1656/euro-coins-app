@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.displayCountry
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,7 +96,7 @@ private fun CoinRow(coin: Coin, onClick: () -> Unit) {
         CoinThumbnail(coin)
         Column(modifier = Modifier.padding(start = 14.dp)) {
             Text(
-                text = "${coin.paese} · ${coin.anno}",
+                text = "${coin.displayCountry()} · ${coin.anno}",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
