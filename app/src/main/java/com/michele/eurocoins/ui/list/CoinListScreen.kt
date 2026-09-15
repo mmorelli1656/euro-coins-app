@@ -31,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Coin
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +48,7 @@ fun CoinListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Monete d'Europa") })
+            TopAppBar(title = { Text(stringResource(R.string.app_name)) })
         },
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
@@ -56,7 +58,7 @@ fun CoinListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Cerca per paese o tema…") },
+                placeholder = { Text("Search by country or theme…") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true,
                 colors = TextFieldDefaults.colors(
@@ -66,7 +68,7 @@ fun CoinListScreen(
             )
 
             Text(
-                text = "${state.coins.size} monete" + if (state.query.isNotBlank()) " trovate" else "",
+                text = "${state.coins.size} coins" + if (state.query.isNotBlank()) " found" else "",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),

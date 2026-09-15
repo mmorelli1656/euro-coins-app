@@ -52,7 +52,7 @@ fun CoinDetailScreen(
                 title = { Text(coin?.paese?.let { "$it · ${coin?.anno}" } ?: "") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
             )
@@ -80,7 +80,7 @@ fun CoinDetailScreen(
 
                 currentCoin.noteStoriche?.let { note ->
                     VerticalGap()
-                    Text(text = "Note storiche", style = MaterialTheme.typography.titleMedium)
+                    Text(text = "Historical notes", style = MaterialTheme.typography.titleMedium)
                     Text(
                         text = note,
                         style = MaterialTheme.typography.bodyLarge,
@@ -124,7 +124,7 @@ private fun CoinHero(coin: Coin) {
                     modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.25f),
                 )
                 Text(
-                    text = "Immagine non ancora pubblicata dalla fonte",
+                    text = "Image not yet published by the source",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -138,23 +138,23 @@ private fun CoinHero(coin: Coin) {
 @Composable
 private fun InfoGrid(coin: Coin) {
     val tiraturaFormatted = coin.tiratura?.let {
-        NumberFormat.getIntegerInstance(Locale.ITALY).format(it) + " monete"
-    } ?: "Non nota"
+        NumberFormat.getIntegerInstance(Locale.ENGLISH).format(it) + " coins"
+    } ?: "Unknown"
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        InfoRow("Zecca emittente", coin.zeccaEmittente)
-        InfoRow("Tiratura", tiraturaFormatted)
+        InfoRow("Issuing country", coin.zeccaEmittente)
+        InfoRow("Mintage", tiraturaFormatted)
         if (coin.paese in PAESI_TIRATURA_SOSPETTA && coin.tiratura != null) {
             Text(
-                text = "Per ${coin.paese} questo numero è probabilmente il " +
-                    "contingente autorizzato del periodo, non la tiratura " +
-                    "reale di questa moneta — vedi NOTES.md nella pipeline dati.",
+                text = "For ${coin.paese}, this figure is most likely the country's " +
+                    "authorized quota for the period, not the actual mintage of " +
+                    "this specific coin — see NOTES.md in the data pipeline.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
             )
         }
-        InfoRow("Fonte dati", coin.fonteDati.uppercase(Locale.ITALY))
+        InfoRow("Data source", coin.fonteDati.uppercase(Locale.ENGLISH))
     }
 }
 
@@ -162,7 +162,7 @@ private fun InfoGrid(coin: Coin) {
 private fun InfoRow(label: String, value: String) {
     Column {
         Text(
-            text = label.uppercase(Locale.ITALY),
+            text = label.uppercase(Locale.ENGLISH),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -175,7 +175,7 @@ private fun ImageCreditFooter(coin: Coin) {
     val context = LocalContext.current
     Column {
         Text(
-            text = "Licenza immagine",
+            text = "Image license",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -183,7 +183,7 @@ private fun ImageCreditFooter(coin: Coin) {
 
         coin.attribuzioneImmagineRaw?.let {
             Text(
-                text = "Credito: $it",
+                text = "Credit: $it",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 2.dp),
             )
@@ -191,7 +191,7 @@ private fun ImageCreditFooter(coin: Coin) {
 
         coin.urlImmagineFonte?.let { url ->
             Text(
-                text = "Apri l'immagine sorgente",
+                text = "Open source image",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier

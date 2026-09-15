@@ -71,6 +71,32 @@ app/src/main/java/com/michele/eurocoins/
     └── navigation/
 ```
 
+## Lingua
+
+L'app (chrome UI e contenuto mostrato) è in inglese, hardcoded direttamente
+nel codice Compose — nessuna infrastruttura di localizzazione Android
+(`values-it/`, `strings.xml` multipli) perché non serve ancora: c'è una sola
+lingua da servire.
+
+- Testo scritto da noi (label, titoli, placeholder, messaggi) → inglese
+  hardcoded in Kotlin.
+- Testo che viene dal dataset (`tema`, `noteStoriche`) → già inglese perché
+  la fonte BCE scrive in inglese; mostrato verbatim, nessuna traduzione.
+- `paese` / `zeccaEmittente` / `licenzaImmagine` restano invece **valori
+  italiani** anche loro presi verbatim dal dataset (nomi enum scelti in
+  italiano nella pipeline, es. `"Città del Vaticano"`,
+  `"Copyright zecca emittente (uso editoriale)"`). Non li traduciamo qui:
+  tradurli lato app significherebbe mantenere una mappa italiano→inglese
+  duplicata rispetto allo schema pydantic della pipeline, che si
+  disallineerebbe silenziosamente ad ogni nuovo valore enum aggiunto là.
+- **Se in futuro serve l'italiano come lingua dei contenuti**, arriverà come
+  dato aggiuntivo dalla pipeline (una nuova fonte/campo), non come
+  traduzione automatica del dataset esistente — vedi il commento su
+  `Coin.kt` (`tema`/`noteStoriche`). Fino ad allora non introdurre
+  assunzioni tipo "un solo blob di testo per lingua" che renderebbero quel
+  giorno più doloroso, ma non costruire infrastruttura i18n prima che serva
+  davvero.
+
 ## Cose da sapere sul dataset (non ovvie dal codice)
 
 - **499 monete**, non 504: le 5 emissioni congiunte dell'Eurozona non sono
