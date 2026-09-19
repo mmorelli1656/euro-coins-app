@@ -14,8 +14,9 @@ import kotlinx.coroutines.launch
 class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
 
     private val query = MutableStateFlow("")
+    private val groupMode = MutableStateFlow(GroupMode.FLAT)
 
-    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query) { coins, q ->
+    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query, groupMode) { coins, q, mode ->
         val filtered = if (q.isBlank()) {
             coins
         } else {
@@ -28,6 +29,7 @@ class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
         CoinListUiState(
             query = q,
             coins = filtered,
+            groupMode = mode,
             loading = false,
         )
     }.stateIn(
@@ -43,10 +45,22 @@ class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
     fun onQueryChange(newQuery: String) {
         query.value = newQuery
     }
+
+    fun onGroupModeChange(mode: GroupMode) {
+        groupMode.value = mode
+    }
+}
+
+/** Come raggruppare l'elenco monete — vedi [com.michele.eurocoins.ui.list.groupCoins] in CoinListScreen.kt. */
+enum class GroupMode {
+    FLAT,
+    BY_YEAR,
+    BY_COUNTRY,
 }
 
 data class CoinListUiState(
     val query: String = "",
     val coins: List<Coin> = emptyList(),
+    val groupMode: GroupMode = GroupMode.FLAT,
     val loading: Boolean = true,
 )

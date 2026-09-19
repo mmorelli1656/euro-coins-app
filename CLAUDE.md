@@ -62,14 +62,23 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinJson.kt           # forma di assets/coins.json + mapping a Coin
 │   ├── CoinDao.kt
 │   ├── CoinDatabase.kt
-│   └── CoinRepository.kt     # seeding da asset + esposizione Flow
+│   ├── CoinRepository.kt     # seeding da asset + esposizione Flow
+│   ├── CountryNames.kt       # Coin.displayCountry() — nome paese in UI
+│   └── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── list/                 # elenco + ricerca per paese/tema
+    ├── home/                 # schermata d'ingresso: le due card dei cataloghi
+    ├── list/                 # elenco commemorative: ricerca + toggle
+    │                         # piatto/per-anno/per-paese (GroupMode)
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
-    └── navigation/
+    └── navigation/           # home -> list -> detail
 ```
+
+Navigazione: `HomeScreen` è lo start destination (le due card cataloghi,
+solo "Commemorative" è cliccabile — l'altra è disabilitata finché la
+pipeline non produce un dataset divisionale), poi `CoinListScreen` con un
+back button esplicito verso la home.
 
 ## Lingua
 

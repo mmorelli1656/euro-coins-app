@@ -12,9 +12,11 @@ import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
+import com.michele.eurocoins.ui.home.HomeScreen
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
 
+private const val ROUTE_HOME = "home"
 private const val ROUTE_LIST = "list"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ARG_COIN_ID = "coinId"
@@ -23,7 +25,10 @@ private const val ARG_COIN_ID = "coinId"
 fun EuroCoinsNavHost(repository: CoinRepository) {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = ROUTE_LIST) {
+    NavHost(navController = navController, startDestination = ROUTE_HOME) {
+        composable(ROUTE_HOME) {
+            HomeScreen(onCommemorativeClick = { navController.navigate(ROUTE_LIST) })
+        }
         composable(ROUTE_LIST) {
             val viewModel: CoinListViewModel = viewModel(
                 factory = viewModelFactory { initializer { CoinListViewModel(repository) } },
@@ -31,6 +36,7 @@ fun EuroCoinsNavHost(repository: CoinRepository) {
             CoinListScreen(
                 viewModel = viewModel,
                 onCoinClick = { id -> navController.navigate("detail/$id") },
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
