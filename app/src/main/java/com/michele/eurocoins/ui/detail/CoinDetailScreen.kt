@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -29,11 +30,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
 import java.text.NumberFormat
@@ -110,29 +114,50 @@ private fun CoinHero(coin: Coin) {
         contentAlignment = Alignment.Center,
     ) {
         if (hasImage) {
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize().padding(24.dp),
-            )
-        } else {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Filled.MonetizationOn,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.25f),
-                )
-                Text(
-                    text = "Image not yet published by the source",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
-                )
+            ) {
+                // Distinto da "immagine non ancora pubblicata" qui sotto:
+                // qui il link c'era ma il caricamento è fallito ora
+                // (rete/link morto) — vedi
+                // scripts/validate_image_links.py nella pipeline dati.
+                if (painter.state.value is AsyncImagePainter.State.Error) {
+                    CoinHeroFallback(
+                        icon = Icons.Filled.BrokenImage,
+                        message = "Couldn't load this image",
+                    )
+                } else {
+                    SubcomposeAsyncImageContent()
+                }
             }
+        } else {
+            CoinHeroFallback(
+                icon = Icons.Filled.MonetizationOn,
+                message = "Image not yet published by the source",
+            )
         }
+    }
+}
+
+@Composable
+private fun CoinHeroFallback(icon: ImageVector, message: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.25f),
+        )
+        Text(
+            text = message,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
+        )
     }
 }
 

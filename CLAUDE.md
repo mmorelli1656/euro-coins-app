@@ -129,6 +129,15 @@ lingua da servire.
 - 4 monete hanno `immaginePlaceholder = true` (BCE non ha ancora
   pubblicato l'immagine reale): l'app lo gestisce mostrando un'icona al
   posto dell'immagine, non un errore.
+- **Distinto da quanto sopra**: un `urlImmagineFonte` presente ma che
+  fallisce il caricamento a runtime (link scaduto, rete assente) mostra
+  un'icona diversa ("immagine non caricata", `Icons.Filled.BrokenImage`)
+  invece del placeholder "non ancora pubblicata" — vedi
+  `SubcomposeAsyncImage`/`AsyncImagePainter.State.Error` in
+  `CoinListScreen.kt`/`CoinDetailScreen.kt`. La pipeline dati ha uno
+  script (`scripts/validate_image_links.py`) che controlla periodicamente
+  se qualcuno dei 495 URL è morto, per distinguere "capita raramente in
+  rete" da "gap permanente nei dati" prima di documentarlo in NOTES.md.
 
 ## Setup
 

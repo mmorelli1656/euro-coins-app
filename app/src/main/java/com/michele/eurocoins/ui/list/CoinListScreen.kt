@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,7 +35,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
@@ -122,12 +125,27 @@ private fun CoinThumbnail(coin: Coin) {
         contentAlignment = Alignment.Center,
     ) {
         if (hasImage) {
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
-            )
+            ) {
+                // Distinto dal ramo "else" qui sotto: quello è "la fonte non
+                // ha ancora pubblicato l'immagine" (dato), questo è "il link
+                // c'era ma il caricamento è fallito ora" (rete/link morto) —
+                // vedi scripts/validate_image_links.py nella pipeline dati.
+                if (painter.state.value is AsyncImagePainter.State.Error) {
+                    Icon(
+                        imageVector = Icons.Filled.BrokenImage,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(22.dp),
+                    )
+                } else {
+                    SubcomposeAsyncImageContent()
+                }
+            }
         } else {
             Icon(
                 imageVector = Icons.Filled.MonetizationOn,
