@@ -4,23 +4,34 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface CoinDao {
+abstract class CoinDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(coins: List<Coin>)
+    abstract suspend fun insertAll(coins: List<Coin>)
+
+    @Query("DELETE FROM coins")
+    abstract suspend fun deleteAll()
+
+    /** Sostituisce l'intero catalogo in un'unica transazione (aggiornamento del dataset bundlato). */
+    @Transaction
+    open suspend fun replaceAll(coins: List<Coin>) {
+        deleteAll()
+        insertAll(coins)
+    }
 
     @Query("SELECT COUNT(*) FROM coins")
-    suspend fun count(): Int
+    abstract suspend fun count(): Int
 
     @Query("SELECT * FROM coins ORDER BY anno DESC, paese ASC")
-    fun observeAll(): Flow<List<Coin>>
+    abstract fun observeAll(): Flow<List<Coin>>
 
     @Query("SELECT * FROM coins WHERE id = :id")
-    suspend fun getById(id: Long): Coin?
+    abstract suspend fun getById(id: Long): Coin?
 
     @Query("SELECT DISTINCT paese FROM coins ORDER BY paese ASC")
-    fun observePaesi(): Flow<List<String>>
+    abstract fun observePaesi(): Flow<List<String>>
 }

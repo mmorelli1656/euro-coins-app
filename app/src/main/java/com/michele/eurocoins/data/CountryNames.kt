@@ -8,7 +8,7 @@ package com.michele.eurocoins.data
  * pagina BCE della singola moneta (non una traduzione nostra), ma su 2 dei
  * 24 paesi pagine diverse usano testo leggermente diverso: "Vatican" (20
  * monete) contro "Vatican City" (14), "Netherlands" (3) contro "The
- * Netherlands" (1) — verificato sull'intero dataset. Usare `zeccaRaw` senza
+ * Netherlands" (1) (la forma canonica scelta è "Netherlands") — verificato sull'intero dataset. Usare `zeccaRaw` senza
  * normalizzare mostrerebbe lo stesso paese con due nomi diversi nella
  * stessa lista.
  *
@@ -22,7 +22,7 @@ package com.michele.eurocoins.data
  */
 private val CANONICAL_COUNTRY_NAMES = mapOf(
     "Città del Vaticano" to "Vatican City",
-    "Paesi Bassi" to "The Netherlands",
+    "Paesi Bassi" to "Netherlands",
 )
 
 fun Coin.displayCountry(): String = CANONICAL_COUNTRY_NAMES[paese] ?: zeccaRaw

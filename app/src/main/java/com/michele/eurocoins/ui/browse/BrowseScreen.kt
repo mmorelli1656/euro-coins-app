@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +27,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +67,21 @@ fun BrowseScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
+                // L'ordine ha senso solo per le griglie: nella scheda "All"
+                // (elenco cronologico con ricerca) il pulsante non c'è.
+                actions = {
+                    when (state.mode) {
+                        BrowseMode.YEARS -> SortAction(
+                            label = if (state.yearsAscending) "Oldest first" else "Newest first",
+                            onClick = viewModel::toggleYearsOrder,
+                        )
+                        BrowseMode.COUNTRIES -> SortAction(
+                            label = if (state.countriesAscending) "A → Z" else "Z → A",
+                            onClick = viewModel::toggleCountriesOrder,
+                        )
+                        BrowseMode.ALL -> Unit
+                    }
+                },
             )
         },
     ) { padding ->
@@ -80,26 +95,15 @@ fun BrowseScreen(
             )
 
             when (state.mode) {
-                BrowseMode.YEARS -> Column {
-                    SortChip(
-                        label = if (state.yearsAscending) "Oldest first" else "Newest first",
-                        onClick = viewModel::toggleYearsOrder,
-                    )
-                    CardGrid(resetScrollKey = state.yearsAscending) {
+                BrowseMode.YEARS -> CardGrid(resetScrollKey = state.yearsAscending) {
                     items(state.years, key = { it.year }) { card ->
                         BrowseCard(onClick = { onYearClick(card.year) }) {
                             Text(card.year.toString(), style = MaterialTheme.typography.headlineMedium)
                             CardFooter(card.progress)
                         }
                     }
-                    }
                 }
-                BrowseMode.COUNTRIES -> Column {
-                    SortChip(
-                        label = if (state.countriesAscending) "A → Z" else "Z → A",
-                        onClick = viewModel::toggleCountriesOrder,
-                    )
-                    CardGrid(resetScrollKey = state.countriesAscending) {
+                BrowseMode.COUNTRIES -> CardGrid(resetScrollKey = state.countriesAscending) {
                     items(state.countries, key = { it.paese }) { card ->
                         BrowseCard(onClick = { onCountryClick(card.paese) }) {
                             Text(card.flag, fontSize = 34.sp)
@@ -111,7 +115,6 @@ fun BrowseScreen(
                             CardFooter(card.progress)
                         }
                     }
-                    }
                 }
                 BrowseMode.ALL -> CoinListContent(viewModel = allCoinsViewModel, onCoinClick = onCoinClick)
             }
@@ -119,16 +122,12 @@ fun BrowseScreen(
     }
 }
 
-/** Chip che mostra l'ordinamento corrente; un tocco lo inverte. */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Azione nella top bar: mostra l'ordine corrente, un tocco lo inverte. */
 @Composable
-private fun SortChip(label: String, onClick: () -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
-        AssistChip(
-            onClick = onClick,
-            label = { Text(label) },
-            leadingIcon = { Icon(Icons.Filled.SwapVert, contentDescription = "Reverse order", modifier = Modifier.size(18.dp)) },
-        )
+private fun SortAction(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick) {
+        Icon(Icons.Filled.SwapVert, contentDescription = "Reverse order", modifier = Modifier.size(18.dp))
+        Text(label, modifier = Modifier.padding(start = 6.dp))
     }
 }
 

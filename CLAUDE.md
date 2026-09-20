@@ -26,9 +26,15 @@ resta interamente nella pipeline.
    "
    ```
 
-3. Al primo avvio, `CoinRepository.ensureSeeded()` legge quell'asset e
-   popola il database Room locale (`coins.db`) — solo se il DB è vuoto,
-   quindi non sovrascrive dati già presenti a ogni avvio.
+3. A ogni avvio `CoinRepository.ensureSeeded()` confronta l'hash SHA-256
+   dell'asset con quello salvato (SharedPreferences `dataset`): se è il primo
+   avvio o l'asset è cambiato, ripopola il database Room locale (`coins.db`)
+   in una transazione (`CoinDao.replaceAll`), altrimenti non fa nulla. Senza
+   questo, un telefono che aveva già seminato una versione precedente
+   mostrava per sempre i dati vecchi. **Gli id delle monete vengono
+   rigenerati a ogni ripopolamento**: i futuri dati utente (posseduta,
+   qualità, prezzo) NON vanno agganciati a `Coin.id` ma a una chiave naturale
+   stabile, in una tabella separata.
 4. **Le immagini non sono bundlate nell'APK**: vengono caricate on-demand
    con Coil direttamente dagli URL originali della fonte
    (`Coin.urlImmagineFonte`, salvato così com'era in `data/processed/`),
@@ -114,7 +120,8 @@ lingua da servire.
   `zeccaRaw` però **non è consistente su tutti i record dello stesso
   paese**: verificato sull'intero dataset che 2 dei 24 paesi hanno pagine
   BCE che scrivono il nome in modo diverso — `"Vatican"` (20 monete) vs
-  `"Vatican City"` (14), `"Netherlands"` (3) vs `"The Netherlands"` (1).
+  `"Vatican City"` (14), `"Netherlands"` (3) vs `"The Netherlands"` (1); la
+  forma canonica scelta è `"Vatican City"` e `"Netherlands"`.
   `displayCountry()` normalizza solo questi 2 casi (chiave sul `paese`
   stabile), fallback a `zeccaRaw` per tutti gli altri. `paese`/
   `zeccaEmittente` restano nell'entity Room e nella ricerca (come
