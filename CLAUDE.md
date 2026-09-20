@@ -64,21 +64,34 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinDatabase.kt
 │   ├── CoinRepository.kt     # seeding da asset + esposizione Flow
 │   ├── CountryNames.kt       # Coin.displayCountry() — nome paese in UI
-│   └── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
+│   ├── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
+│   └── CollectionProgress.kt # Progress + fakeOwnedIds() (PLACEHOLDER, vedi sotto)
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── home/                 # schermata d'ingresso: le due card dei cataloghi
-    ├── list/                 # elenco commemorative: ricerca + toggle
-    │                         # piatto/per-anno/per-paese (GroupMode)
+    ├── components/           # CollectionProgressBar (barra "x / y collected")
+    ├── home/                 # ingresso: due tile (commemorative / circolanti)
+    ├── browse/               # commemorative: Years / Countries / All
+    ├── list/                 # elenco filtrato (CoinFilter) + ricerca
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
-    └── navigation/           # home -> list -> detail
+    └── navigation/           # home -> browse -> lista filtrata -> dettaglio
 ```
 
-Navigazione: `HomeScreen` è lo start destination (le due card cataloghi,
-solo "Commemorative" è cliccabile — l'altra è disabilitata finché la
-pipeline non produce un dataset divisionale), poi `CoinListScreen` con un
-back button esplicito verso la home.
+Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
+Countries / All) → `CoinListScreen` filtrato per anno o paese (`CoinFilter`)
+→ `CoinDetailScreen`. Years e Countries sono griglie di card; "All" è
+l'elenco completo con ricerca. La tile "Circulation" della home è
+tratteggiata e senza azione finché la pipeline non produce quel dataset.
+Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
+mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
+hanno spazi/accenti.
+
+**Barre "x / y collected" — dati FINTI per ora.** Home, card anno e card
+paese leggono un `Set<Long>` di id posseduti da `fakeOwnedIds()`
+(`CollectionProgress.kt`, una moneta ogni quattro). È un segnaposto in
+attesa del punto "segna come posseduta": sostituire quella sola funzione
+con la tabella di collezione reale e tutte le barre si aggiornano. Non
+mostrare quei numeri come veri.
 
 ## Lingua
 

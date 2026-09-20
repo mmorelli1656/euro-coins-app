@@ -1,5 +1,6 @@
 package com.michele.eurocoins.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -10,32 +11,81 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.ui.browse.BrowseScreen
+import com.michele.eurocoins.ui.browse.BrowseViewModel
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
 import com.michele.eurocoins.ui.home.HomeScreen
+import com.michele.eurocoins.ui.home.HomeViewModel
+import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
 
 private const val ROUTE_HOME = "home"
-private const val ROUTE_LIST = "list"
+private const val ROUTE_BROWSE = "browse"
+private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
+private const val ARG_KIND = "kind"
+private const val ARG_VALUE = "value"
 private const val ARG_COIN_ID = "coinId"
+
+private const val KIND_YEAR = "year"
+private const val KIND_COUNTRY = "country"
 
 @Composable
 fun EuroCoinsNavHost(repository: CoinRepository) {
     val navController = rememberNavController()
 
+    fun openDetail(id: Long) = navController.navigate("detail/$id")
+
     NavHost(navController = navController, startDestination = ROUTE_HOME) {
         composable(ROUTE_HOME) {
-            HomeScreen(onCommemorativeClick = { navController.navigate(ROUTE_LIST) })
+            val viewModel: HomeViewModel = viewModel(
+                factory = viewModelFactory { initializer { HomeViewModel(repository) } },
+            )
+            HomeScreen(
+                viewModel = viewModel,
+                onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
+            )
         }
-        composable(ROUTE_LIST) {
+        composable(ROUTE_BROWSE) {
+            val browseViewModel: BrowseViewModel = viewModel(
+                factory = viewModelFactory { initializer { BrowseViewModel(repository) } },
+            )
+            val allCoinsViewModel: CoinListViewModel = viewModel(
+                key = "all",
+                factory = viewModelFactory { initializer { CoinListViewModel(repository, CoinFilter.All) } },
+            )
+            BrowseScreen(
+                viewModel = browseViewModel,
+                allCoinsViewModel = allCoinsViewModel,
+                // Uri.encode: "Città del Vaticano" e "Paesi Bassi" hanno spazi/accenti.
+                onYearClick = { year -> navController.navigate("coins/$KIND_YEAR/$year") },
+                onCountryClick = { paese -> navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}") },
+                onCoinClick = ::openDetail,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = ROUTE_COINS,
+            arguments = listOf(
+                navArgument(ARG_KIND) { type = NavType.StringType },
+                navArgument(ARG_VALUE) { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val kind = backStackEntry.arguments?.getString(ARG_KIND) ?: return@composable
+            val value = backStackEntry.arguments?.getString(ARG_VALUE) ?: return@composable
+            val filter = when (kind) {
+                KIND_YEAR -> CoinFilter.Year(value.toInt())
+                else -> CoinFilter.Country(value)
+            }
             val viewModel: CoinListViewModel = viewModel(
-                factory = viewModelFactory { initializer { CoinListViewModel(repository) } },
+                key = "coins-$kind-$value",
+                factory = viewModelFactory { initializer { CoinListViewModel(repository, filter) } },
             )
             CoinListScreen(
                 viewModel = viewModel,
-                onCoinClick = { id -> navController.navigate("detail/$id") },
+                onCoinClick = ::openDetail,
                 onBack = { navController.popBackStack() },
             )
         }

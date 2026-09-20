@@ -4,32 +4,52 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.displayCountry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
-class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
+/** Quale sottoinsieme di monete mostra una lista. */
+sealed interface CoinFilter {
+    data object All : CoinFilter
+    data class Year(val year: Int) : CoinFilter
+
+    /** [paese] è il valore stabile `Coin.paese`, non il nome mostrato in UI. */
+    data class Country(val paese: String) : CoinFilter
+}
+
+class CoinListViewModel(
+    repository: CoinRepository,
+    private val filter: CoinFilter,
+) : ViewModel() {
 
     private val query = MutableStateFlow("")
-    private val groupMode = MutableStateFlow(GroupMode.FLAT)
 
-    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query, groupMode) { coins, q, mode ->
+    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query) { coins, q ->
+        val scoped = when (filter) {
+            CoinFilter.All -> coins
+            is CoinFilter.Year -> coins.filter { it.anno == filter.year }
+            is CoinFilter.Country -> coins.filter { it.paese == filter.paese }
+        }
         val filtered = if (q.isBlank()) {
-            coins
+            scoped
         } else {
-            coins.filter {
+            scoped.filter {
                 it.zeccaRaw.contains(q, ignoreCase = true) ||
                     it.paese.contains(q, ignoreCase = true) ||
                     it.tema.contains(q, ignoreCase = true)
             }
         }
         CoinListUiState(
+            title = when (filter) {
+                CoinFilter.All -> "All coins"
+                is CoinFilter.Year -> filter.year.toString()
+                is CoinFilter.Country -> scoped.firstOrNull()?.displayCountry().orEmpty()
+            },
             query = q,
             coins = filtered,
-            groupMode = mode,
             loading = false,
         )
     }.stateIn(
@@ -38,29 +58,14 @@ class CoinListViewModel(private val repository: CoinRepository) : ViewModel() {
         initialValue = CoinListUiState(loading = true),
     )
 
-    init {
-        viewModelScope.launch { repository.ensureSeeded() }
-    }
-
     fun onQueryChange(newQuery: String) {
         query.value = newQuery
     }
-
-    fun onGroupModeChange(mode: GroupMode) {
-        groupMode.value = mode
-    }
-}
-
-/** Come raggruppare l'elenco monete — vedi [com.michele.eurocoins.ui.list.groupCoins] in CoinListScreen.kt. */
-enum class GroupMode {
-    FLAT,
-    BY_YEAR,
-    BY_COUNTRY,
 }
 
 data class CoinListUiState(
+    val title: String = "",
     val query: String = "",
     val coins: List<Coin> = emptyList(),
-    val groupMode: GroupMode = GroupMode.FLAT,
     val loading: Boolean = true,
 )
