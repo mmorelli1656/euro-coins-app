@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +42,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
+import com.michele.eurocoins.data.stableKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,14 +107,14 @@ fun CoinListContent(
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(state.coins, key = { it.id }) { coin ->
-                CoinRow(coin = coin, onClick = { onCoinClick(coin.id) })
+                CoinRow(coin = coin, owned = coin.stableKey in state.ownedKeys, onClick = { onCoinClick(coin.id) })
             }
         }
     }
 }
 
 @Composable
-private fun CoinRow(coin: Coin, onClick: () -> Unit) {
+private fun CoinRow(coin: Coin, owned: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -121,7 +123,7 @@ private fun CoinRow(coin: Coin, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         CoinThumbnail(coin)
-        Column(modifier = Modifier.padding(start = 14.dp)) {
+        Column(modifier = Modifier.padding(start = 14.dp).weight(1f)) {
             Text(
                 text = "${coin.displayCountry()} · ${coin.anno}",
                 style = MaterialTheme.typography.labelLarge,
@@ -132,6 +134,14 @@ private fun CoinRow(coin: Coin, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (owned) {
+            Icon(
+                imageVector = Icons.Filled.CheckCircle,
+                contentDescription = "In your collection",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 8.dp).size(22.dp),
             )
         }
     }

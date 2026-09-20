@@ -71,7 +71,11 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinRepository.kt     # seeding da asset + esposizione Flow
 │   ├── CountryNames.kt       # Coin.displayCountry() — nome paese in UI
 │   ├── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
-│   └── CollectionProgress.kt # Progress + fakeOwnedIds() (PLACEHOLDER, vedi sotto)
+│   ├── CollectionProgress.kt # Progress (x / y possedute)
+│   ├── CoinKey.kt            # Coin.stableKey — chiave stabile per la collezione
+│   ├── CoinQuality.kt        # Standard / BU / Proof
+│   ├── CollectionItem.kt     # @Entity: moneta posseduta in una qualità
+│   └── CollectionDao.kt
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
@@ -92,12 +96,31 @@ Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
 hanno spazi/accenti.
 
-**Barre "x / y collected" — dati FINTI per ora.** Home, card anno e card
-paese leggono un `Set<Long>` di id posseduti da `fakeOwnedIds()`
-(`CollectionProgress.kt`, una moneta ogni quattro). È un segnaposto in
-attesa del punto "segna come posseduta": sostituire quella sola funzione
-con la tabella di collezione reale e tutte le barre si aggiornano. Non
-mostrare quei numeri come veri.
+## Collezione utente
+
+Dal dettaglio di una moneta ("My collection") l'utente segna in quali
+qualità la possiede — **Standard, BU, Proof**, anche più di una insieme —
+e per ciascuna può indicare il prezzo pagato (facoltativo, in euro, salvato
+in centesimi). Una moneta conta come "posseduta" (segno di spunta nella
+lista, barre "x / y collected" di home/anni/paesi) se ne ha almeno una
+qualità.
+
+- **Tabella separata `collection_items`** (`CollectionItem`), chiave
+  primaria (`coinKey`, `quality`): sono dati dell'utente, non del catalogo, e
+  non vengono mai toccati dal ripopolamento di `coins`.
+- **Chiave della moneta = `Coin.stableKey`** (`CoinKey.kt`: fonte + anno +
+  paese + tema normalizzato), NON `Coin.id`, che viene rigenerato a ogni
+  aggiornamento del dataset. Univoca sulle 499 monete. Punto debole noto: se
+  la pipeline correggesse il testo di `tema`, la chiave cambierebbe e le voci
+  resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
+  quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
+  pipeline dati.
+- **Migrazioni Room esplicite** (DB versione 2, `MIGRATION_1_2` in
+  `CoinDatabase.kt`), mai `fallbackToDestructiveMigration`: distruggerebbe
+  anche la collezione dell'utente. Il SQL della migrazione deve coincidere con
+  quello generato da Room (`build/generated/ksp/.../CoinDatabase_Impl.kt`).
+- Non ancora fatto: backup/esportazione della collezione, note libere,
+  data di acquisto, valuta diversa dall'euro.
 
 ## Lingua
 

@@ -5,11 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
-import com.michele.eurocoins.data.fakeOwnedIds
 import com.michele.eurocoins.data.progress
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,9 +23,9 @@ data class HomeUiState(
 
 class HomeViewModel(private val repository: CoinRepository) : ViewModel() {
 
-    val uiState: StateFlow<HomeUiState> = repository.coins.map { coins ->
+    val uiState: StateFlow<HomeUiState> = combine(repository.coins, repository.ownedKeys) { coins, ownedKeys ->
         HomeUiState(
-            progress = coins.progress(fakeOwnedIds(coins)),
+            progress = coins.progress(ownedKeys),
             countries = coins.map { it.paese }.distinct().size,
             firstYear = coins.minOfOrNull { it.anno },
             lastYear = coins.maxOfOrNull { it.anno },

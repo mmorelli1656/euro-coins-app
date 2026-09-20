@@ -7,6 +7,7 @@ import com.michele.eurocoins.data.CoinRepository
 class EuroCoinsApplication : Application() {
 
     val repository: CoinRepository by lazy {
-        CoinRepository(this, CoinDatabase.getInstance(this).coinDao())
+        val db = CoinDatabase.getInstance(this)
+        CoinRepository(this, db.coinDao(), db.collectionDao())
     }
 }

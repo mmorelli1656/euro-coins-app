@@ -3,6 +3,7 @@ package com.michele.eurocoins.data
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -22,9 +23,36 @@ import java.security.MessageDigest
 class CoinRepository(
     private val context: Context,
     private val dao: CoinDao,
+    private val collectionDao: CollectionDao,
 ) {
     val coins: Flow<List<Coin>> = dao.observeAll()
     val paesi: Flow<List<String>> = dao.observePaesi()
+
+    /** Tutte le voci di collezione dell'utente (una per moneta+qualità). */
+    val collectionItems: Flow<List<CollectionItem>> = collectionDao.observeAll()
+
+    /** Chiavi delle monete possedute in almeno una qualità. */
+    val ownedKeys: Flow<Set<String>> = collectionItems.map { items -> items.map { it.coinKey }.toSet() }
+
+    suspend fun setOwned(coin: Coin, quality: CoinQuality, owned: Boolean) {
+        if (owned) {
+            collectionDao.upsert(
+                CollectionItem(
+                    coinKey = coin.stableKey,
+                    quality = quality,
+                    anno = coin.anno,
+                    paese = coin.paese,
+                    tema = coin.tema,
+                    addedAt = System.currentTimeMillis(),
+                ),
+            )
+        } else {
+            collectionDao.delete(coin.stableKey, quality)
+        }
+    }
+
+    suspend fun setPrice(coin: Coin, quality: CoinQuality, priceCents: Int?) =
+        collectionDao.setPrice(coin.stableKey, quality, priceCents)
 
     // Il seeding parte dalla schermata d'ingresso ma qualunque ViewModel può
     // chiamarlo: senza il mutex due chiamate concorrenti al primo avvio

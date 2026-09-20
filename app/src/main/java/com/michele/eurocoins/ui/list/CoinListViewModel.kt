@@ -27,7 +27,7 @@ class CoinListViewModel(
 
     private val query = MutableStateFlow("")
 
-    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query) { coins, q ->
+    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query, repository.ownedKeys) { coins, q, ownedKeys ->
         val scoped = when (filter) {
             CoinFilter.All -> coins
             is CoinFilter.Year -> coins.filter { it.anno == filter.year }
@@ -50,6 +50,7 @@ class CoinListViewModel(
             },
             query = q,
             coins = filtered,
+            ownedKeys = ownedKeys,
             loading = false,
         )
     }.stateIn(
@@ -67,5 +68,7 @@ data class CoinListUiState(
     val title: String = "",
     val query: String = "",
     val coins: List<Coin> = emptyList(),
+    /** Chiavi stabili delle monete possedute (vedi Coin.stableKey), per il segno nella riga. */
+    val ownedKeys: Set<String> = emptySet(),
     val loading: Boolean = true,
 )

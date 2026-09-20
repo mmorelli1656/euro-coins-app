@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.displayCountry
-import com.michele.eurocoins.data.fakeOwnedIds
 import com.michele.eurocoins.data.flagEmoji
 import com.michele.eurocoins.data.progress
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,11 +38,11 @@ class BrowseViewModel(repository: CoinRepository) : ViewModel() {
 
     val uiState: StateFlow<BrowseUiState> = combine(
         repository.coins,
+        repository.ownedKeys,
         mode,
         yearsAscending,
         countriesAscending,
-    ) { coins, currentMode, yearsAsc, countriesAsc ->
-        val owned = fakeOwnedIds(coins)
+    ) { coins, owned, currentMode, yearsAsc, countriesAsc ->
         BrowseUiState(
             mode = currentMode,
             yearsAscending = yearsAsc,
