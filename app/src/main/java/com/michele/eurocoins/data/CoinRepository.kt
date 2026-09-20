@@ -34,25 +34,30 @@ class CoinRepository(
     /** Chiavi delle monete possedute in almeno una qualità. */
     val ownedKeys: Flow<Set<String>> = collectionItems.map { items -> items.map { it.coinKey }.toSet() }
 
-    suspend fun setOwned(coin: Coin, quality: CoinQuality, owned: Boolean) {
-        if (owned) {
-            collectionDao.upsert(
+    /**
+     * Salva in blocco le qualità possedute di una moneta ([entries]: qualità
+     * -> prezzo in centesimi, null se non indicato); le qualità non presenti
+     * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti.
+     */
+    suspend fun saveCollection(coin: Coin, entries: Map<CoinQuality, Int?>) {
+        val key = coin.stableKey
+        val existing = collectionDao.itemsFor(key).associateBy { it.quality }
+        val now = System.currentTimeMillis()
+        collectionDao.replaceForCoin(
+            key,
+            entries.map { (quality, priceCents) ->
                 CollectionItem(
-                    coinKey = coin.stableKey,
+                    coinKey = key,
                     quality = quality,
+                    priceCents = priceCents,
                     anno = coin.anno,
                     paese = coin.paese,
                     tema = coin.tema,
-                    addedAt = System.currentTimeMillis(),
-                ),
-            )
-        } else {
-            collectionDao.delete(coin.stableKey, quality)
-        }
+                    addedAt = existing[quality]?.addedAt ?: now,
+                )
+            },
+        )
     }
-
-    suspend fun setPrice(coin: Coin, quality: CoinQuality, priceCents: Int?) =
-        collectionDao.setPrice(coin.stableKey, quality, priceCents)
 
     // Il seeding parte dalla schermata d'ingresso ma qualunque ViewModel può
     // chiamarlo: senza il mutex due chiamate concorrenti al primo avvio

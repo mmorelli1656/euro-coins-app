@@ -41,14 +41,9 @@ class CoinDetailViewModel(
         }
     }
 
-    fun onQualityToggled(quality: CoinQuality, owned: Boolean) {
+    fun onSaveCollection(entries: Map<CoinQuality, Int?>) {
         val coin = _coin.value ?: return
-        viewModelScope.launch { repository.setOwned(coin, quality, owned) }
-    }
-
-    fun onPriceChanged(quality: CoinQuality, priceCents: Int?) {
-        val coin = _coin.value ?: return
-        viewModelScope.launch { repository.setPrice(coin, quality, priceCents) }
+        viewModelScope.launch { repository.saveCollection(coin, entries) }
     }
 }
 

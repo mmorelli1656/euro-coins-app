@@ -98,12 +98,22 @@ hanno spazi/accenti.
 
 ## Collezione utente
 
-Dal dettaglio di una moneta ("My collection") l'utente segna in quali
-qualità la possiede — **Standard, BU, Proof**, anche più di una insieme —
-e per ciascuna può indicare il prezzo pagato (facoltativo, in euro, salvato
-in centesimi). Una moneta conta come "posseduta" (segno di spunta nella
-lista, barre "x / y collected" di home/anni/paesi) se ne ha almeno una
-qualità.
+Ogni moneta ha una **casella** nell'elenco (vuota / piena con spunta). Un
+tocco apre un pannello dal basso (`CollectionSheet`) con le tre qualità —
+**Standard, BU, Proof**, anche più di una insieme — e, per ciascuna
+spuntata, il prezzo pagato (facoltativo, in euro, salvato in centesimi).
+Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
+"My collection"), così c'è un solo modo di registrare.
+
+- Il pannello lavora su una **bozza** e scrive solo con "Save": chiuderlo
+  senza salvare non cambia nulla (un tocco sbagliato non cancella un
+  prezzo). Alla prima apertura di una moneta non posseduta "Standard" è già
+  spuntata.
+- Una moneta conta come "posseduta" (casella piena, barre "x / y collected"
+  di home/anni/paesi) se ha almeno una qualità.
+- Il salvataggio sostituisce in blocco le qualità della moneta
+  (`CollectionDao.replaceForCoin`, transazione) e conserva `addedAt` delle
+  voci già esistenti.
 
 - **Tabella separata `collection_items`** (`CollectionItem`), chiave
   primaria (`coinKey`, `quality`): sono dati dell'utente, non del catalogo, e

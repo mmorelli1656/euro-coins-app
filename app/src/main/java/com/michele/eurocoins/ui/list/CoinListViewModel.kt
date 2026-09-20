@@ -3,13 +3,16 @@ package com.michele.eurocoins.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /** Quale sottoinsieme di monete mostra una lista. */
 sealed interface CoinFilter {
@@ -21,13 +24,13 @@ sealed interface CoinFilter {
 }
 
 class CoinListViewModel(
-    repository: CoinRepository,
+    private val repository: CoinRepository,
     private val filter: CoinFilter,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
 
-    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query, repository.ownedKeys) { coins, q, ownedKeys ->
+    val uiState: StateFlow<CoinListUiState> = combine(repository.coins, query, repository.collectionItems) { coins, q, items ->
         val scoped = when (filter) {
             CoinFilter.All -> coins
             is CoinFilter.Year -> coins.filter { it.anno == filter.year }
@@ -50,7 +53,7 @@ class CoinListViewModel(
             },
             query = q,
             coins = filtered,
-            ownedKeys = ownedKeys,
+            collection = items.groupBy { it.coinKey },
             loading = false,
         )
     }.stateIn(
@@ -62,13 +65,17 @@ class CoinListViewModel(
     fun onQueryChange(newQuery: String) {
         query.value = newQuery
     }
+
+    fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, Int?>) {
+        viewModelScope.launch { repository.saveCollection(coin, entries) }
+    }
 }
 
 data class CoinListUiState(
     val title: String = "",
     val query: String = "",
     val coins: List<Coin> = emptyList(),
-    /** Chiavi stabili delle monete possedute (vedi Coin.stableKey), per il segno nella riga. */
-    val ownedKeys: Set<String> = emptySet(),
+    /** Voci di collezione per chiave stabile della moneta (vedi Coin.stableKey): chiave presente = posseduta. */
+    val collection: Map<String, List<CollectionItem>> = emptyMap(),
     val loading: Boolean = true,
 )

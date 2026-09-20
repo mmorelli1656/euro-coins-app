@@ -18,15 +18,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
-import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -40,9 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
@@ -52,8 +48,8 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
-import java.math.BigDecimal
-import java.math.RoundingMode
+import com.michele.eurocoins.ui.components.CollectionSheet
+import com.michele.eurocoins.ui.components.formatPrice
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -65,6 +61,7 @@ fun CoinDetailScreen(
 ) {
     val coin by viewModel.coin.collectAsState()
     val items by viewModel.items.collectAsState()
+    var showSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -83,6 +80,17 @@ fun CoinDetailScreen(
             Box(modifier = Modifier.fillMaxSize().padding(padding))
             return@Scaffold
         }
+        if (showSheet) {
+            CollectionSheet(
+                coin = currentCoin,
+                currentItems = items,
+                onSave = { entries ->
+                    viewModel.onSaveCollection(entries)
+                    showSheet = false
+                },
+                onDismiss = { showSheet = false },
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -99,11 +107,7 @@ fun CoinDetailScreen(
                 InfoGrid(currentCoin)
 
                 VerticalGap()
-                CollectionSection(
-                    items = items,
-                    onQualityToggled = viewModel::onQualityToggled,
-                    onPriceChanged = viewModel::onPriceChanged,
-                )
+                CollectionSummary(items = items, onEdit = { showSheet = true })
 
                 currentCoin.noteStoriche?.let { note ->
                     VerticalGap()
@@ -257,76 +261,28 @@ private fun VerticalGap() {
     Box(modifier = Modifier.padding(top = 16.dp))
 }
 
-/**
- * "My collection": una chip per qualità (si può possedere la stessa moneta
- * in più qualità) e, per ciascuna posseduta, il prezzo pagato (facoltativo).
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Riepilogo della collezione per questa moneta; "Add"/"Edit" apre lo stesso pannello dell'elenco. */
 @Composable
-private fun CollectionSection(
-    items: List<CollectionItem>,
-    onQualityToggled: (CoinQuality, Boolean) -> Unit,
-    onPriceChanged: (CoinQuality, Int?) -> Unit,
-) {
-    val ownedByQuality = items.associateBy { it.quality }
-
+private fun CollectionSummary(items: List<CollectionItem>, onEdit: () -> Unit) {
     Column {
-        Text(text = "My collection", style = MaterialTheme.typography.titleMedium)
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            CoinQuality.entries.forEach { quality ->
-                val owned = quality in ownedByQuality
-                FilterChip(
-                    selected = owned,
-                    onClick = { onQualityToggled(quality, !owned) },
-                    label = { Text(quality.label) },
-                    leadingIcon = if (owned) {
-                        { Icon(Icons.Filled.Done, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                    } else {
-                        null
-                    },
-                )
-            }
+            Text(text = "My collection", style = MaterialTheme.typography.titleMedium)
+            OutlinedButton(onClick = onEdit) { Text(if (items.isEmpty()) "Add" else "Edit") }
         }
-        CoinQuality.entries.mapNotNull { ownedByQuality[it] }.forEach { item ->
-            PriceField(item = item, onPriceChanged = { onPriceChanged(item.quality, it) })
+        if (items.isEmpty()) {
+            Text(
+                text = "Not in your collection yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-    }
-}
-
-@Composable
-private fun PriceField(item: CollectionItem, onPriceChanged: (Int?) -> Unit) {
-    // Il testo è uno stato locale, non riletto dal database a ogni tasto: se
-    // no il valore riformattato dal salvataggio riscriverebbe quello che
-    // l'utente sta digitando (es. "12," diventerebbe "12").
-    var text by remember(item.coinKey, item.quality) { mutableStateOf(formatPrice(item.priceCents)) }
-    OutlinedTextField(
-        value = text,
-        onValueChange = {
-            text = it
-            onPriceChanged(parsePriceCents(it))
-        },
-        label = { Text("Price paid, ${item.quality.label} (€)") },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-    )
-}
-
-private fun formatPrice(cents: Int?): String =
-    cents?.let { BigDecimal(it).movePointLeft(2).setScale(2).toPlainString() }.orEmpty()
-
-/** "12,50" o "12.50" -> 1250; vuoto, non numerico o negativo -> null (prezzo non indicato). */
-private fun parsePriceCents(input: String): Int? {
-    val value = input.trim().replace(',', '.')
-    if (value.isEmpty()) return null
-    return try {
-        BigDecimal(value).takeIf { it.signum() >= 0 }?.movePointRight(2)?.setScale(0, RoundingMode.HALF_UP)?.toInt()
-    } catch (_: NumberFormatException) {
-        null
+        CoinQuality.entries.mapNotNull { quality -> items.firstOrNull { it.quality == quality } }.forEach { item ->
+            val price = item.priceCents?.let { " · €${formatPrice(it)}" }.orEmpty()
+            Text(text = item.quality.label + price, style = MaterialTheme.typography.bodyLarge)
+        }
     }
 }

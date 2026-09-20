@@ -4,20 +4,28 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface CollectionDao {
+abstract class CollectionDao {
 
     @Query("SELECT * FROM collection_items")
-    fun observeAll(): Flow<List<CollectionItem>>
+    abstract fun observeAll(): Flow<List<CollectionItem>>
+
+    @Query("SELECT * FROM collection_items WHERE coinKey = :coinKey")
+    abstract suspend fun itemsFor(coinKey: String): List<CollectionItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(item: CollectionItem)
+    abstract suspend fun insertAll(items: List<CollectionItem>)
 
-    @Query("DELETE FROM collection_items WHERE coinKey = :coinKey AND quality = :quality")
-    suspend fun delete(coinKey: String, quality: CoinQuality)
+    @Query("DELETE FROM collection_items WHERE coinKey = :coinKey")
+    abstract suspend fun deleteForCoin(coinKey: String)
 
-    @Query("UPDATE collection_items SET priceCents = :priceCents WHERE coinKey = :coinKey AND quality = :quality")
-    suspend fun setPrice(coinKey: String, quality: CoinQuality, priceCents: Int?)
+    /** Sostituisce in un'unica transazione tutte le qualità possedute di una moneta. */
+    @Transaction
+    open suspend fun replaceForCoin(coinKey: String, items: List<CollectionItem>) {
+        deleteForCoin(coinKey)
+        insertAll(items)
+    }
 }
