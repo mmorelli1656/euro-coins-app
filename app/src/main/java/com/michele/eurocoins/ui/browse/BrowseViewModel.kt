@@ -23,6 +23,10 @@ data class CountryCardData(val paese: String, val name: String, val flag: String
 
 data class BrowseUiState(
     val mode: BrowseMode = BrowseMode.YEARS,
+    /** false = dal più recente (2025 → 2004, default); true = dal 2004. */
+    val yearsAscending: Boolean = false,
+    /** true = A → Z (default); false = Z → A. */
+    val countriesAscending: Boolean = true,
     val years: List<YearCardData> = emptyList(),
     val countries: List<CountryCardData> = emptyList(),
 )
@@ -30,14 +34,23 @@ data class BrowseUiState(
 class BrowseViewModel(repository: CoinRepository) : ViewModel() {
 
     private val mode = MutableStateFlow(BrowseMode.YEARS)
+    private val yearsAscending = MutableStateFlow(false)
+    private val countriesAscending = MutableStateFlow(true)
 
-    val uiState: StateFlow<BrowseUiState> = combine(repository.coins, mode) { coins, currentMode ->
+    val uiState: StateFlow<BrowseUiState> = combine(
+        repository.coins,
+        mode,
+        yearsAscending,
+        countriesAscending,
+    ) { coins, currentMode, yearsAsc, countriesAsc ->
         val owned = fakeOwnedIds(coins)
         BrowseUiState(
             mode = currentMode,
+            yearsAscending = yearsAsc,
+            countriesAscending = countriesAsc,
             years = coins
                 .groupBy { it.anno }
-                .toSortedMap(compareByDescending { it })
+                .toSortedMap(if (yearsAsc) naturalOrder() else reverseOrder())
                 .map { (year, list) -> YearCardData(year, list.progress(owned)) },
             countries = coins
                 .groupBy { it.paese }
@@ -49,11 +62,19 @@ class BrowseViewModel(repository: CoinRepository) : ViewModel() {
                         progress = list.progress(owned),
                     )
                 }
-                .sortedBy { it.name },
+                .let { list -> if (countriesAsc) list.sortedBy { it.name } else list.sortedByDescending { it.name } },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState())
 
     fun onModeChange(newMode: BrowseMode) {
         mode.value = newMode
+    }
+
+    fun toggleYearsOrder() {
+        yearsAscending.value = !yearsAscending.value
+    }
+
+    fun toggleCountriesOrder() {
+        countriesAscending.value = !countriesAscending.value
     }
 }

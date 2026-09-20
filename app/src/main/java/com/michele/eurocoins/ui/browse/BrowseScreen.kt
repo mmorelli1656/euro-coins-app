@@ -4,14 +4,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,6 +30,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -74,15 +80,26 @@ fun BrowseScreen(
             )
 
             when (state.mode) {
-                BrowseMode.YEARS -> CardGrid {
+                BrowseMode.YEARS -> Column {
+                    SortChip(
+                        label = if (state.yearsAscending) "Oldest first" else "Newest first",
+                        onClick = viewModel::toggleYearsOrder,
+                    )
+                    CardGrid(resetScrollKey = state.yearsAscending) {
                     items(state.years, key = { it.year }) { card ->
                         BrowseCard(onClick = { onYearClick(card.year) }) {
                             Text(card.year.toString(), style = MaterialTheme.typography.headlineMedium)
                             CardFooter(card.progress)
                         }
                     }
+                    }
                 }
-                BrowseMode.COUNTRIES -> CardGrid {
+                BrowseMode.COUNTRIES -> Column {
+                    SortChip(
+                        label = if (state.countriesAscending) "A → Z" else "Z → A",
+                        onClick = viewModel::toggleCountriesOrder,
+                    )
+                    CardGrid(resetScrollKey = state.countriesAscending) {
                     items(state.countries, key = { it.paese }) { card ->
                         BrowseCard(onClick = { onCountryClick(card.paese) }) {
                             Text(card.flag, fontSize = 34.sp)
@@ -94,10 +111,24 @@ fun BrowseScreen(
                             CardFooter(card.progress)
                         }
                     }
+                    }
                 }
                 BrowseMode.ALL -> CoinListContent(viewModel = allCoinsViewModel, onCoinClick = onCoinClick)
             }
         }
+    }
+}
+
+/** Chip che mostra l'ordinamento corrente; un tocco lo inverte. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SortChip(label: String, onClick: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
+        AssistChip(
+            onClick = onClick,
+            label = { Text(label) },
+            leadingIcon = { Icon(Icons.Filled.SwapVert, contentDescription = "Reverse order", modifier = Modifier.size(18.dp)) },
+        )
     }
 }
 
@@ -130,8 +161,16 @@ private fun ModeSelector(
 }
 
 @Composable
-private fun CardGrid(content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit) {
+private fun CardGrid(
+    resetScrollKey: Any,
+    content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit,
+) {
+    // Cambiando l'ordine le card mantengono la loro chiave, quindi la griglia
+    // resterebbe scorsa "a metà" sulla nuova sequenza: si riparte dall'inizio.
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(resetScrollKey) { gridState.scrollToItem(0) }
     LazyVerticalGrid(
+        state = gridState,
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),

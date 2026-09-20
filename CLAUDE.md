@@ -80,7 +80,7 @@ app/src/main/java/com/michele/eurocoins/
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
 Countries / All) → `CoinListScreen` filtrato per anno o paese (`CoinFilter`)
 → `CoinDetailScreen`. Years e Countries sono griglie di card; "All" è
-l'elenco completo con ricerca. La tile "Circulation" della home è
+l'elenco completo con ricerca. Years e Countries hanno un chip che inverte l'ordine (Years: dal più recente / dal 2004; Countries: A → Z / Z → A) e la griglia torna in cima a ogni inversione. La tile "Circulation" della home è
 tratteggiata e senza azione finché la pipeline non produce quel dataset.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
