@@ -79,7 +79,7 @@ app/src/main/java/com/michele/eurocoins/
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── components/           # CollectionProgressBar (barra "x / y collected")
+    ├── components/           # CollectionProgressBar, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / circolanti)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter) + ricerca
@@ -90,7 +90,7 @@ app/src/main/java/com/michele/eurocoins/
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
 Countries / All) → `CoinListScreen` filtrato per anno o paese (`CoinFilter`)
 → `CoinDetailScreen`. Years e Countries sono griglie di card; "All" è
-l'elenco completo con ricerca. Years e Countries hanno un chip che inverte l'ordine (Years: dal più recente / dal 2004; Countries: A → Z / Z → A) e la griglia torna in cima a ogni inversione. La tile "Circulation" della home è
+l'elenco completo. **Barra flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia torna in cima a ogni inversione d'ordine. La tile "Circulation" della home è
 tratteggiata e senza azione finché la pipeline non produce quel dataset.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
@@ -129,8 +129,47 @@ Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
   `CoinDatabase.kt`), mai `fallbackToDestructiveMigration`: distruggerebbe
   anche la collezione dell'utente. Il SQL della migrazione deve coincidere con
   quello generato da Room (`build/generated/ksp/.../CoinDatabase_Impl.kt`).
-- Non ancora fatto: backup/esportazione della collezione, note libere,
-  data di acquisto, valuta diversa dall'euro.
+- Non ancora fatto: note libere, data di acquisto, valuta diversa
+  dall'euro, export CSV.
+
+### Backup su Google Drive
+
+Schermata "Backup" (icona profilo in alto a destra nella home: icona
+generica senza accesso, cerchio con l'iniziale dell'account con l'accesso
+fatto): login con Google (Credential Manager) e backup/ripristino della
+collezione su Drive.
+
+- **UI** (`BackupScreen`): senza accesso una card d'invito + "Sign in with
+  Google"; con l'accesso l'email, una card di stato in evidenza ("Collection
+  saved" + data dell'ultimo backup, o "Not backed up yet", con barra di
+  avanzamento durante le operazioni), i pulsanti Back up / Restore e in fondo
+  "Sign out" (bordo e testo bronzo, l'accento secondario). Lo stato non
+  dice "up to date": confrontare backup e collezione locale non è
+  implementato, quindi non lo si afferma.
+- **Banner "Go Pro"** (rimozione pubblicità, colore bronzo): oggi solo
+  segnaposto, il tocco apre un avviso "coming soon". Non esistono ancora
+  Play Billing, AdMob né consenso GDPR (UMP); l'app non è pubblica. Quando
+  ci saranno: acquisto dal banner, banner nascosto per gli utenti Pro.
+
+- **Formato**: un unico JSON versionato (`BackupFile`, `schemaVersion`) con
+  le voci di `collection_items`, agganciate a `coinKey` (= `stableKey`) —
+  mai il catalogo. JSON e non CSV perché deve poter crescere (note, data di
+  acquisto) senza rompere i backup vecchi.
+- **Storage**: cartella `appDataFolder` di Drive (scope `drive.appdata`):
+  privata e nascosta, l'app non vede altri file dell'utente. Un solo file
+  (`euro-coins-collection.json`), ogni backup lo sovrascrive. Chiamate REST
+  dirette in `DriveBackupClient` (nessuna libreria client Google).
+- **Ripristino = sostituzione** della collezione locale
+  (`CollectionDao.replaceAll`), con dialog di conferma.
+- **Login** in due passaggi distinti: identità (`signIn`) e autorizzazione
+  Drive (`authorizeDrive`, con schermata di consenso la prima volta).
+- **Configurazione richiesta** (non versionata): `google.webClientId=...`
+  in `local.properties` (client OAuth "Web application"), più un client
+  OAuth "Android" nella stessa Google Cloud Console con package
+  `com.michele.eurocoins` e lo SHA-1 della chiave di firma. Senza client ID
+  la schermata lo segnala e il login resta disabilitato.
+- Codice in `data/backup/` (`BackupFile`, `GoogleAccountManager`,
+  `DriveBackupClient`, `BackupService`) e `ui/backup/`.
 
 ## Lingua
 

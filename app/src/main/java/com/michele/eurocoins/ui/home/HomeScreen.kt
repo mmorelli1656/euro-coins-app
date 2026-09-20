@@ -15,7 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -46,11 +50,22 @@ import com.michele.eurocoins.ui.components.CollectionProgressBar
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: HomeViewModel, onCommemorativeClick: () -> Unit) {
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    /** Iniziale dell'account Google collegato, null se non ha fatto l'accesso. */
+    accountInitial: String?,
+    onCommemorativeClick: () -> Unit,
+    onProfileClick: () -> Unit,
+) {
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.app_name)) },
+                actions = { ProfileButton(accountInitial, onProfileClick) },
+            )
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -71,6 +86,26 @@ fun HomeScreen(viewModel: HomeViewModel, onCommemorativeClick: () -> Unit) {
                     .weight(1f)
                     .fillMaxWidth(),
             )
+        }
+    }
+}
+
+/** Icona profilo: cerchio con l'iniziale se l'utente ha fatto l'accesso, altrimenti l'icona generica. */
+@Composable
+private fun ProfileButton(initial: String?, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        if (initial == null) {
+            Icon(Icons.Filled.AccountCircle, contentDescription = "Profile and backup", modifier = Modifier.size(32.dp))
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(initial, color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }

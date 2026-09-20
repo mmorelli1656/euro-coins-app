@@ -16,6 +16,19 @@ abstract class CollectionDao {
     @Query("SELECT * FROM collection_items WHERE coinKey = :coinKey")
     abstract suspend fun itemsFor(coinKey: String): List<CollectionItem>
 
+    @Query("SELECT * FROM collection_items")
+    abstract suspend fun getAll(): List<CollectionItem>
+
+    @Query("DELETE FROM collection_items")
+    abstract suspend fun deleteAll()
+
+    /** Sostituisce l'intera collezione (ripristino da backup) in un'unica transazione. */
+    @Transaction
+    open suspend fun replaceAll(items: List<CollectionItem>) {
+        deleteAll()
+        insertAll(items)
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertAll(items: List<CollectionItem>)
 

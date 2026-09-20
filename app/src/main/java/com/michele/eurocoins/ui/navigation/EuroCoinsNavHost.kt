@@ -11,6 +11,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.backup.BackupService
+import com.michele.eurocoins.data.backup.GoogleAccountManager
+import com.michele.eurocoins.ui.backup.BackupScreen
+import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
@@ -23,6 +27,7 @@ import com.michele.eurocoins.ui.list.CoinListViewModel
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_BROWSE = "browse"
+private const val ROUTE_BACKUP = "backup"
 private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ARG_KIND = "kind"
@@ -33,7 +38,11 @@ private const val KIND_YEAR = "year"
 private const val KIND_COUNTRY = "country"
 
 @Composable
-fun EuroCoinsNavHost(repository: CoinRepository) {
+fun EuroCoinsNavHost(
+    repository: CoinRepository,
+    backupService: BackupService,
+    accountManager: GoogleAccountManager,
+) {
     val navController = rememberNavController()
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
@@ -43,10 +52,20 @@ fun EuroCoinsNavHost(repository: CoinRepository) {
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory { initializer { HomeViewModel(repository) } },
             )
+            // Riletto a ogni rientro nella home: dopo login/logout dalla schermata Backup l'icona si aggiorna.
+            val account = accountManager.currentAccount()
             HomeScreen(
                 viewModel = viewModel,
+                accountInitial = account?.let { (it.displayName ?: it.email).firstOrNull()?.uppercase() },
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
+                onProfileClick = { navController.navigate(ROUTE_BACKUP) },
             )
+        }
+        composable(ROUTE_BACKUP) {
+            val viewModel: BackupViewModel = viewModel(
+                factory = viewModelFactory { initializer { BackupViewModel(backupService, accountManager) } },
+            )
+            BackupScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
         }
         composable(ROUTE_BROWSE) {
             val browseViewModel: BrowseViewModel = viewModel(
@@ -85,6 +104,7 @@ fun EuroCoinsNavHost(repository: CoinRepository) {
             )
             CoinListScreen(
                 viewModel = viewModel,
+                filter = filter,
                 onCoinClick = ::openDetail,
                 onBack = { navController.popBackStack() },
             )

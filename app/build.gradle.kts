@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -19,6 +21,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // ID client OAuth "Web application" della Google Cloud Console, letto da
+        // local.properties (non versionato): google.webClientId=xxxx.apps.googleusercontent.com
+        // Vuoto = il login Google resta disabilitato e la UI lo segnala.
+        val webClientId = rootProject.file("local.properties")
+            .takeIf { it.exists() }
+            ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+            ?.getProperty("google.webClientId")
+            .orEmpty()
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$webClientId\"")
     }
 
     buildTypes {
@@ -34,6 +46,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -63,6 +76,15 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.kotlinx.serialization.json)
+
+    // Backdrop blur ("vetro") della barra di ricerca flottante
+    implementation(libs.haze)
+
+    // Login Google (Credential Manager) + autorizzazione Drive per il backup
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.google.id)
+    implementation(libs.play.services.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

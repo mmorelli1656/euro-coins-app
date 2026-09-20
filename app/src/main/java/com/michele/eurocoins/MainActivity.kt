@@ -15,12 +15,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val repository = (application as EuroCoinsApplication).repository
+        val app = application as EuroCoinsApplication
 
         setContent {
             EuroCoinsTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    EuroCoinsNavHost(repository = repository)
+                    EuroCoinsNavHost(
+                        repository = app.repository,
+                        backupService = app.backupService,
+                        accountManager = app.accountManager,
+                    )
                 }
             }
         }
