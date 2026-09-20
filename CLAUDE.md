@@ -49,6 +49,10 @@ resta interamente nella pipeline.
 - Coil 3 (`coil3.compose.AsyncImage`) per il caricamento immagini on-demand
 - kotlinx.serialization per il parsing di `coins.json`
 - Navigation Compose per la navigazione tra schermate
+- Haze (`dev.chrisbanes.haze`) per il blur reale della barra flottante
+- Credential Manager + Play Services Auth per il login Google del backup; Drive
+  via REST diretto (nessuna libreria client Google)
+- Coil con `coil-network-okhttp` (Coil 3 non include il client di rete)
 - minSdk 26, target/compileSdk 37, AGP 9.4.0, Gradle 9.6.0 — stessi valori
   usati in BtAuto, per coerenza tra i progetti Android di questa macchina
 
@@ -75,16 +79,19 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinKey.kt            # Coin.stableKey — chiave stabile per la collezione
 │   ├── CoinQuality.kt        # Standard / BU / Proof
 │   ├── CollectionItem.kt     # @Entity: moneta posseduta in una qualità
-│   └── CollectionDao.kt
+│   ├── CollectionDao.kt
+│   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── components/           # CollectionProgressBar, FloatingSearchBar (vetro/Haze), FilterSheet
+    ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
+    │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / circolanti)
     ├── browse/               # commemorative: Years / Countries / All
-    ├── list/                 # elenco filtrato (CoinFilter) + ricerca
+    ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
+    ├── backup/               # schermata Backup (login Google, backup/ripristino su Drive)
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
-    └── navigation/           # home -> browse -> lista filtrata -> dettaglio
+    └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> backup
 ```
 
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
@@ -95,6 +102,18 @@ tratteggiata e senza azione finché la pipeline non produce quel dataset.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
 hanno spazi/accenti.
+
+### Home
+
+Due tile che si dividono l'altezza dello schermo (non due card piccole con
+spazio vuoto: era una critica esplicita). **Commemorative**: mosaico 3×3 di
+monete reali (9 paesi diversi, prese dal database), titolo, "499 coins · 24
+countries", intervallo di anni e barra "x / y collected" — tutti numeri
+calcolati dal database, nessun valore scritto a mano. **Circulation**:
+tratteggiata, "Coming soon", senza azione. La home è anche dove parte il
+seeding del database (`HomeViewModel` chiama `ensureSeeded()`; il Mutex nel
+repository evita il doppio inserimento se più ViewModel lo chiamano). In alto
+a destra l'icona profilo porta alla schermata Backup.
 
 ## Collezione utente
 
@@ -239,6 +258,113 @@ lingua da servire.
   script (`scripts/validate_image_links.py`) che controlla periodicamente
   se qualcuno dei 495 URL è morto, per distinguere "capita raramente in
   rete" da "gap permanente nei dati" prima di documentarlo in NOTES.md.
+- **`note_storiche` non contiene più la frase "Issue date"/"Data di
+  emissione"**: la pipeline la aggiungeva in coda alla descrizione, è stata
+  tolta del tutto. Il mese di emissione esiste come `issuing_date_raw` durante
+  lo scraping ma non è salvato in nessun campo: se serve (es. ordinare dentro
+  un anno) va aggiunto come campo dedicato nella pipeline, non reinserito nel
+  testo libero.
+- **Tutti i 495 URL immagine erano raggiungibili** (controllo con
+  `scripts/validate_image_links.py`, settembre 2026): i "buchi" visibili nell'app
+  sono le 4 monete Vaticano non ancora pubblicate, non link morti.
+- Il numero di monete per paese/anno mostrato nelle card è quello del
+  database, mai un valore fisso nel codice.
+
+## Convenzioni di lavoro
+
+- **Lingua**: commenti/KDoc, `CLAUDE.md` e messaggi di commit in italiano; testi
+  mostrati dall'app in inglese (vedi § Lingua).
+- **Commit**: messaggi lunghi che spiegano il *perché* e le alternative scartate,
+  con il trailer `Co-Authored-By`. Progetto personale: si pubblica direttamente
+  su `main`.
+- **Più sessioni Claude lavorano su questo repo insieme** (una per funzione:
+  collezione, ricerca/filtri, backup). Regole per non sovrascriversi, imparate
+  a caro prezzo (`CollectionDao` toccato da due chat contemporaneamente):
+  - lavorare in un `git worktree` su un ramo dedicato se altre chat hanno lavoro
+    non committato nella cartella principale;
+  - committare **solo i propri file**, mai `git add -A` in un albero condiviso
+    (porta dentro il lavoro a metà degli altri); per un file toccato da due chat
+    si prepara la propria versione e la si mette in stage a parte
+    (`git hash-object -w` + `git update-index --cacheinfo`);
+  - non pubblicare commit non propri senza chiedere;
+  - se l'albero contiene lavoro altrui, verificare che il proprio commit compili
+    da solo costruendo una copia pulita di `HEAD` (worktree) prima del push;
+  - file di contesto come questo si modificano con un commit breve e mirato
+    (`git commit CLAUDE.md`), perché tutte le chat lo aggiornano.
+
+## Verifica su emulatore e telefono
+
+Non descritta nei file di build, utile per non rifare gli stessi giri:
+
+- **Emulatore**: AVD `euro_coins_test` (Pixel 6, Android 15 / API 35,
+  `google_apis` x86_64), creato con i `cmdline-tools` installati in
+  `%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest`. Avvio senza finestra:
+  `emulator -avd euro_coins_test -no-window -no-audio -gpu swiftshader_indirect -no-snapshot`;
+  attendere `sys.boot_completed`.
+- **L'emulatore è rumoroso, non l'app**: l'immagine `google_apis` carica in
+  background l'intera suite Google e produce dialoghi "X isn't responding"
+  (Pixel Launcher, System UI, a volte anche Euro Coins) che bloccano i tocchi.
+  Verificato con la traccia ANR (`/data/anr`): il thread principale era fermo
+  nel `Looper`, senza codice dell'app in esecuzione. Con `adb root` +
+  `adb shell settings put global hide_error_dialogs 1` non compaiono più. Sul
+  telefono reale l'app è fluida: il lag visto all'inizio era dell'emulatore.
+- Dopo l'installazione il primo avvio è lento (fino a un paio di minuti): la home
+  mostra "0 coins" finché il database non risponde. Non è un errore.
+- **Coordinate dei tocchi**: gli screenshot letti dagli strumenti possono essere
+  ridotti (900×2000 invece di 1080×2400): moltiplicare per 1.2 prima di
+  `adb shell input tap`.
+- **adb**: se compare "server version (32) doesn't match this client (41)",
+  `adb kill-server` + `adb start-server` e ritentare l'install in ciclo.
+- **Migrazioni e ripopolamento**: si verificano installando la nuova build *sopra*
+  una vecchia con il database già popolato (`adb install -r`), non su dati
+  vuoti — è lo scenario reale del telefono. I dati dell'utente sopravvivono
+  all'aggiornamento; controllare sempre che le monete restino 499, non 998.
+- **Telefono**: debug USB attivo. Con lo schermo bloccato lo screenshot è nero: non
+  sbloccarlo da script.
+- **Build da Git Bash**: `JAVA_HOME` sul JBR di Android Studio
+  (`C:\Program Files\Android\Android Studio\jbr`) e
+  `./gradlew.bat --offline :app:assembleDebug`. Senza `JAVA_HOME` lo stub Oracle
+  su `PATH` fa fallire `gradlew.bat`.
+
+## Decisioni di prodotto già prese (con il perché)
+
+- **Registrare una moneta** = una casella accanto a ogni moneta + pannello dal
+  basso con Standard/BU/Proof e prezzo. Scartati: chip nel dettaglio (troppo
+  nascosto) e tre caselle S/B/P in ogni riga (bersagli minuscoli, e mostrerebbe
+  BU/Proof anche dove non esistono).
+- **Barre di avanzamento** sulle card: parte del progetto dall'inizio, ora
+  collegate alla collezione vera.
+- **Catalogo per anno/paese** = griglie di card con selettore Years / Countries /
+  All, non una lista con etichette di sezione (bocciata: "restava sempre una
+  lista").
+- **Immagini in hotlink** dalla fonte BCE con cache locale, mai ospitate
+  (licenza "copyright zecca emittente, uso editoriale"): con attribuzione sempre
+  visibile e link alla fonte.
+- **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
+
+## Backlog e decisioni aperte
+
+Nella **pipeline dati** (repo separato, va fatto lì):
+- **Id stabile per moneta** emesso dalla pipeline: sostituirebbe `Coin.stableKey`
+  (che si rompe se un `tema` viene corretto). Al momento del cambio va migrata
+  la collezione esistente (mappa chiave vecchia → id).
+- **Tirature per qualità** (circolazione / BU / proof): oggi `tiratura` è un solo
+  numero. Prima verificare se una fonte pubblica il dato; poi lo schema. Quando
+  esisterà, l'app può nascondere le qualità che una moneta non ha (ora mostra
+  sempre le tre).
+- **Emissioni comuni dell'Eurozona** (5 escluse dal dataset): serve una decisione di
+  schema su `ZeccaEmittente` (valore dedicato o campo opzionale), poi
+  distinguerle in modo evidente nell'app. Vedi `NOTES.md` nella pipeline.
+- Mese di emissione come campo dedicato; meccanismo per "supplementi manuali
+  verificati" se emergono altri gap oltre San Marino 2012.
+
+Nell'**app**:
+- Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
+- Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
+  export CSV.
+- Confronto backup ↔ collezione locale (oggi lo stato non dice "up to date").
+- Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
+  segnaposto "Go Pro".
 
 ## Setup
 
