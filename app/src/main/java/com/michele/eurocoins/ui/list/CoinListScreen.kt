@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,15 +21,15 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MonetizationOn
-import androidx.compose.material.icons.filled.Search
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
+
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -50,15 +51,20 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CollectionSheet
+import com.michele.eurocoins.ui.components.floatingBarClearance
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoinListScreen(
     viewModel: CoinListViewModel,
+    filter: CoinFilter,
     onCoinClick: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val hazeState = remember { HazeState() }
 
     Scaffold(
         topBar = {
@@ -72,19 +78,36 @@ fun CoinListScreen(
             )
         },
     ) { padding ->
-        CoinListContent(
-            viewModel = viewModel,
-            onCoinClick = onCoinClick,
-            modifier = Modifier.padding(padding),
-        )
+        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+            CoinListContent(
+                viewModel = viewModel,
+                onCoinClick = onCoinClick,
+                hazeState = hazeState,
+            )
+            CoinListSearchBar(
+                viewModel = viewModel,
+                placeholder = when (filter) {
+                    CoinFilter.All -> "Search by year or theme…"
+                    is CoinFilter.Year -> "Search by theme…"
+                    is CoinFilter.Country -> "Search by year or theme…"
+                },
+                hazeState = hazeState,
+            )
+        }
     }
 }
 
-/** Ricerca + conteggio + elenco: riusato dalle liste filtrate (anno/paese) e dalla scheda "All". */
+/**
+ * Conteggio + elenco: riusato dalle liste filtrate (anno/paese) e dalla
+ * scheda "All". La barra di ricerca è a parte ([CoinListSearchBar]) e
+ * galleggia sopra: l'elenco è la sorgente del vetro ([hazeState]) e lascia
+ * spazio in fondo perché l'ultima moneta non resti coperta.
+ */
 @Composable
 fun CoinListContent(
     viewModel: CoinListViewModel,
     onCoinClick: (Long) -> Unit,
+    hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -102,38 +125,26 @@ fun CoinListContent(
         )
     }
 
-    Column(modifier = modifier) {
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = viewModel::onQueryChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            placeholder = { Text("Search by country or theme…") },
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-            singleLine = true,
-            colors = TextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-            ),
-        )
-
-        Text(
-            text = "${state.coins.size} coins" + if (state.query.isNotBlank()) " found" else "",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-        )
-
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(state.coins, key = { it.id }) { coin ->
-                CoinRow(
-                    coin = coin,
-                    owned = coin.stableKey in state.collection,
-                    onClick = { onCoinClick(coin.id) },
-                    onEditCollection = { editing = coin },
-                )
-            }
+    val filtering = state.query.isNotBlank() || state.options.isActive
+    LazyColumn(
+        modifier = modifier.fillMaxSize().hazeSource(hazeState),
+        contentPadding = PaddingValues(bottom = floatingBarClearance()),
+    ) {
+        item {
+            Text(
+                text = "${state.coins.size} coins" + if (filtering) " found" else "",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+        items(state.coins, key = { it.id }) { coin ->
+            CoinRow(
+                coin = coin,
+                owned = coin.stableKey in state.collection,
+                onClick = { onCoinClick(coin.id) },
+                onEditCollection = { editing = coin },
+            )
         }
     }
 }

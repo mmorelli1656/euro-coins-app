@@ -1,12 +1,11 @@
 package com.michele.eurocoins.ui.browse
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,7 +14,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,24 +25,35 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.Progress
+import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.CollectionProgressBar
+import com.michele.eurocoins.ui.components.FilterSheet
+import com.michele.eurocoins.ui.components.FloatingSearchBar
+import com.michele.eurocoins.ui.components.floatingBarClearance
 import com.michele.eurocoins.ui.list.CoinListContent
+import com.michele.eurocoins.ui.list.CoinListSearchBar
 import com.michele.eurocoins.ui.list.CoinListViewModel
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 /**
  * Catalogo commemorative: un selettore Years / Countries / All. Years e
  * Countries sono griglie di card (un tocco apre la lista filtrata), All è
- * l'elenco completo con ricerca.
+ * l'elenco completo. In basso una barra flottante di ricerca + FILTER (che
+ * contiene anche l'ordinamento) cambia contenuto con la scheda.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,6 +66,8 @@ fun BrowseScreen(
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
+    val hazeState = remember { HazeState() }
+    var showFilters by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -67,67 +78,126 @@ fun BrowseScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
-                // L'ordine ha senso solo per le griglie: nella scheda "All"
-                // (elenco cronologico con ricerca) il pulsante non c'è.
-                actions = {
-                    when (state.mode) {
-                        BrowseMode.YEARS -> SortAction(
-                            label = if (state.yearsAscending) "Oldest first" else "Newest first",
-                            onClick = viewModel::toggleYearsOrder,
-                        )
-                        BrowseMode.COUNTRIES -> SortAction(
-                            label = if (state.countriesAscending) "A → Z" else "Z → A",
-                            onClick = viewModel::toggleCountriesOrder,
-                        )
-                        BrowseMode.ALL -> Unit
-                    }
-                },
             )
         },
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-            ModeSelector(
-                selected = state.mode,
-                onSelected = viewModel::onModeChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+            Column {
+                ModeSelector(
+                    selected = state.mode,
+                    onSelected = viewModel::onModeChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
 
+                when (state.mode) {
+                    BrowseMode.YEARS -> CardGrid(
+                        resetScrollKey = state.prefs.yearsAscending,
+                        hazeState = hazeState,
+                    ) {
+                        items(state.years, key = { it.year }) { card ->
+                            BrowseCard(onClick = { onYearClick(card.year) }) {
+                                Text(card.year.toString(), style = MaterialTheme.typography.headlineMedium)
+                                CardFooter(card.progress)
+                            }
+                        }
+                    }
+                    BrowseMode.COUNTRIES -> CardGrid(
+                        resetScrollKey = state.prefs.countriesAscending,
+                        hazeState = hazeState,
+                    ) {
+                        items(state.countries, key = { it.paese }) { card ->
+                            BrowseCard(onClick = { onCountryClick(card.paese) }) {
+                                Text(card.flag, fontSize = 34.sp)
+                                Text(
+                                    card.name,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                                CardFooter(card.progress)
+                            }
+                        }
+                    }
+                    BrowseMode.ALL -> CoinListContent(
+                        viewModel = allCoinsViewModel,
+                        onCoinClick = onCoinClick,
+                        hazeState = hazeState,
+                    )
+                }
+            }
+
+            // La scheda "All" ha la sua barra (query e filtri del suo ViewModel).
             when (state.mode) {
-                BrowseMode.YEARS -> CardGrid(resetScrollKey = state.yearsAscending) {
-                    items(state.years, key = { it.year }) { card ->
-                        BrowseCard(onClick = { onYearClick(card.year) }) {
-                            Text(card.year.toString(), style = MaterialTheme.typography.headlineMedium)
-                            CardFooter(card.progress)
-                        }
-                    }
-                }
-                BrowseMode.COUNTRIES -> CardGrid(resetScrollKey = state.countriesAscending) {
-                    items(state.countries, key = { it.paese }) { card ->
-                        BrowseCard(onClick = { onCountryClick(card.paese) }) {
-                            Text(card.flag, fontSize = 34.sp)
-                            Text(
-                                card.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.padding(top = 4.dp),
-                            )
-                            CardFooter(card.progress)
-                        }
-                    }
-                }
-                BrowseMode.ALL -> CoinListContent(viewModel = allCoinsViewModel, onCoinClick = onCoinClick)
+                BrowseMode.YEARS -> FloatingSearchBar(
+                    query = state.prefs.yearsQuery,
+                    onQueryChange = viewModel::setYearsQuery,
+                    placeholder = "Search by year…",
+                    filterActive = state.prefs.yearsFilterActive,
+                    onFilterClick = { showFilters = true },
+                    hazeState = hazeState,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                BrowseMode.COUNTRIES -> FloatingSearchBar(
+                    query = state.prefs.countriesQuery,
+                    onQueryChange = viewModel::setCountriesQuery,
+                    placeholder = "Search countries…",
+                    filterActive = state.prefs.countriesFilterActive,
+                    onFilterClick = { showFilters = true },
+                    hazeState = hazeState,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                BrowseMode.ALL -> CoinListSearchBar(
+                    viewModel = allCoinsViewModel,
+                    placeholder = "Search by year or theme…",
+                    hazeState = hazeState,
+                )
             }
         }
     }
-}
 
-/** Azione nella top bar: mostra l'ordine corrente, un tocco lo inverte. */
-@Composable
-private fun SortAction(label: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Icon(Icons.Filled.SwapVert, contentDescription = "Reverse order", modifier = Modifier.size(18.dp))
-        Text(label, modifier = Modifier.padding(start = 6.dp))
+    if (showFilters) {
+        when (state.mode) {
+            BrowseMode.YEARS -> FilterSheet(
+                onReset = viewModel::resetYears,
+                onDismiss = { showFilters = false },
+            ) {
+                ChoiceSection(
+                    title = "Sort by year",
+                    options = listOf(false, true),
+                    selected = state.prefs.yearsAscending,
+                    label = { if (it) "Oldest first" else "Newest first" },
+                    onSelect = viewModel::setYearsAscending,
+                )
+                ChoiceSection(
+                    title = "Collection",
+                    options = CompletionFilter.entries,
+                    selected = state.prefs.yearsCompletion,
+                    label = { it.label },
+                    onSelect = viewModel::setYearsCompletion,
+                )
+            }
+            BrowseMode.COUNTRIES -> FilterSheet(
+                onReset = viewModel::resetCountries,
+                onDismiss = { showFilters = false },
+            ) {
+                ChoiceSection(
+                    title = "Sort by name",
+                    options = listOf(true, false),
+                    selected = state.prefs.countriesAscending,
+                    label = { if (it) "A → Z" else "Z → A" },
+                    onSelect = viewModel::setCountriesAscending,
+                )
+                ChoiceSection(
+                    title = "Collection",
+                    options = CompletionFilter.entries,
+                    selected = state.prefs.countriesCompletion,
+                    label = { it.label },
+                    onSelect = viewModel::setCountriesCompletion,
+                )
+            }
+            BrowseMode.ALL -> Unit
+        }
     }
 }
 
@@ -162,6 +232,7 @@ private fun ModeSelector(
 @Composable
 private fun CardGrid(
     resetScrollKey: Any,
+    hazeState: HazeState,
     content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit,
 ) {
     // Cambiando l'ordine le card mantengono la loro chiave, quindi la griglia
@@ -171,8 +242,8 @@ private fun CardGrid(
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = floatingBarClearance()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
