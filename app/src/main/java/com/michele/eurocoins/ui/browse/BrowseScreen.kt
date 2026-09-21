@@ -27,6 +27,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
@@ -73,6 +74,7 @@ fun BrowseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = appBarColors(),
                 title = { Text("Commemorative") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

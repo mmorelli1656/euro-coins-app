@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 
 import androidx.compose.material3.TopAppBar
+import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
@@ -78,6 +80,7 @@ fun CoinListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
+                colors = appBarColors(),
                 title = { Text(state.title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -224,11 +227,19 @@ private fun CoinRow(
     onEditCollection: () -> Unit,
 ) {
     val hasImage = coin.hasImage()
+    // Una card per moneta (bianca, bordo da 1 dp, angoli 14 dp, 8 dp tra una e l'altra): senza
+    // card le righe stavano direttamente sul fondo e l'elenco risultava piatto, a differenza
+    // delle card di Years/Countries. Il tocco sulla card apre il dettaglio.
+    val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
-            .padding(start = 12.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
+            .padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Area di tocco 60dp attorno alla miniatura da 52dp: ingrandisce la foto.
@@ -252,6 +263,7 @@ private fun CoinRow(
             Text(
                 text = coin.tema,
                 style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

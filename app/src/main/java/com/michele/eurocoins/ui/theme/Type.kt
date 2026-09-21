@@ -8,23 +8,24 @@ import androidx.compose.ui.unit.sp
 
 // Serif per i titoli (richiama l'identità "catalogo numismatico" usata nel
 // report di riconciliazione della pipeline dati), sans di sistema per il
-// testo corrente dove conta la leggibilità.
+// testo corrente dove conta la leggibilità. Pesi alti (Bold/SemiBold) su titoli ed
+// etichette: un serif Medium risultava sottile e le schermate senza gerarchia.
 val EuroCoinsTypography = Typography(
     headlineMedium = TextStyle(
         fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.SemiBold,
+        fontWeight = FontWeight.Bold,
         fontSize = 26.sp,
         lineHeight = 32.sp,
     ),
     titleLarge = TextStyle(
         fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.Bold,
         fontSize = 21.sp,
         lineHeight = 27.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.Serif,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 17.sp,
         lineHeight = 22.sp,
     ),
@@ -42,7 +43,7 @@ val EuroCoinsTypography = Typography(
     ),
     labelLarge = TextStyle(
         fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
         lineHeight = 18.sp,
     ),

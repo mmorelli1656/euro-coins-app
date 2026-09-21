@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -82,8 +83,15 @@ fun FloatingSearchBar(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
-    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)
     val onSurface = MaterialTheme.colorScheme.onSurface
+    // Tema scuro: fondo molto opaco (0.94), altrimenti il solo blur lascia leggibile il testo
+    // chiaro che scorre sotto. Tema chiaro: la superficie quasi bianca sopra un fondo chiaro
+    // non lasciava vedere né il blur né il bordo; meno opaco di quello scuro (0.88) il vetro si vede ma il
+    // testo sotto non deve leggersi (0.72 era troppo trasparente); contorno scuro da 2 dp.
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.94f else 0.88f)
+    val borderColor = if (isDark) onSurface.copy(alpha = 0.15f) else onSurface.copy(alpha = 0.5f)
+    val borderWidth = if (isDark) 1.dp else 2.dp
     val focusManager = LocalFocusManager.current
 
     // Sollevamento sopra barra di navigazione o tastiera. Usa direttamente gli
@@ -114,7 +122,7 @@ fun FloatingSearchBar(
                     tints = listOf(HazeTint(glassTint))
                     noiseFactor = 0.06f
                 }
-                .border(BorderStroke(1.dp, onSurface.copy(alpha = 0.15f)), CircleShape),
+                .border(BorderStroke(borderWidth, borderColor), CircleShape),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(

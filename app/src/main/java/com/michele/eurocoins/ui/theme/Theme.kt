@@ -19,6 +19,8 @@ private val LightColors = lightColorScheme(
     surface = SurfaceLight,
     onSurface = InkLight,
     surfaceVariant = BackgroundLight,
+    secondaryContainer = LilacLight,
+    onSecondaryContainer = InkLight,
     onSurfaceVariant = InkLight,
     outline = OutlineLight,
 )
