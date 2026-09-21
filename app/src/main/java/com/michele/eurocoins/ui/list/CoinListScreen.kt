@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.key
@@ -127,10 +134,23 @@ fun CoinListContent(
         )
     }
 
+    var zoomed by remember { mutableStateOf<Coin?>(null) }
+    zoomed?.let { coin ->
+        CoinImageDialog(
+            coin = coin,
+            onDismiss = { zoomed = null },
+            onDetails = {
+                zoomed = null
+                onCoinClick(coin.id)
+            },
+        )
+    }
+
     val filtering = state.query.isNotBlank() || state.options.isActive
     // Stato nuovo a ogni cambio d'ordinamento: con le chiavi stabili la lista
     // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
     val listState = key(state.options.sort) { rememberLazyListState() }
+    PrefetchThumbnails(listState = listState, coins = state.coins)
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize().hazeSource(hazeState),
@@ -149,23 +169,81 @@ fun CoinListContent(
                 coin = coin,
                 owned = coin.stableKey in state.collection,
                 onClick = { onCoinClick(coin.id) },
+                onImageClick = { zoomed = coin },
                 onEditCollection = { editing = coin },
             )
         }
     }
 }
 
+/** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
+private val ThumbnailSize = 52.dp
+
+/** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
+private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
+
+/** Quante monete oltre l'ultima visibile precaricare mentre si scorre. */
+private const val PREFETCH_AHEAD = 24
+
+/**
+ * Scarica in anticipo le immagini delle monete appena sotto quelle visibili,
+ * così quando la riga arriva sullo schermo la foto è già nella cache su disco
+ * di Coil. Stessa dimensione della miniatura ([ThumbnailSize]) per riusare
+ * anche la cache in memoria. Ogni moneta si accoda una volta sola.
+ */
 @Composable
-private fun CoinRow(coin: Coin, owned: Boolean, onClick: () -> Unit, onEditCollection: () -> Unit) {
+private fun PrefetchThumbnails(listState: LazyListState, coins: List<Coin>) {
+    val context = LocalContext.current
+    val thumbPx = with(LocalDensity.current) { ThumbnailSize.roundToPx() }
+    val requested = remember { HashSet<Long>() }
+    LaunchedEffect(listState, coins) {
+        snapshotFlow {
+            val visible = listState.layoutInfo.visibleItemsInfo
+            // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
+            (visible.lastOrNull()?.index ?: 0)
+        }.collect { lastItem ->
+            val loader = SingletonImageLoader.get(context)
+            val from = (lastItem - 1).coerceAtLeast(0)
+            val to = (from + PREFETCH_AHEAD).coerceAtMost(coins.size)
+            for (i in from until to) {
+                val coin = coins[i]
+                val url = coin.urlImmagineFonte
+                if (coin.immaginePlaceholder || url == null || !requested.add(coin.id)) continue
+                loader.enqueue(ImageRequest.Builder(context).data(url).size(thumbPx).build())
+            }
+        }
+    }
+}
+
+@Composable
+private fun CoinRow(
+    coin: Coin,
+    owned: Boolean,
+    onClick: () -> Unit,
+    onImageClick: () -> Unit,
+    onEditCollection: () -> Unit,
+) {
+    val hasImage = coin.hasImage()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = 12.dp, end = 16.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CoinThumbnail(coin)
-        Column(modifier = Modifier.padding(start = 14.dp).weight(1f)) {
+        // Area di tocco 60dp attorno alla miniatura da 52dp: ingrandisce la foto.
+        // Senza foto (non ancora pubblicata) non c'è nulla da ingrandire: il tocco
+        // resta quello della riga.
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .then(if (hasImage) Modifier.clickable(onClick = onImageClick) else Modifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            CoinThumbnail(coin)
+        }
+        Column(modifier = Modifier.padding(start = 10.dp).weight(1f)) {
             Text(
                 text = "${coin.displayCountry()} · ${coin.anno}",
                 style = MaterialTheme.typography.labelLarge,
@@ -220,10 +298,10 @@ private fun CollectionBox(owned: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun CoinThumbnail(coin: Coin) {
-    val hasImage = !coin.immaginePlaceholder && coin.urlImmagineFonte != null
+    val hasImage = coin.hasImage()
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(ThumbnailSize)
             .aspectRatio(1f)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.secondaryContainer),
