@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.key
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -126,7 +128,11 @@ fun CoinListContent(
     }
 
     val filtering = state.query.isNotBlank() || state.options.isActive
+    // Stato nuovo a ogni cambio d'ordinamento: con le chiavi stabili la lista
+    // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
+    val listState = key(state.options.sort) { rememberLazyListState() }
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize().hazeSource(hazeState),
         contentPadding = PaddingValues(bottom = floatingBarClearance()),
     ) {

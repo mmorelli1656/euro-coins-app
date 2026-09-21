@@ -27,7 +27,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -237,8 +237,9 @@ private fun CardGrid(
 ) {
     // Cambiando l'ordine le card mantengono la loro chiave, quindi la griglia
     // resterebbe scorsa "a metà" sulla nuova sequenza: si riparte dall'inizio.
-    val gridState = rememberLazyGridState()
-    LaunchedEffect(resetScrollKey) { gridState.scrollToItem(0) }
+    // Stato ricreato nella stessa composizione (non con un LaunchedEffect, che
+    // arriva un frame dopo e lascia un fotogramma con l'ordine nuovo scorso a metà).
+    val gridState = key(resetScrollKey) { rememberLazyGridState() }
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
