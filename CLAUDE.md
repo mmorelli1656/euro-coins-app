@@ -84,7 +84,7 @@ app/src/main/java/com/michele/eurocoins/
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
+    ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo), ThemeModePill,
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / circolanti)
     ├── browse/               # commemorative: Years / Countries / All
@@ -373,6 +373,17 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile (causa non chiarita). Solo icona di errore.
+- **Tema: pillola Light / Dark / Auto nella barra della home** (accanto al
+  profilo), Auto predefinito = segue il telefono. `ThemePreference` salva la
+  scelta in SharedPreferences (`theme`); `MainActivity` riapplica
+  `enableEdgeToEdge` a ogni cambio (altrimenti le icone delle barre di sistema
+  seguono il tema del telefono e spariscono con un tema forzato). Scartati:
+  selettore in Backup (nascosto), pillola a due stati (non si tornerebbe a
+  "segui il telefono"). L'ordine è Light, Dark, Auto per scelta dell'utente.
+- **Contrasto nel tema chiaro**: fondo `E4E1D2`, outline `C9C4AE`, card `FFFDF8`
+  con bordo da 1 dp (rapporto ~1.29; prima ~1.13 e le card si confondevano
+  con lo sfondo). L'outline è anche traccia delle barre di avanzamento.
+  Il tema scuro non è stato toccato.
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 
 ## Backlog e decisioni aperte
@@ -395,15 +406,12 @@ Nell'**app**:
 - Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
-- **Interruttore del tema** (Sistema / Chiaro / Scuro, default Sistema): oggi
-  `ui/theme/Theme.kt` segue solo `isSystemInDarkTheme()`. Da mettere sotto
-  Backup (non esiste una schermata Impostazioni) e salvare in SharedPreferences.
-  Prima di decidere il colore della card del dettaglio.
 - **Card bianca pura nel dettaglio** al posto del viola (mockup fatto, non
   implementato): lo sfondo delle foto è bianco puro, quindi la moneta sembra
   appoggiata senza riquadro. Dubbio aperto: nel tema scuro sarebbe molto
   luminosa; usare `Color.White` fisso, non un colore del tema (il bianco crema
-  delle card mostrerebbe un bordo). Da valutare dopo lo switch del tema.
+  delle card mostrerebbe un bordo). Ora che la pillola del tema c'è, si può
+  valutare guardando entrambi i temi.
 - **Miniature nell'APK (WebP, ~3-6 KB l'una)** invece di scaricare le foto BCE:
   darebbe elenco istantaneo e offline, ma sono copie di immagini con licenza
   "uso editoriale": chiarire prima il permesso con la BCE (serve prima di
