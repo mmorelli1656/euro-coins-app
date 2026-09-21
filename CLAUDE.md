@@ -218,13 +218,17 @@ lingua da servire.
   `zeccaEmittente` restano nell'entity Room e nella ricerca (come
   fallback, insieme a `zeccaRaw`) per compatibilità con lo schema
   pydantic della pipeline, ma non vengono più renderizzati direttamente.
-- `licenzaImmagine` resta invece un **valore italiano** mostrato verbatim
-  (es. `"Copyright zecca emittente (uso editoriale)"`): a differenza del
-  nome paese, per questo campo la pipeline non salva un testo originale
-  in inglese da cui attingere, quindi tradurlo qui richiederebbe
-  costruire una mappa italiano→inglese duplicata rispetto all'enum
-  `LicenzaImmagine` della pipeline, che si disallineerebbe silenziosamente
-  ad ogni nuovo valore aggiunto là. Non lo facciamo.
+- **Licenza dell'immagine → `Coin.displayImageLicense()`
+  ([ImageLicenseNames.kt](app/src/main/java/com/michele/eurocoins/data/ImageLicenseNames.kt))**,
+  non `licenzaImmagine` direttamente. La pipeline salva un valore **italiano**
+  (enum `LicenzaImmagine`) e, a differenza del nome paese, non conserva un
+  originale inglese: la mappa è quindi una traduzione nostra (oggi solo 2 valori:
+  495 monete "Copyright zecca emittente (uso editoriale)" → "Copyright of the
+  issuing mint (editorial use)", 4 "Sconosciuta - da verificare" → "Unknown, to
+  be verified"). Prima non la facevamo per il rischio di disallineamento con
+  l'enum; il ripiego sul testo originale lo copre (un valore nuovo compare in
+  italiano, si nota e si aggiunge una riga). Soluzione definitiva: la pipeline
+  emette anche il testo inglese.
 - **Se in futuro serve l'italiano come lingua dei contenuti**, arriverà come
   dato aggiuntivo dalla pipeline (una nuova fonte/campo), non come
   traduzione automatica del dataset esistente — vedi il commento su
@@ -363,9 +367,12 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   controllati: 270×270, ~100-260 KB), con sfondo **bianco puro** (255,255,255)
   e senza trasparenza. Conseguenze: nell'elenco pesano molto per un cerchio da
   52 dp (da qui il precaricamento); WebP non serve finché non le serviamo noi.
-- **Foto della moneta = quadrato bianco con angoli arrotondati** (16 dp),
-  nell'ingrandimento e nel dettaglio; nel dettaglio dentro una card viola
-  (angoli 24 dp). **Ritaglio a cerchio scartato**: le monete non sono centrate
+- **Foto della moneta**: nell'ingrandimento è un quadrato bianco con angoli
+  arrotondati (16 dp); nel dettaglio è in una **card bianca pura fissa**
+  (`Color.White`, angoli 24 dp, bordo 1 dp, senza secondo riquadro dentro): lo
+  sfondo delle foto è bianco puro, quindi la moneta sembra appoggiata sulla card.
+  Bianco FISSO e testi di fallback scuri fissi anche nel tema scuro (il bianco
+  crema di una card mostrerebbe il bordo della foto). **Ritaglio a cerchio scartato**: le monete non sono centrate
   né grandi uguale nelle foto e risultavano "storte", anche con zoom fisso o con
   un riquadro calcolato sui pixel non bianchi (provato su telefono). Non
   riprovarlo senza un dato migliore dalla pipeline (es. centro/raggio della
@@ -380,10 +387,36 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   seguono il tema del telefono e spariscono con un tema forzato). Scartati:
   selettore in Backup (nascosto), pillola a due stati (non si tornerebbe a
   "segui il telefono"). L'ordine è Light, Dark, Auto per scelta dell'utente.
-- **Contrasto nel tema chiaro**: fondo `E4E1D2`, outline `C9C4AE`, card `FFFDF8`
-  con bordo da 1 dp (rapporto ~1.29; prima ~1.13 e le card si confondevano
-  con lo sfondo). L'outline è anche traccia delle barre di avanzamento.
-  Il tema scuro non è stato toccato.
+- **Palette del tema chiaro: grigio-verde, non crema.** Il beige/crema faceva
+  sembrare tutto piatto e con poco contrasto tra card e fondo (rapporto ~1.13).
+  Ora fondo `D0D7CE`, card `FFFFFF` (bianco puro, come le foto BCE), outline
+  `A9B3A8`, inchiostro `1F2620` (rapporto fondo/card ~1.47). L'outline è anche
+  traccia delle barre di avanzamento. Un **lilla** (`LilacLight`, `E2D9F3`) resta
+  come piccolo accento su segmento attivo del selettore, chip selezionati e cerchi
+  delle monete senza foto (`secondaryContainer`). Il tema scuro non è stato toccato.
+- **Card ovunque**: Years/Countries (bordo 1 dp) e **una card bianca per moneta
+  nell'elenco** (angoli 14 dp, 8 dp tra le card): senza, le righe stavano
+  direttamente sul fondo e l'elenco era piatto. La barra del titolo ha lo stesso
+  colore dello sfondo (`appBarColors()`), altrimenti una fascia chiara spezzava
+  la schermata.
+- **Barra di ricerca flottante nel tema chiaro**: fondo meno opaco del tema scuro
+  (0.88 contro 0.94) perché il blur si veda, ma non meno: a 0.72 il testo sotto si
+  leggeva ancora; contorno scuro da 2 dp. Nel tema scuro resta 0.94 e bordo 1 dp.
+- **Tipografia**: pesi alti su titoli ed etichette (`Type.kt`: headlineMedium e
+  titleLarge Bold, titleMedium e labelLarge SemiBold): un serif Medium risultava
+  sottile e le schermate senza gerarchia.
+- **Dettaglio moneta = foto in card bianca + una card di dati + banner collezione
+  + crediti in piccolo.** La card unica ha titolo, mintage (lista compatta
+  Standard / BU / Proof, etichette vicine alle cifre, cifre a destra), divisore con
+  16 dp sopra e sotto e note storiche. Il paese non c'è (è nell'header). La
+  collezione è un **banner** verdigris con pulsante pieno Add/Edit, perché è l'unica
+  azione. "Data source", licenza e credito dell'immagine sono nel piè di pagina; il
+  link "Open source image" è verdigris scurito (`linkColor()`, 6:1) e sottolineato
+  perché il verdigris del tema (4:1) sta sotto il WCAG AA per testo piccolo.
+  **Mintage**: il dataset ha UN numero (`Coin.tiratura`), senza qualità: oggi va
+  sulla riga Standard e BU/Proof mostrano "—". Quando la pipeline avrà le tirature
+  per qualità si riempiono i tre valori e si nascondono le qualità che la moneta non
+  ha.
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 
 ## Backlog e decisioni aperte
@@ -406,12 +439,9 @@ Nell'**app**:
 - Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
-- **Card bianca pura nel dettaglio** al posto del viola (mockup fatto, non
-  implementato): lo sfondo delle foto è bianco puro, quindi la moneta sembra
-  appoggiata senza riquadro. Dubbio aperto: nel tema scuro sarebbe molto
-  luminosa; usare `Color.White` fisso, non un colore del tema (il bianco crema
-  delle card mostrerebbe un bordo). Ora che la pillola del tema c'è, si può
-  valutare guardando entrambi i temi.
+- **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
+  campo, vedi § dataset) e "zecca" nei dati coincide con il paese: per mostrarla
+  serve prima un campo dedicato nella pipeline.
 - **Miniature nell'APK (WebP, ~3-6 KB l'una)** invece di scaricare le foto BCE:
   darebbe elenco istantaneo e offline, ma sono copie di immagini con licenza
   "uso editoriale": chiarire prima il permesso con la BCE (serve prima di
