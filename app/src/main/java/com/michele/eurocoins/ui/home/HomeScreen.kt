@@ -41,6 +41,8 @@ import coil3.compose.AsyncImage
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.ui.components.CollectionProgressBar
+import com.michele.eurocoins.ui.components.ThemeModePill
+import com.michele.eurocoins.ui.theme.ThemeMode
 
 /**
  * Schermata d'ingresso: due tile che si dividono l'altezza. Oggi solo le
@@ -54,6 +56,8 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     /** Iniziale dell'account Google collegato, null se non ha fatto l'accesso. */
     accountInitial: String?,
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
     onCommemorativeClick: () -> Unit,
     onProfileClick: () -> Unit,
 ) {
@@ -63,7 +67,10 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
-                actions = { ProfileButton(accountInitial, onProfileClick) },
+                actions = {
+                    ThemeModePill(mode = themeMode, onModeChange = onThemeModeChange)
+                    ProfileButton(accountInitial, onProfileClick)
+                },
             )
         },
     ) { padding ->

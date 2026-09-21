@@ -6,6 +6,7 @@ import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.DriveBackupClient
 import com.michele.eurocoins.data.backup.GoogleAccountManager
+import com.michele.eurocoins.ui.theme.ThemePreference
 
 class EuroCoinsApplication : Application() {
 
@@ -15,6 +16,8 @@ class EuroCoinsApplication : Application() {
     }
 
     val accountManager: GoogleAccountManager by lazy { GoogleAccountManager(this) }
+
+    val themePreference: ThemePreference by lazy { ThemePreference(this) }
 
     val backupService: BackupService by lazy {
         BackupService(CoinDatabase.getInstance(this).collectionDao(), DriveBackupClient())

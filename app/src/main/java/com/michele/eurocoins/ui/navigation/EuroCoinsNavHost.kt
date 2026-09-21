@@ -2,6 +2,8 @@ package com.michele.eurocoins.ui.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -24,6 +26,7 @@ import com.michele.eurocoins.ui.home.HomeViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
+import com.michele.eurocoins.ui.theme.ThemePreference
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_BROWSE = "browse"
@@ -42,6 +45,7 @@ fun EuroCoinsNavHost(
     repository: CoinRepository,
     backupService: BackupService,
     accountManager: GoogleAccountManager,
+    themePreference: ThemePreference,
 ) {
     val navController = rememberNavController()
 
@@ -54,9 +58,12 @@ fun EuroCoinsNavHost(
             )
             // Riletto a ogni rientro nella home: dopo login/logout dalla schermata Backup l'icona si aggiorna.
             val account = accountManager.currentAccount()
+            val themeMode by themePreference.mode.collectAsState()
             HomeScreen(
                 viewModel = viewModel,
                 accountInitial = account?.let { (it.displayName ?: it.email).firstOrNull()?.uppercase() },
+                themeMode = themeMode,
+                onThemeModeChange = themePreference::set,
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
                 onProfileClick = { navController.navigate(ROUTE_BACKUP) },
             )
