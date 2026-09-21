@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -132,10 +135,14 @@ fun CoinDetailScreen(
 @Composable
 private fun CoinHero(coin: Coin) {
     val hasImage = !coin.immaginePlaceholder && coin.urlImmagineFonte != null
+    // Card con angoli da 24 dp e margine di 16 dp (foto interna a 16 dp): coerente con le
+    // card di Years/Countries e con l'ingrandimento, invece della fascia a filo schermo.
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(start = 16.dp, end = 16.dp, top = 8.dp)
             .aspectRatio(1.3f)
+            .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
@@ -144,7 +151,7 @@ private fun CoinHero(coin: Coin) {
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().padding(24.dp),
+                modifier = Modifier.fillMaxHeight().aspectRatio(1f).padding(24.dp).clip(RoundedCornerShape(16.dp)),
             ) {
                 // Distinto da "immagine non ancora pubblicata" qui sotto:
                 // qui il link c'era ma il caricamento è fallito ora

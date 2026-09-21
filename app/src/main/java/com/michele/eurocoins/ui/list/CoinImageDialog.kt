@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -49,8 +50,14 @@ fun CoinImageDialog(coin: Coin, onDismiss: () -> Unit, onDetails: () -> Unit) {
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // Angoli arrotondati: lo sfondo bianco è quello del JPEG BCE e senza ritaglio
+                // resta un quadrato spigoloso dentro la scheda dai bordi curvi. Scartato il
+                // cerchio: le monete non sono centrate uguale nelle foto e risultavano storte.
                 Box(
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     SubcomposeAsyncImage(
@@ -61,8 +68,9 @@ fun CoinImageDialog(coin: Coin, onDismiss: () -> Unit, onDetails: () -> Unit) {
                     ) {
                         // Il contenuto va sempre composto (come nelle altre schermate): un
                         // ramo che lo salta in Loading lasciava la richiesta senza avviarsi.
-                        val painterState = painter.state.value
-                        if (painterState is AsyncImagePainter.State.Error) {
+                        // Nessuna rotella: la prima apertura non tornava mai a Success e la
+                        // rotella girava all'infinito sopra la foto già visibile.
+                        if (painter.state.value is AsyncImagePainter.State.Error) {
                             Icon(
                                 imageVector = Icons.Filled.BrokenImage,
                                 contentDescription = "Couldn't load this image",
@@ -71,13 +79,6 @@ fun CoinImageDialog(coin: Coin, onDismiss: () -> Unit, onDetails: () -> Unit) {
                             )
                         } else {
                             SubcomposeAsyncImageContent()
-                        }
-                        if (painterState is AsyncImagePainter.State.Loading) {
-                            // Box: i vincoli dell'immagine sono fissi, senza un contenitore
-                            // che li rilassi il size(32.dp) verrebbe ignorato.
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                            }
                         }
                     }
                 }
