@@ -315,6 +315,26 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   `adb shell input tap`.
 - **adb**: se compare "server version (32) doesn't match this client (41)",
   `adb kill-server` + `adb start-server` e ritentare l'install in ciclo.
+- **Screenshot dall'emulatore**: `adb exec-out screencap -p > file.png` da Git
+  Bash corrompe il PNG (CRLF). Usare `adb shell screencap -p /sdcard/s.png` +
+  `adb pull` (con `MSYS_NO_PATHCONV=1`, altrimenti Git Bash riscrive
+  `/sdcard`). Gli strumenti rifiutano immagini oltre 2000 px: con
+  `adb shell wm size 720x1600` e `wm density 280` lo schermo è leggibile e le
+  coordinate dei tocchi sono quelle dello screenshot (ripristinare con
+  `wm size reset` / `wm density reset`).
+- **Emulatore con finestra**: se è già acceso in `-no-window`, `emu kill` può non
+  bastare; terminare `qemu-system-x86_64-headless.exe` con `taskkill //F` e
+  riavviare `emulator -avd euro_coins_test -gpu swiftshader_indirect`. L'emulatore
+  mostra "3G": è lento sulla rete, le foto arrivano piano.
+- **Più dispositivi**: con telefono ed emulatore collegati usare
+  `adb -s <serial> install -r` (telefono: `487e0cf2`). Se `adb devices` non
+  vede il telefono, `adb kill-server` + `adb start-server`. Dopo un build
+  controllare che l'APK sia stato rigenerato (data del file): alcune volte
+  `grep BUILD` non stampava nulla e si installava l'APK vecchio.
+- **Cache immagini di Coil**: `cache/coil3_disk_cache` nel dato dell'app
+  (`adb shell "run-as com.michele.eurocoins ls cache/coil3_disk_cache | wc -l"`,
+  2 file per immagine + il journal): per verificare il precaricamento svuotarla
+  con l'app ferma e riaprire un elenco senza scorrere.
 - **Migrazioni e ripopolamento**: si verificano installando la nuova build *sopra*
   una vecchia con il database già popolato (`adb install -r`), non su dati
   vuoti — è lo scenario reale del telefono. I dati dell'utente sopravvivono
@@ -339,7 +359,20 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   lista").
 - **Immagini in hotlink** dalla fonte BCE con cache locale, mai ospitate
   (licenza "copyright zecca emittente, uso editoriale"): con attribuzione sempre
-  visibile e link alla fonte.
+  visibile e link alla fonte. Le foto BCE sono JPEG quadrati (i campioni
+  controllati: 270×270, ~100-260 KB), con sfondo **bianco puro** (255,255,255)
+  e senza trasparenza. Conseguenze: nell'elenco pesano molto per un cerchio da
+  52 dp (da qui il precaricamento); WebP non serve finché non le serviamo noi.
+- **Foto della moneta = quadrato bianco con angoli arrotondati** (16 dp),
+  nell'ingrandimento e nel dettaglio; nel dettaglio dentro una card viola
+  (angoli 24 dp). **Ritaglio a cerchio scartato**: le monete non sono centrate
+  né grandi uguale nelle foto e risultavano "storte", anche con zoom fisso o con
+  un riquadro calcolato sui pixel non bianchi (provato su telefono). Non
+  riprovarlo senza un dato migliore dalla pipeline (es. centro/raggio della
+  moneta).
+- **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
+  la prima apertura non tornava mai a Success e la rotella girava per sempre
+  sopra la foto già visibile (causa non chiarita). Solo icona di errore.
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 
 ## Backlog e decisioni aperte
@@ -362,6 +395,19 @@ Nell'**app**:
 - Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
+- **Interruttore del tema** (Sistema / Chiaro / Scuro, default Sistema): oggi
+  `ui/theme/Theme.kt` segue solo `isSystemInDarkTheme()`. Da mettere sotto
+  Backup (non esiste una schermata Impostazioni) e salvare in SharedPreferences.
+  Prima di decidere il colore della card del dettaglio.
+- **Card bianca pura nel dettaglio** al posto del viola (mockup fatto, non
+  implementato): lo sfondo delle foto è bianco puro, quindi la moneta sembra
+  appoggiata senza riquadro. Dubbio aperto: nel tema scuro sarebbe molto
+  luminosa; usare `Color.White` fisso, non un colore del tema (il bianco crema
+  delle card mostrerebbe un bordo). Da valutare dopo lo switch del tema.
+- **Miniature nell'APK (WebP, ~3-6 KB l'una)** invece di scaricare le foto BCE:
+  darebbe elenco istantaneo e offline, ma sono copie di immagini con licenza
+  "uso editoriale": chiarire prima il permesso con la BCE (serve prima di
+  pubblicare l'app) e farle produrre dalla pipeline dati.
 - Confronto backup ↔ collezione locale (oggi lo stato non dice "up to date").
 - Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
   segnaposto "Go Pro".
