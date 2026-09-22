@@ -41,8 +41,8 @@ import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Durata dell'animazione al primo avvio. */
-private const val INTRO_DURATION_MS = 1300
+/** Durata dell'animazione al primo avvio: 1300 ms faceva attendere troppo, qui più decisa. */
+private const val INTRO_DURATION_MS = 800
 
 /** Durata quando il conteggio cambia a schermata già mostrata: solo la differenza. */
 private const val UPDATE_DURATION_MS = 600
@@ -53,6 +53,10 @@ private const val UPDATE_DURATION_MS = 600
  * un movimento che si nota, non per una transizione qualunque dell'interfaccia.
  */
 private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+/** "Ease-out" standard (cubic-bezier 0, 0, 0.58, 1): parte spedita e rallenta solo verso la fine
+ * — per la dissolvenza finale dell'onda, che deve fondersi nella linea dritta senza scatti. */
+private val EaseOutEasing = CubicBezierEasing(0f, 0f, 0.58f, 1f)
 
 // Geometria dell'onda: altezza del box che la contiene, spessore del tratto e ampiezza massima
 // dell'oscillazione. Il giro precedente (8 dp di ampiezza, 3.5 creste) risultava un "rimbalzo"
@@ -71,8 +75,9 @@ private val WaveAmplitude = 4.dp
  */
 private val WaveWavelength = 16.dp
 
-/** Tempo per un ciclo completo della fase: 420 ms era frenetico, qui più calmo. */
-private const val WAVE_PERIOD_MS = 900
+/** Tempo per un ciclo completo della fase: 900 ms sembrava ancora "vibrare"; il doppio, per un
+ * flusso lento e ipnotico invece che frenetico. */
+private const val WAVE_PERIOD_MS = 1800
 
 /** Passo di campionamento del percorso, in dp: più piccolo = curva più morbida, più punti da disegnare. */
 private val WAVE_STEP = 3.dp
@@ -114,6 +119,11 @@ fun rememberProgressAnimation(
         if (isIntro || ownedAnim.value.roundToInt() != owned) {
             filling = true
             try {
+                // Curva Emphasized per l'allungamento della barra (un giro intermedio l'aveva
+                // portata alla FastOutSlowIn standard, su richiesta di allora; qui si torna
+                // all'Emphasized, richiesta esplicita più recente). La fase invece scorre a
+                // velocità costante (Linear, più sotto): il movimento orizzontale non accelera
+                // né rallenta mai, indipendentemente da come accelera il riempimento.
                 ownedAnim.animateTo(
                     owned.toFloat(),
                     tween(if (isIntro) INTRO_DURATION_MS else UPDATE_DURATION_MS, easing = EmphasizedEasing),
@@ -128,12 +138,12 @@ fun rememberProgressAnimation(
         onShown(owned)
     }
 
-    // Ampiezza separata dal riempimento: sale in fretta quando si inizia a riempire, scende quando
-    // ci si ferma. Prima scendeva in 550 ms: con il conteggio già fermo sul valore finale, l'onda
-    // continuava a ondeggiare visibilmente più a lungo di quanto il numero restasse "in sospeso" —
-    // sembrava non essersi davvero fermata. Ora scende più in fretta di quanto sale.
+    // Ampiezza separata dal riempimento: sale in fretta (250 ms, Emphasized) quando si inizia a
+    // riempire, scende (300 ms, ease-out) quando ci si ferma: parte ancora decisa ma rallenta
+    // verso zero, così le creste si fondono nella linea dritta senza uno scatto visibile alla
+    // fine (un "ease-in-out" simmetrico, provato prima, partiva già lento e sembrava trascinarsi).
     LaunchedEffect(filling) {
-        waveAmplitude.animateTo(if (filling) 1f else 0f, tween(if (filling) 250 else 280, easing = EmphasizedEasing))
+        waveAmplitude.animateTo(if (filling) 1f else 0f, tween(if (filling) 250 else 300, easing = EaseOutEasing))
     }
 
     return remember(ownedAnim, pulse, waveAmplitude) { ProgressAnimation(ownedAnim, pulse, waveAmplitude) }
@@ -231,11 +241,11 @@ private fun WavyProgressBar(
         0f
     }
 
-    Canvas(
-        modifier = modifier
-            .height(WaveBoxHeight)
-            .graphicsLayer { scaleX = animation.pulseScale; scaleY = animation.pulseScale },
-    ) {
+    // Niente graphicsLayer/scaleY qui: scalare verticalmente il Canvas del pulse (come faceva
+    // prima) stira l'onda in verticale per un istante subito dopo il riempimento — esattamente il
+    // "salto"/"sobbalzo" percepito, proprio nel momento in cui l'onda dovrebbe placarsi e
+    // scorrere solo in orizzontale. Il pulse resta solo sul numero (sotto).
+    Canvas(modifier = modifier.height(WaveBoxHeight)) {
         val strokeWidthPx = WaveStrokeWidth.toPx()
         val amplitudePx = WaveAmplitude.toPx() * amplitudeFraction
         val centerY = size.height / 2f
