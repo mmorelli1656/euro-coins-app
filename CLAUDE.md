@@ -418,6 +418,28 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   per qualità si riempiono i tre valori e si nascondono le qualità che la moneta non
   ha.
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
+- **Barra "x / y collected" della home: animata, con onda vettoriale disegnata a
+  mano** (`CollectionProgressBar.kt`/`rememberProgressAnimation`), non il
+  `LinearWavyProgressIndicator` ufficiale di Material 3 (esiste solo dalla 1.4,
+  ancora alfa; questo progetto è fermo alla 1.3.2 in cache, build sempre
+  `--offline` — servirebbe rete per aggiornare la libreria in tutta l'app).
+  **Punto di partenza accettato, non ancora convincente** per l'utente: la
+  velocità/durata sono da ritoccare ancora. Tre casi gestiti: primo avvio
+  (`lastShownOwned` nullo nel `HomeViewModel` → parte da 0), si torna alla
+  home nello stesso processo (si anima solo la differenza dal valore
+  mostrato l'ultima volta, salvato nel ViewModel, non in un `remember` che
+  sparirebbe uscendo dalla schermata), il valore cambia a schermata aperta
+  (stesso trattamento). "Resume da RAM" non ha bisogno di codice: finché il
+  processo resta vivo l'Activity non viene distrutta. Geometria dell'onda:
+  lunghezza d'onda FISSA in dp (`WaveWavelength`, non proporzionale alla
+  larghezza della barra — con "N creste sull'intera barra" a inizio
+  riempimento si vedeva una sola gobba invece di un'onda fitta, perché nella
+  parte colorata ci stava meno di una lunghezza d'onda intera). L'ampiezza è
+  un valore separato dal riempimento che sale in fretta e scende quando ci si
+  ferma (appiattimento). Years/Countries restano con la barra dritta di
+  Material (`animation = null`): 499 onde insieme sarebbe rumore, non un
+  dettaglio. Curva `EmphasizedEasing` (cubic-bezier 0.2, 0, 0, 1) per tutte
+  le animazioni della barra.
 
 ## Backlog e decisioni aperte
 
@@ -436,6 +458,10 @@ Nella **pipeline dati** (repo separato, va fatto lì):
   verificati" se emergono altri gap oltre San Marino 2012.
 
 Nell'**app**:
+- **Messa a punto dell'onda della barra home** (velocità/durata dell'appiattimento
+  dopo che il numero si è fermato): l'utente non l'ha ancora giudicata
+  convincente, vedi § Decisioni di prodotto. Le costanti sono tutte all'inizio
+  di `CollectionProgressBar.kt`.
 - Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
