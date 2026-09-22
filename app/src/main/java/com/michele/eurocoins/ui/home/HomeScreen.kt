@@ -28,20 +28,27 @@ import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.ui.components.CollectionProgressBar
+import com.michele.eurocoins.ui.components.ProgressAnimation
+import com.michele.eurocoins.ui.components.rememberProgressAnimation
 import com.michele.eurocoins.ui.components.ThemeModePill
 import com.michele.eurocoins.ui.theme.ThemeMode
 
@@ -64,6 +71,20 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    // Animazione della barra: onda + conteggio da 0 solo al primo avvio del processo
+    // (lastShownOwned del ViewModel ancora nullo); tornando da un'altra schermata o se il
+    // valore cambia a schermata aperta, anima solo la differenza dal valore mostrato l'ultima
+    // volta. "playIntro" congela la scelta "primo avvio o no" alla prima composizione: se nel
+    // frattempo l'animazione segna il ViewModel, non deve cambiare a metà.
+    val playIntro = remember { viewModel.lastShownOwned == null }
+    val progressAnimation = rememberProgressAnimation(
+        owned = state.progress.owned,
+        ready = state.progress.total > 0,
+        playIntro = playIntro,
+        lastShown = viewModel.lastShownOwned,
+        onShown = { viewModel.lastShownOwned = it },
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -85,6 +106,7 @@ fun HomeScreen(
         ) {
             CommemorativeTile(
                 state = state,
+                progressAnimation = progressAnimation,
                 onClick = onCommemorativeClick,
                 modifier = Modifier
                     .weight(3f)
@@ -120,7 +142,12 @@ private fun ProfileButton(initial: String?, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CommemorativeTile(state: HomeUiState, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CommemorativeTile(
+    state: HomeUiState,
+    progressAnimation: ProgressAnimation,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val shape = RoundedCornerShape(20.dp)
     val onFill = MaterialTheme.colorScheme.onPrimary
     Column(
@@ -154,8 +181,12 @@ private fun CommemorativeTile(state: HomeUiState, onClick: () -> Unit, modifier:
             CollectionProgressBar(
                 progress = state.progress,
                 color = onFill,
-                trackColor = onFill.copy(alpha = 0.3f),
+                // Track e etichetta più leggibili (tema scuro: tile salvia con testo scuro): track al
+                // 45% invece di 30%, etichetta 12 sp SemiBold invece di 11 sp Normal.
+                trackColor = onFill.copy(alpha = 0.45f),
                 labelColor = onFill,
+                labelStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                animation = progressAnimation,
             )
         }
     }
@@ -172,14 +203,16 @@ private fun Showcase(coins: List<Coin>, modifier: Modifier = Modifier) {
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
+                            .clip(CircleShape),
                     ) {
+                        // Nessun fondo sotto la foto: il 20% di onPrimary (bianco nel tema chiaro) sporgeva
+                        // come sfrangiatura chiara sul bordo tondo. Lo zoom leggero taglia l'anello bianco
+                        // che lo sfondo del JPEG BCE lascia tra la moneta e il cerchio.
                         AsyncImage(
                             model = coin.urlImmagineFonte,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = SHOWCASE_ZOOM, scaleY = SHOWCASE_ZOOM),
                         )
                     }
                 }
@@ -192,9 +225,15 @@ private fun Showcase(coins: List<Coin>, modifier: Modifier = Modifier) {
 
 private const val SHOWCASE_COLUMNS = 3
 
+/** Ingrandimento delle monete del mosaico dentro il cerchio (vedi [Showcase]). */
+private const val SHOWCASE_ZOOM = 1.05f
+
 @Composable
 private fun CirculationTile(modifier: Modifier = Modifier) {
-    val outline = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    // Tratteggio: nel tema scuro il 50% del colore del testo su fondo quasi nero risultava troppo
+    // debole; al 75% si vede bene. Nel tema chiaro resta al 50%.
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val outline = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isDark) 0.75f else 0.5f)
     Column(
         modifier = modifier
             .drawBehind {

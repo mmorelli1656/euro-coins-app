@@ -23,6 +23,15 @@ data class HomeUiState(
 
 class HomeViewModel(private val repository: CoinRepository) : ViewModel() {
 
+    /**
+     * Ultimo valore mostrato dalla barra "x / y collected" (null = mai mostrata: prossimo avvio
+     * = primo avvio). Stanno qui e non in un `remember` perché il ViewModel sopravvive quando si
+     * va in un'altra schermata e si torna: la composizione di Home viene ricreata (un `remember`
+     * ripartirebbe da zero e rifarebbe l'onda), il ViewModel no. Un riavvio vero dell'app crea un
+     * ViewModel nuovo, quindi torna a essere un primo avvio.
+     */
+    var lastShownOwned: Int? = null
+
     val uiState: StateFlow<HomeUiState> = combine(repository.coins, repository.ownedKeys) { coins, ownedKeys ->
         HomeUiState(
             progress = coins.progress(ownedKeys),
