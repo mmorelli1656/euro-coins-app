@@ -10,9 +10,12 @@ resta interamente nella pipeline.
 
 ## Come i dati arrivano nell'app
 
-1. La pipeline produce `data/processed/ecb_coins.jsonl` (uno schema
-   pydantic `MonetaCommemorativa` per riga — vedi `src/models.py` in quel
-   repo per il significato di ogni campo).
+1. La pipeline produce `data/processed/coins_with_mintages.jsonl` (i record
+   BCE/Wikipedia/EUR-Lex-Cellar di `ecb_coins.jsonl` — schema pydantic
+   `MonetaCommemorativa`, vedi `src/models.py` in quel repo — arricchiti con
+   le tirature per finitura da Numista, `tiratura_numista_*`). È il file da
+   usare, non `ecb_coins.jsonl` da solo: è un suo superset, stessi 584
+   record più questi campi.
 2. Quel JSONL viene esportato come array JSON unico in
    `app/src/main/assets/coins.json` (vedi comando sotto). **Non è generato
    automaticamente da uno script di questo repo** — va rieseguito a mano
@@ -21,10 +24,24 @@ resta interamente nella pipeline.
    ```bash
    python -c "
    import json
-   records = [json.loads(l) for l in open(r'..\euro-coins-data-pipeline\data\processed\ecb_coins.jsonl', encoding='utf-8')]
+   records = [json.loads(l) for l in open(r'..\euro-coins-data-pipeline\data\processed\coins_with_mintages.jsonl', encoding='utf-8')]
    json.dump(records, open('app/src/main/assets/coins.json', 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
    "
    ```
+
+   Se `python` non è disponibile sulla macchina (capitato: solo lo stub
+   Microsoft Store su `PATH`), lo stesso risultato in PowerShell:
+
+   ```powershell
+   $records = Get-Content "..\euro-coins-data-pipeline\data\processed\coins_with_mintages.jsonl" -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json }
+   $json = $records | ConvertTo-Json -Compress -Depth 5
+   [System.IO.File]::WriteAllText("app\src\main\assets\coins.json", $json, [System.Text.UTF8Encoding]::new($false))
+   ```
+
+   Differenza innocua rispetto all'output Python: `ConvertTo-Json` esegue
+   l'escape di alcuni caratteri come l'apice (diventa la sequenza `'`)
+   che Python lascerebbe letterale — JSON valido in entrambi i casi,
+   kotlinx.serialization li legge identici.
 
 3. A ogni avvio `CoinRepository.ensureSeeded()` confronta l'hash SHA-256
    dell'asset con quello salvato (SharedPreferences `dataset`): se è il primo
@@ -97,7 +114,20 @@ app/src/main/java/com/michele/eurocoins/
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
 Countries / All) → `CoinListScreen` filtrato per anno o paese (`CoinFilter`)
 → `CoinDetailScreen`. Years e Countries sono griglie di card; "All" è
-l'elenco completo. **Barra flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: il tocco sulla miniatura (area 60 dp, solo se la moneta ha la foto) apre `CoinImageDialog` (foto grande, paese · anno, tema, "Close"/"Details"); il tocco sul resto della riga apre il dettaglio. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Dettagli della barra non ovvi: alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.94) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo. La tile "Circulation" della home è
+l'elenco completo. **Emissioni comuni** (le 5 monete coniate congiuntamente
+da tutti i paesi dell'Eurozona — 2007 Trattato di Roma, 2009 EMU, 2012 dieci
+anni di euro, 2015 bandiera UE, 2022 Erasmus, `Coin.emissioneComune`): nella
+griglia Years, l'anno con un'emissione comune ha **due card** invece di una
+— quella normale (solo le monete del singolo paese, `CoinFilter.Year(year)`)
+e una seconda identica con la pillola "COMMON ISSUE" (`CommonIssueBadge` in
+`BrowseScreen.kt`) ancorata nell'angolo in alto a destra fuori dal flusso del
+testo (`CoinFilter.Year(year, commonOnly = true)`) — in riga con la cifra
+dell'anno cambiava l'altezza della card e rompeva l'allineamento con le
+altre, scartato dopo un mockup. Nell'elenco (sia "All" sia per paese), le
+monete di un'emissione comune hanno una piccola icona a globo accanto a
+"Paese · Anno", tinta come quel testo (`MaterialTheme.colorScheme.primary`)
+per leggersi come parte dell'etichetta invece che un accento nuovo. **Barra
+flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: il tocco sulla miniatura (area 60 dp, solo se la moneta ha la foto) apre `CoinImageDialog` (foto grande, paese · anno, tema, "Close"/"Details"); il tocco sul resto della riga apre il dettaglio. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Dettagli della barra non ovvi: alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.94) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo. La tile "Circulation" della home è
 tratteggiata e senza azione finché la pipeline non produce quel dataset.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
@@ -107,7 +137,7 @@ hanno spazi/accenti.
 
 Due tile che si dividono l'altezza dello schermo (non due card piccole con
 spazio vuoto: era una critica esplicita). **Commemorative**: mosaico 3×3 di
-monete reali (9 paesi diversi, prese dal database), titolo, "499 coins · 24
+monete reali (9 paesi diversi, prese dal database), titolo, "584 coins · 24
 countries", intervallo di anni e barra "x / y collected" — tutti numeri
 calcolati dal database, nessun valore scritto a mano. **Circulation**:
 tratteggiata, "Coming soon", senza azione. La home è anche dove parte il
@@ -139,15 +169,23 @@ Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
   non vengono mai toccati dal ripopolamento di `coins`.
 - **Chiave della moneta = `Coin.stableKey`** (`CoinKey.kt`: fonte + anno +
   paese + tema normalizzato), NON `Coin.id`, che viene rigenerato a ogni
-  aggiornamento del dataset. Univoca sulle 499 monete. Punto debole noto: se
+  aggiornamento del dataset. Univoca sulle 584 monete. Punto debole noto: se
   la pipeline correggesse il testo di `tema`, la chiave cambierebbe e le voci
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 2, `MIGRATION_1_2` in
-  `CoinDatabase.kt`), mai `fallbackToDestructiveMigration`: distruggerebbe
-  anche la collezione dell'utente. Il SQL della migrazione deve coincidere con
-  quello generato da Room (`build/generated/ksp/.../CoinDatabase_Impl.kt`).
+- **Migrazioni Room esplicite** (DB versione 4, `CoinDatabase.kt`), mai
+  `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
+  dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
+  (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
+  colonne nullable, niente `DEFAULT`). Ogni migrazione aggiunta va accodata,
+  mai riscritta sopra una già rilasciata (anche in sviluppo: una volta
+  installata su un telefono di prova, quel numero di versione è "usato"). Il
+  valore delle nuove colonne conta poco: `ensureSeeded()` ripopola comunque
+  `coins` da zero appena l'hash dell'asset cambia, la migrazione serve solo a
+  far coincidere lo schema SQLite con l'entity Kotlin nel frattempo. Il SQL
+  di ogni migrazione deve coincidere con quello generato da Room
+  (`build/generated/ksp/.../CoinDatabase_Impl.kt`).
 - Non ancora fatto: note libere, data di acquisto, valuta diversa
   dall'euro, export CSV.
 
@@ -223,7 +261,7 @@ lingua da servire.
   non `licenzaImmagine` direttamente. La pipeline salva un valore **italiano**
   (enum `LicenzaImmagine`) e, a differenza del nome paese, non conserva un
   originale inglese: la mappa è quindi una traduzione nostra (oggi solo 2 valori:
-  495 monete "Copyright zecca emittente (uso editoriale)" → "Copyright of the
+  580 monete "Copyright zecca emittente (uso editoriale)" → "Copyright of the
   issuing mint (editorial use)", 4 "Sconosciuta - da verificare" → "Unknown, to
   be verified"). Prima non la facevamo per il rischio di disallineamento con
   l'enum; il ripiego sul testo originale lo copre (un valore nuovo compare in
@@ -239,17 +277,41 @@ lingua da servire.
 
 ## Cose da sapere sul dataset (non ovvie dal codice)
 
-- **499 monete**, non 504: le 5 emissioni congiunte dell'Eurozona non sono
-  nel dataset per scelta della pipeline (non riconducibili a un singolo
-  paese) — non aspettarti di trovarle.
-- **San Marino 2012 manca** deliberatamente (gap noto, non un bug
-  dell'app): vedi `NOTES.md` nella pipeline dati.
+- **584 monete**, non 499: include le 85 delle 5 emissioni congiunte
+  dell'Eurozona (`Coin.emissioneComune = true` — 2007 Trattato di Roma, 2009
+  EMU, 2012 dieci anni di euro, 2015 bandiera UE, 2022 Erasmus), aggiunte
+  dalla pipeline via Wikipedia/EUR-Lex-Cellar/BCE dopo che l'app le ha
+  richieste (la BCE le pubblica raggruppate sotto un'unica voce "Euro area
+  countries" invece che per paese, storicamente escluse per questo). Anche
+  **San Marino 2012** ("Ten years of the euro"), il gap storico documentato
+  qui fino a poco fa, è stato risolto allo stesso modo (confermato dal campo
+  "Issuing date" del carosello immagini BCE). Dettagli e fonti in `NOTES.md`
+  nella pipeline dati.
 - **La tiratura per 7 paesi** (Italia, Slovacchia, Slovenia, Grecia,
   Germania, Lituania, Lussemburgo) è quasi certamente un contingente
   autorizzato, non la tiratura reale della singola moneta — l'app lo
   segnala in UI nel dettaglio moneta (`PAESI_TIRATURA_SOSPETTA` in
-  `CoinDetailViewModel.kt`), ma se estendi quella logica altrove tienilo a
-  mente. Dettaglio completo in `NOTES.md` nella pipeline dati.
+  `CoinDetailScreen.kt`), ma **solo quando la riga "Standard" mostra
+  davvero quel numero BCE** (`Coin.tiratura`), non quando Numista ha un
+  proprio valore indipendente per la finitura standard — il pattern
+  "contingente" è stato osservato sul dato BCE, non ha senso applicarlo a
+  un numero che viene da un'altra fonte. Se estendi quella logica altrove
+  tienilo a mente. Dettaglio completo in `NOTES.md` nella pipeline dati.
+- **Tirature per finitura da Numista** (`tiraturaNumistaStandard/Bu/Proof`,
+  fonte indipendente da `tiratura` BCE, mai fusa con essa — coperte 420-453
+  monete su 584 a seconda della finitura). La riga "Standard" del dettaglio
+  cade sul numero BCE solo se Numista non ha **nessun** dato per quella
+  moneta (né standard, né BU, né proof): se Numista distingue BU/proof ma
+  non ha una riga standard, di solito è perché la moneta non ne ha una
+  (l'intera tiratura è divisa tra BU e proof) — cadere comunque sul numero
+  BCE in quel caso mostrerebbe quella somma come una terza tiratura
+  inventata (bug reale, trovato e corretto durante lo sviluppo di questa
+  funzione). Il dataset della pipeline ha anche un quarto bucket Numista,
+  `tiratura_numista_altro` (tirature con un commento non classificabile
+  come standard/BU/proof, es. lotti in rotoli o coincard — a volte è la
+  maggioranza della tiratura reale), **non mappato in `CoinJson`/`Coin`**:
+  scelta deliberata per ora, non è una quarta "qualità" pari alle altre tre
+  e mostrarlo richiede una decisione di UI a sé — vedi § Backlog.
 - 4 monete hanno `immaginePlaceholder = true` (BCE non ha ancora
   pubblicato l'immagine reale): l'app lo gestisce mostrando un'icona al
   posto dell'immagine, non un errore.
@@ -260,8 +322,10 @@ lingua da servire.
   `SubcomposeAsyncImage`/`AsyncImagePainter.State.Error` in
   `CoinListScreen.kt`/`CoinDetailScreen.kt`. La pipeline dati ha uno
   script (`scripts/validate_image_links.py`) che controlla periodicamente
-  se qualcuno dei 495 URL è morto, per distinguere "capita raramente in
-  rete" da "gap permanente nei dati" prima di documentarlo in NOTES.md.
+  se qualcuno dei 495 URL delle monete originali è morto, per distinguere
+  "capita raramente in rete" da "gap permanente nei dati" prima di
+  documentarlo in NOTES.md — non ancora esteso alle 85 emissioni comuni
+  (immagini BCE aggiunte più di recente).
 - **`note_storiche` non contiene più la frase "Issue date"/"Data di
   emissione"**: la pipeline la aggiungeva in coda alla descrizione, è stata
   tolta del tutto. Il mese di emissione esiste come `issuing_date_raw` durante
@@ -342,7 +406,8 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Migrazioni e ripopolamento**: si verificano installando la nuova build *sopra*
   una vecchia con il database già popolato (`adb install -r`), non su dati
   vuoti — è lo scenario reale del telefono. I dati dell'utente sopravvivono
-  all'aggiornamento; controllare sempre che le monete restino 499, non 998.
+  all'aggiornamento; controllare sempre che le monete restino tante quante
+  nel dataset corrente (584 a oggi), non il doppio.
 - **Telefono**: debug USB attivo. Con lo schermo bloccato lo screenshot è nero: non
   sbloccarlo da script.
 - **Build da Git Bash**: `JAVA_HOME` sul JBR di Android Studio
@@ -361,6 +426,15 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Catalogo per anno/paese** = griglie di card con selettore Years / Countries /
   All, non una lista con etichette di sezione (bocciata: "restava sempre una
   lista").
+- **Emissioni comuni: card separata in Years, non un'etichetta sulla stessa
+  riga dell'anno.** Primo tentativo (etichetta "COMMON ISSUE" accanto alla
+  cifra dell'anno, o riga a parte sopra il conteggio) scartato dopo un
+  mockup: cambiava l'altezza della card e rompeva l'allineamento con le
+  altre nella griglia a 2 colonne. Pillola ancorata nell'angolo in alto a
+  destra, fuori dal flusso del testo (`Box` con `Alignment.TopEnd`): stessa
+  altezza della card standard in ogni caso. Nell'elenco (dove lo spazio
+  verticale non è un vincolo) un'icona inline basta, tinta come il testo
+  della riga invece di un colore nuovo.
 - **Immagini in hotlink** dalla fonte BCE con cache locale, mai ospitate
   (licenza "copyright zecca emittente, uso editoriale"): con attribuzione sempre
   visibile e link alla fonte. Le foto BCE sono JPEG quadrati (i campioni
@@ -413,10 +487,11 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   azione. "Data source", licenza e credito dell'immagine sono nel piè di pagina; il
   link "Open source image" è verdigris scurito (`linkColor()`, 6:1) e sottolineato
   perché il verdigris del tema (4:1) sta sotto il WCAG AA per testo piccolo.
-  **Mintage**: il dataset ha UN numero (`Coin.tiratura`), senza qualità: oggi va
-  sulla riga Standard e BU/Proof mostrano "—". Quando la pipeline avrà le tirature
-  per qualità si riempiono i tre valori e si nascondono le qualità che la moneta non
-  ha.
+  **Mintage**: Standard/BU/Proof mostrano le tirature per finitura da Numista
+  quando esistono, "—" quando mancano (mai una riga nascosta: non si sa se "manca
+  il dato" o "la moneta non ha mai avuto quella finitura", nasconderla
+  implicherebbe più certezza di quanta ce ne sia). Niente quarta riga "Other" per
+  ora — vedi § dataset e § Backlog.
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 - **Barra "x / y collected" della home: animata, con onda vettoriale disegnata a
   mano** (`CollectionProgressBar.kt`/`rememberProgressAnimation`), non il
@@ -436,7 +511,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   L'ampiezza è un valore separato dal riempimento (sale in 250 ms quando parte
   un riempimento, scende in 300 ms con curva ease-out quando finisce, verso lo
   0 = linea dritta). Years/Countries restano con la barra dritta di Material
-  (`animation = null`): 499 onde insieme sarebbe rumore, non un dettaglio.
+  (`animation = null`): centinaia di onde insieme sarebbe rumore, non un dettaglio.
   **Tre curve diverse, non una sola**: `EmphasizedEasing` (cubic-bezier
   0.2,0,0,1) per l'allungamento della barra (durata 800 ms al primo avvio, 600
   ms per un aggiornamento) e per il pulse finale; `LinearEasing` per la fase
@@ -453,15 +528,16 @@ Nella **pipeline dati** (repo separato, va fatto lì):
 - **Id stabile per moneta** emesso dalla pipeline: sostituirebbe `Coin.stableKey`
   (che si rompe se un `tema` viene corretto). Al momento del cambio va migrata
   la collezione esistente (mappa chiave vecchia → id).
-- **Tirature per qualità** (circolazione / BU / proof): oggi `tiratura` è un solo
-  numero. Prima verificare se una fonte pubblica il dato; poi lo schema. Quando
-  esisterà, l'app può nascondere le qualità che una moneta non ha (ora mostra
-  sempre le tre).
-- **Emissioni comuni dell'Eurozona** (5 escluse dal dataset): serve una decisione di
-  schema su `ZeccaEmittente` (valore dedicato o campo opzionale), poi
-  distinguerle in modo evidente nell'app. Vedi `NOTES.md` nella pipeline.
+- **Tirature per qualità**: fatto per Standard/BU/Proof (Numista,
+  `tiratura_numista_*` — vedi § dataset). Resta aperto solo il bucket
+  "Other" (`tiratura_numista_altro`, tirature con commento non
+  classificabile): deliberatamente non mostrato in UI per ora, decidere se
+  e come rappresentarlo (una quarta riga? solo quando supera Standard+BU+
+  Proof messi insieme? nessuna riga, solo nel footer come nota?) prima di
+  mapparlo in `CoinJson`/`Coin`.
 - Mese di emissione come campo dedicato; meccanismo per "supplementi manuali
-  verificati" se emergono altri gap oltre San Marino 2012.
+  verificati" se emergono altri gap nel dataset (San Marino 2012 era l'unico
+  noto, risolto — vedi § dataset).
 
 Nell'**app**:
 - Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
@@ -474,6 +550,16 @@ Nell'**app**:
   darebbe elenco istantaneo e offline, ma sono copie di immagini con licenza
   "uso editoriale": chiarire prima il permesso con la BCE (serve prima di
   pubblicare l'app) e farle produrre dalla pipeline dati.
+- **Gate da ricontrollare prima di pubblicare l'app (o rendere pubblico il
+  repo pipeline)**: le tirature Numista (`tiratura_numista_*`) sono state
+  raccolte con l'API ufficiale sotto l'eccezione "Personal Project" del suo
+  ToS (Sezione 8.4) — eccezione che riguarda **solo** la conservazione dei
+  dati, non la Sezione 11 ("Prohibited uses"), che vieta comunque
+  l'estrazione sistematica del catalogo senza eccezioni. Rischio accettato
+  consapevolmente finché repo pipeline privato e app non pubblicata (vedi
+  `NOTES.md` § Tirature Numista nella pipeline). Da ridecidere esplicitamente
+  a quel punto: permesso scritto da Numista, o togliere quei campi da quanto
+  finisce in `coins.json`.
 - Confronto backup ↔ collezione locale (oggi lo stato non dice "up to date").
 - Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
   segnaposto "Go Pro".
