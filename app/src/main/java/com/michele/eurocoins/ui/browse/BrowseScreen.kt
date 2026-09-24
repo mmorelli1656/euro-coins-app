@@ -1,6 +1,7 @@
 package com.michele.eurocoins.ui.browse
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Card
@@ -62,7 +64,7 @@ import dev.chrisbanes.haze.hazeSource
 fun BrowseScreen(
     viewModel: BrowseViewModel,
     allCoinsViewModel: CoinListViewModel,
-    onYearClick: (Int) -> Unit,
+    onYearClick: (Int, Boolean) -> Unit,
     onCountryClick: (String) -> Unit,
     onCoinClick: (Long) -> Unit,
     onBack: () -> Unit,
@@ -99,8 +101,11 @@ fun BrowseScreen(
                         resetScrollKey = state.prefs.yearsAscending,
                         hazeState = hazeState,
                     ) {
-                        items(state.years, key = { it.year }) { card ->
-                            BrowseCard(onClick = { onYearClick(card.year) }) {
+                        items(state.years, key = { "${it.year}_${it.commonOnly}" }) { card ->
+                            BrowseCard(
+                                onClick = { onYearClick(card.year, card.commonOnly) },
+                                badge = if (card.commonOnly) { { CommonIssueBadge() } } else null,
+                            ) {
                                 Text(card.year.toString(), style = MaterialTheme.typography.headlineMedium)
                                 CardFooter(card.progress)
                             }
@@ -255,7 +260,11 @@ private fun CardGrid(
 }
 
 @Composable
-private fun BrowseCard(onClick: () -> Unit, content: @Composable () -> Unit) {
+private fun BrowseCard(
+    onClick: () -> Unit,
+    badge: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -264,8 +273,28 @@ private fun BrowseCard(onClick: () -> Unit, content: @Composable () -> Unit) {
         // Bordo: nel tema chiaro fondo e card sono troppo vicini di tono per separarsi da soli.
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) { content() }
+        Box {
+            Column(modifier = Modifier.padding(14.dp)) { content() }
+            // Fuori dal flusso del testo apposta: in riga con l'anno la scritta
+            // ne cambiava l'altezza e rompeva l'allineamento con le card normali.
+            if (badge != null) {
+                Box(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)) { badge() }
+            }
+        }
     }
+}
+
+/** Pillola "COMMON ISSUE": segnala le card degli anni con un'emissione commemorativa congiunta. */
+@Composable
+private fun CommonIssueBadge() {
+    Text(
+        text = "COMMON ISSUE",
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, letterSpacing = 0.2.sp),
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(20.dp))
+            .padding(horizontal = 7.dp, vertical = 2.dp),
+    )
 }
 
 @Composable

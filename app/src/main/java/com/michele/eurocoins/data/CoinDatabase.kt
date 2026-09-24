@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Coin::class, CollectionItem::class], version = 2, exportSchema = false)
+@Database(entities = [Coin::class, CollectionItem::class], version = 4, exportSchema = false)
 abstract class CoinDatabase : RoomDatabase() {
 
     abstract fun coinDao(): CoinDao
@@ -30,6 +30,27 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * 2 -> 3: aggiunge `emissioneComune` a `coins`. Il valore reale arriva
+         * subito dopo dal ripopolamento di `ensureSeeded()` (l'hash dell'asset
+         * cambia insieme allo schema), quindi qui basta un default che soddisfi
+         * il vincolo NOT NULL.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `coins` ADD COLUMN `emissioneComune` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** 3 -> 4: aggiunge le tirature per finitura da Numista a `coins` (colonne nullable, niente default). */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `coins` ADD COLUMN `tiraturaNumistaStandard` INTEGER")
+                db.execSQL("ALTER TABLE `coins` ADD COLUMN `tiraturaNumistaBu` INTEGER")
+                db.execSQL("ALTER TABLE `coins` ADD COLUMN `tiraturaNumistaProof` INTEGER")
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -38,7 +59,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }

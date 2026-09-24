@@ -30,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.Public
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -255,11 +256,23 @@ private fun CoinRow(
             CoinThumbnail(coin)
         }
         Column(modifier = Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(
-                text = "${coin.displayCountry()} · ${coin.anno}",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${coin.displayCountry()} · ${coin.anno}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                if (coin.emissioneComune) {
+                    Icon(
+                        imageVector = Icons.Filled.Public,
+                        contentDescription = "Common issue, minted jointly by all Eurozone countries",
+                        // Stesso colore della riga "Paese · Anno" accanto: si legge come parte
+                        // dell'etichetta, non come un nuovo accento aggiunto solo qui.
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp).size(14.dp),
+                    )
+                }
+            }
             Text(
                 text = coin.tema,
                 style = MaterialTheme.typography.bodyLarge,

@@ -20,7 +20,13 @@ import kotlinx.coroutines.launch
 /** Quale sottoinsieme di monete mostra una lista. */
 sealed interface CoinFilter {
     data object All : CoinFilter
-    data class Year(val year: Int) : CoinFilter
+
+    /**
+     * [commonOnly] = false: monete emesse dal singolo paese in quell'anno (esclude le
+     * emissioni comuni, mostrate a parte). [commonOnly] = true: solo le monete
+     * dell'emissione comune di quell'anno, se esiste — vedi § Emissioni comuni in CLAUDE.md.
+     */
+    data class Year(val year: Int, val commonOnly: Boolean = false) : CoinFilter
 
     /** [paese] è il valore stabile `Coin.paese`, non il nome mostrato in UI. */
     data class Country(val paese: String) : CoinFilter
@@ -44,7 +50,7 @@ class CoinListViewModel(
     ) { coins, q, items, opts ->
         val scoped = when (filter) {
             CoinFilter.All -> coins
-            is CoinFilter.Year -> coins.filter { it.anno == filter.year }
+            is CoinFilter.Year -> coins.filter { it.anno == filter.year && it.emissioneComune == filter.commonOnly }
             is CoinFilter.Country -> coins.filter { it.paese == filter.paese }
         }
         val byKey = items.groupBy { it.coinKey }
@@ -79,7 +85,7 @@ class CoinListViewModel(
         CoinListUiState(
             title = when (filter) {
                 CoinFilter.All -> "All coins"
-                is CoinFilter.Year -> filter.year.toString()
+                is CoinFilter.Year -> if (filter.commonOnly) "${filter.year} · Common issue" else filter.year.toString()
                 is CoinFilter.Country -> scoped.firstOrNull()?.displayCountry().orEmpty()
             },
             query = q,

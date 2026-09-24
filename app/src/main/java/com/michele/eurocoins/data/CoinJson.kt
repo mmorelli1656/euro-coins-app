@@ -24,6 +24,10 @@ data class CoinJson(
     @SerialName("attribuzione_immagine_raw") val attribuzioneImmagineRaw: String? = null,
     @SerialName("immagine_placeholder") val immaginePlaceholder: Boolean = false,
     @SerialName("fonte_dati") val fonteDati: String,
+    @SerialName("emissione_comune") val emissioneComune: Boolean = false,
+    @SerialName("tiratura_numista_standard") val tiraturaNumistaStandard: Int? = null,
+    @SerialName("tiratura_numista_bu") val tiraturaNumistaBu: Int? = null,
+    @SerialName("tiratura_numista_proof") val tiraturaNumistaProof: Int? = null,
 )
 
 fun CoinJson.toEntity(): Coin = Coin(
@@ -40,4 +44,8 @@ fun CoinJson.toEntity(): Coin = Coin(
     attribuzioneImmagineRaw = attribuzioneImmagineRaw,
     immaginePlaceholder = immaginePlaceholder,
     fonteDati = fonteDati,
+    emissioneComune = emissioneComune,
+    tiraturaNumistaStandard = tiraturaNumistaStandard,
+    tiraturaNumistaBu = tiraturaNumistaBu,
+    tiraturaNumistaProof = tiraturaNumistaProof,
 )

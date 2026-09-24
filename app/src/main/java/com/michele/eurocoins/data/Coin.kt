@@ -29,4 +29,14 @@ data class Coin(
     val attribuzioneImmagineRaw: String?,
     val immaginePlaceholder: Boolean,
     val fonteDati: String,
+    /** True per le monete delle 5 emissioni commemorative congiunte dell'Eurozona (vedi CLAUDE.md). */
+    val emissioneComune: Boolean,
+    /**
+     * Tirature per finitura da Numista (fonte indipendente da [tiratura], mai sovrascritta
+     * né fusa con essa — vedi NOTES.md della pipeline). Null se Numista non riporta quella
+     * finitura per questa moneta: non implica che la moneta non l'abbia mai avuta.
+     */
+    val tiraturaNumistaStandard: Int?,
+    val tiraturaNumistaBu: Int?,
+    val tiraturaNumistaProof: Int?,
 )

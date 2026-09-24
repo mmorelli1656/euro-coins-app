@@ -25,7 +25,8 @@ enum class CompletionFilter(val label: String) {
     COMPLETE("Complete"),
 }
 
-data class YearCardData(val year: Int, val progress: Progress)
+/** [commonOnly] separa la card "anno" (monete del singolo paese) da quella "anno · comune". */
+data class YearCardData(val year: Int, val progress: Progress, val commonOnly: Boolean = false)
 
 /** [paese] è la chiave stabile (`Coin.paese`) usata per navigare, [name] il nome mostrato. */
 data class CountryCardData(val paese: String, val name: String, val flag: String, val progress: Progress)
@@ -77,7 +78,14 @@ class BrowseViewModel(repository: CoinRepository) : ViewModel() {
             years = coins
                 .groupBy { it.anno }
                 .toSortedMap(if (p.yearsAscending) naturalOrder() else reverseOrder())
-                .map { (year, list) -> YearCardData(year, list.progress(owned)) }
+                .flatMap { (year, list) ->
+                    val regular = list.filterNot { it.emissioneComune }
+                    val common = list.filter { it.emissioneComune }
+                    buildList {
+                        if (regular.isNotEmpty()) add(YearCardData(year, regular.progress(owned)))
+                        if (common.isNotEmpty()) add(YearCardData(year, common.progress(owned), commonOnly = true))
+                    }
+                }
                 .filter { it.progress.matches(p.yearsCompletion) }
                 .filter { p.yearsQuery.isBlank() || it.year.toString().contains(p.yearsQuery.trim()) },
             countries = coins

@@ -239,18 +239,34 @@ private fun CoinDetailsCard(coin: Coin) {
  * Tiratura in una lista compatta Standard / BU / Proof: etichette e cifre in due colonne
  * vicine (cifre allineate a destra, così le migliaia si incolonnano).
  *
- * Il dataset ha UN solo numero (`Coin.tiratura`), senza dire a quale qualità appartiene:
- * oggi va sulla riga Standard e BU/Proof mostrano "—". Quando la pipeline avrà le tirature
- * per qualità basta riempire questi tre valori (e nascondere le righe delle qualità che la
- * moneta non ha).
+ * Standard/BU/Proof vengono da Numista (`tiraturaNumista*`), fonte indipendente da quella BCE
+ * (`Coin.tiratura`) e mai fusa con essa. Il numero BCE va sulla riga Standard solo se Numista
+ * non ha NESSUN dato per quella moneta (né standard, né BU, né proof): se invece Numista
+ * distingue BU/proof ma non ha una riga standard, di solito è perché la moneta non ne ha una
+ * (tiratura interamente divisa tra BU e proof) — cadere comunque sul numero BCE mostrerebbe
+ * quella somma come una terza tiratura inventata. Non
+ * mostrata una quarta riga "Other" (tirature Numista con commento non classificabile, es.
+ * lotti in rotoli o coincard): a volte è la maggioranza della tiratura reale, ma per ora si
+ * preferisce mostrare solo valori certi — vedi NOTES.md della pipeline.
  */
 @Composable
 private fun MintageSection(coin: Coin) {
-    val standard = coin.tiratura?.let { NumberFormat.getIntegerInstance(Locale.ENGLISH).format(it) }
+    val numberFormat = NumberFormat.getIntegerInstance(Locale.ENGLISH)
+    // Il ripiego sul numero BCE ha senso solo se Numista non sa nulla di questa moneta (né
+    // standard, né BU, né proof): se invece Numista distingue BU/proof ma non ha una riga
+    // "standard" a parte, di solito è perché quella moneta non ne ha una — l'intera tiratura è
+    // divisa tra BU e proof (es. San Marino 2013: BU 110 000 + proof 5 000, BCE 115 000 totale,
+    // nessuna finitura standard). Cadere comunque sul numero BCE in quel caso mostrerebbe quella
+    // somma come se fosse una terza tiratura distinta — trovato confrontando i due dati a mano.
+    val standardFromBce = coin.tiraturaNumistaStandard == null &&
+        coin.tiraturaNumistaBu == null &&
+        coin.tiraturaNumistaProof == null &&
+        coin.tiratura != null
+    val standard = if (standardFromBce) coin.tiratura else coin.tiraturaNumistaStandard
     val rows = listOf(
-        CoinQuality.STANDARD.label to (standard ?: NO_VALUE),
-        CoinQuality.BU.label to NO_VALUE,
-        CoinQuality.PROOF.label to NO_VALUE,
+        CoinQuality.STANDARD.label to (standard?.let(numberFormat::format) ?: NO_VALUE),
+        CoinQuality.BU.label to (coin.tiraturaNumistaBu?.let(numberFormat::format) ?: NO_VALUE),
+        CoinQuality.PROOF.label to (coin.tiraturaNumistaProof?.let(numberFormat::format) ?: NO_VALUE),
     )
     Text(
         text = "MINTAGE",
@@ -269,7 +285,10 @@ private fun MintageSection(coin: Coin) {
             }
         }
     }
-    if (coin.paese in PAESI_TIRATURA_SOSPETTA && coin.tiratura != null) {
+    // Il "contingente autorizzato" è un pattern osservato sul numero BCE (vedi NOTES.md):
+    // si applica solo quando la riga Standard mostra davvero quel numero, non quando Numista
+    // ha un proprio valore indipendente per la finitura standard.
+    if (standardFromBce && coin.paese in PAESI_TIRATURA_SOSPETTA) {
         Text(
             text = "For ${coin.displayCountry()}, this figure is most likely the country's " +
                 "authorized quota for the period, not the actual mintage of " +

@@ -41,6 +41,7 @@ private const val ARG_VALUE = "value"
 private const val ARG_COIN_ID = "coinId"
 
 private const val KIND_YEAR = "year"
+private const val KIND_YEAR_COMMON = "year-common"
 private const val KIND_COUNTRY = "country"
 
 @Composable
@@ -98,7 +99,10 @@ fun EuroCoinsNavHost(
                 viewModel = browseViewModel,
                 allCoinsViewModel = allCoinsViewModel,
                 // Uri.encode: "Città del Vaticano" e "Paesi Bassi" hanno spazi/accenti.
-                onYearClick = { year -> navController.navigate("coins/$KIND_YEAR/$year") },
+                onYearClick = { year, commonOnly ->
+                    val kind = if (commonOnly) KIND_YEAR_COMMON else KIND_YEAR
+                    navController.navigate("coins/$kind/$year")
+                },
                 onCountryClick = { paese -> navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}") },
                 onCoinClick = ::openDetail,
                 onBack = { navController.popBackStack() },
@@ -115,6 +119,7 @@ fun EuroCoinsNavHost(
             val value = backStackEntry.arguments?.getString(ARG_VALUE) ?: return@composable
             val filter = when (kind) {
                 KIND_YEAR -> CoinFilter.Year(value.toInt())
+                KIND_YEAR_COMMON -> CoinFilter.Year(value.toInt(), commonOnly = true)
                 else -> CoinFilter.Country(value)
             }
             val viewModel: CoinListViewModel = viewModel(
