@@ -1,6 +1,8 @@
 package com.michele.eurocoins.ui.navigation
 
 import android.net.Uri
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -56,15 +58,21 @@ fun EuroCoinsNavHost(
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
 
+    // Fade-through: la schermata che esce sfuma in fretta, quella nuova entra dopo una breve pausa con
+    // una frenata morbida alla fine (è la parte che dà la sensazione "burrosa"). Nella pausa si vede il
+    // fondo dell'app, che in MainActivity è `background` (non `surface`, bianco nel tema chiaro).
+    val enterFade = fadeIn(tween(durationMillis = 340, delayMillis = 90, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)))
+    val exitFade = fadeOut(tween(durationMillis = 120, easing = LinearEasing))
+
     // Il default di Navigation Compose è una dissolvenza da 700 ms: la nuova schermata
     // resta quasi trasparente per un istante e sembra un ritardo dopo il tocco.
     NavHost(
         navController = navController,
         startDestination = ROUTE_HOME,
-        enterTransition = { fadeIn(tween(280)) },
-        exitTransition = { fadeOut(tween(120)) },
-        popEnterTransition = { fadeIn(tween(280)) },
-        popExitTransition = { fadeOut(tween(120)) },
+        enterTransition = { enterFade },
+        exitTransition = { exitFade },
+        popEnterTransition = { enterFade },
+        popExitTransition = { exitFade },
     ) {
         composable(ROUTE_HOME) {
             val viewModel: HomeViewModel = viewModel(
