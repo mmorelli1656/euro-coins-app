@@ -54,6 +54,10 @@ fun BackupSection(viewModel: BackupViewModel) {
     val state by viewModel.state.collectAsState()
     val activity = LocalContext.current as Activity
     var confirmRestore by remember { mutableStateOf(false) }
+    // Restore serve solo se esiste un backup: disabilitato quando Drive è stato interrogato e non ne ha.
+    // Se non è ancora stato interrogato (consenso Drive mancante, es. telefono nuovo) resta attivo:
+    // la data null non significa "nessun backup".
+    val hasBackup = state.lastBackup != null || !state.backupChecked
 
     val consentLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         viewModel.onConsentResult(activity, result.data)
@@ -83,7 +87,7 @@ fun BackupSection(viewModel: BackupViewModel) {
                     ) { Text("Back up now") }
                     OutlinedButton(
                         onClick = { confirmRestore = true },
-                        enabled = !state.busy,
+                        enabled = !state.busy && hasBackup,
                         modifier = Modifier.weight(1f),
                     ) { Text("Restore") }
                 }
@@ -173,7 +177,7 @@ private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOu
             enabled = signOutEnabled,
             contentPadding = PaddingValues(horizontal = 8.dp),
         ) {
-            Text("Sign out", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
+            Text("Sign out", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
         }
     }
 }

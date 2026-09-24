@@ -29,6 +29,8 @@ data class BackupUiState(
     /** Ultimo esito da mostrare all'utente (successo o errore). */
     val message: String? = null,
     val lastBackup: String? = null,
+    /** true quando Drive è stato davvero interrogato: senza, `lastBackup` null vuol dire "non so", non "nessun backup". */
+    val backupChecked: Boolean = false,
     /** Schermata di consenso Drive da lanciare (one-shot: la UI la consuma con [BackupViewModel.consentLaunched]). */
     val consent: IntentSender? = null,
 )
@@ -52,7 +54,7 @@ class BackupViewModel(
 
     fun signOut(activity: Activity) = launchBusy {
         accounts.signOut(activity)
-        _state.update { it.copy(account = null, lastBackup = null, message = "Signed out. Your local collection is untouched.") }
+        _state.update { it.copy(account = null, lastBackup = null, backupChecked = false, message = "Signed out. Your local collection is untouched.") }
     }
 
     /** Silenziosa per INFO: se il consenso Drive non è ancora stato dato non lo chiede solo per mostrare una data. */
@@ -92,14 +94,14 @@ class BackupViewModel(
             BackupAction.BACKUP -> {
                 val count = service.backup(token)
                 _state.update {
-                    it.copy(message = "Backed up $count ${entries(count)} to Google Drive.", lastBackup = formatTime(service.lastBackupTime(token)))
+                    it.copy(message = "Backed up $count ${entries(count)} to Google Drive.", lastBackup = formatTime(service.lastBackupTime(token)), backupChecked = true)
                 }
             }
             BackupAction.RESTORE -> {
                 val count = service.restore(token)
                 _state.update { it.copy(message = "Restored $count ${entries(count)} from Google Drive.") }
             }
-            BackupAction.INFO -> _state.update { it.copy(lastBackup = formatTime(service.lastBackupTime(token))) }
+            BackupAction.INFO -> _state.update { it.copy(lastBackup = formatTime(service.lastBackupTime(token)), backupChecked = true) }
         }
     }
 
