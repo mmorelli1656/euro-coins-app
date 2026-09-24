@@ -74,26 +74,27 @@ private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
  */
 private const val FAST_OUT_SLOW_IN_PEAK_SLOPE = 2.75f
 
-// Geometria del "liquido": barra sottile (12 dp, la pillola da 22 dp occupava troppo nella card),
+// Geometria del "liquido": barra sottile (15 dp: 12 dp era stata ingrandita del 25% con tutta l'onda in
+// proporzione; la pillola da 22 dp, provata prima, occupava troppo nella card),
 // onda frontale piena e onda di sfondo più trasparente, più alta, sfasata di 90° e più lenta
 // (parallasse). Le ampiezze sono in dp.
-private val WaveBoxHeight = 12.dp
+private val WaveBoxHeight = 15.dp
 
-/** Angoli del contenitore: con 12 dp di altezza, 6 dp è una pillola completa. */
-private val WaveCornerRadius = 6.dp
+/** Angoli del contenitore: metà dell'altezza, cioè una pillola completa. */
+private val WaveCornerRadius = 7.5.dp
 
 /** Ampiezza a riposo: micro-oscillazione "viva" ma non invadente quando la barra è ferma. */
-private val WaveAmplitudeRest = 1.dp
+private val WaveAmplitudeRest = 1.25.dp
 
 /**
- * Ampiezza massima, raggiunta solo al picco di velocità del riempimento: 1.5 dp su 12 dp di altezza,
+ * Ampiezza massima, raggiunta solo al picco di velocità del riempimento: 1.9 dp su 15 dp di altezza,
  * in modo che le creste non tocchino il bordo alto o basso venendo tagliate. Poca distanza dal riposo
- * (1 dp): l'agitazione durante la salita è discreta, per scelta.
+ * (1.25 dp): l'agitazione durante la salita è discreta, per scelta.
  */
-private val WaveAmplitudeMax = 1.5.dp
+private val WaveAmplitudeMax = 1.9.dp
 
 /** Lunghezza d'onda FISSA in dp (non proporzionale alla larghezza: vedi CLAUDE.md, onda della home). */
-private val WaveWavelength = 16.dp
+private val WaveWavelength = 20.dp
 
 /** Tempo per un ciclo completo della fase dell'onda frontale: lento e ipnotico, a velocità costante. */
 private const val WAVE_PERIOD_MS = 1800
@@ -116,8 +117,8 @@ private const val BACK_WAVE_BASELINE = 0.26f
  * di questa larghezza fino al fondo del contenitore, e nell'ultimo tratto ([WaveEdgeTaper]) l'ampiezza
  * si smorza, così la cresta non urta contro il bordo quando il valore è intermedio (es. 77/584).
  */
-private val WaveEdgeSlope = 7.dp
-private val WaveEdgeTaper = 10.dp
+private val WaveEdgeSlope = 8.75.dp
+private val WaveEdgeTaper = 12.5.dp
 
 /** Passo di campionamento del percorso: più piccolo = curva più morbida, più punti da disegnare. */
 private val WaveStep = 3.dp
