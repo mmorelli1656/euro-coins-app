@@ -1,10 +1,15 @@
 package com.michele.eurocoins.data
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -27,19 +32,30 @@ class CoinRepository(
     private val collectionDao: CollectionDao,
     hideMicrostates: Flow<Boolean>,
 ) {
+    // Catalogo e collezione sono "caldi" (letti da subito e con l'ultimo valore in replay): quando si apre
+    // Browse o un elenco i dati ci sono già e la prima schermata si costruisce senza aspettare Room.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     /** Catalogo visibile: senza i microstati quando l'utente li ha nascosti dalle Impostazioni. */
-    val coins: Flow<List<Coin>> = combine(dao.observeAll(), hideMicrostates) { all, hide ->
+    val coins: SharedFlow<List<Coin>> = combine(dao.observeAll(), hideMicrostates) { all, hide ->
         if (hide) all.filterNot { it.isMicrostate } else all
-    }
+    }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
     val paesi: Flow<List<String>> = combine(dao.observePaesi(), hideMicrostates) { all, hide ->
         if (hide) all.filterNot { it in MICROSTATE_PAESI } else all
     }
 
     /** Tutte le voci di collezione dell'utente (una per moneta+qualità). */
-    val collectionItems: Flow<List<CollectionItem>> = collectionDao.observeAll()
+    val collectionItems: SharedFlow<List<CollectionItem>> = collectionDao.observeAll()
+        .shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     /** Chiavi delle monete possedute in almeno una qualità. */
     val ownedKeys: Flow<Set<String>> = collectionItems.map { items -> items.map { it.coinKey }.toSet() }
+
+    /** Ultimo catalogo già letto, o null se Room non ha ancora risposto: serve a calcolare uno stato iniziale senza attendere. */
+    val coinsNow: List<Coin>? get() = coins.replayCache.firstOrNull()
+
+    /** Stesso discorso per le voci di collezione. */
+    val collectionNow: List<CollectionItem>? get() = collectionItems.replayCache.firstOrNull()
 
     /** Quante monete distinte sono possedute (per il messaggio di conferma del reset). */
     val ownedCount: Flow<Int> = ownedKeys.map { it.size }

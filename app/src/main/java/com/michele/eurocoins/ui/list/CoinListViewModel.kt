@@ -47,7 +47,29 @@ class CoinListViewModel(
         query,
         repository.collectionItems,
         options,
-    ) { coins, q, items, opts ->
+    ) { coins, q, items, opts -> compute(coins, q, items, opts) }.flowOn(Dispatchers.Default).stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = initialState(),
+    )
+
+    // Catalogo già letto: lo stato iniziale è completo e l'elenco non passa da "0 coins" e schermata vuota.
+    private fun initialState(): CoinListUiState {
+        val coins = repository.coinsNow
+        val items = repository.collectionNow
+        return if (coins != null && items != null) {
+            compute(coins, query.value, items, options.value)
+        } else {
+            CoinListUiState(loading = true)
+        }
+    }
+
+    private fun compute(
+        coins: List<Coin>,
+        q: String,
+        items: List<CollectionItem>,
+        opts: CoinListOptions,
+    ): CoinListUiState {
         val scoped = when (filter) {
             CoinFilter.All -> coins
             is CoinFilter.Year -> coins.filter { it.anno == filter.year && it.emissioneComune == filter.commonOnly }
@@ -82,7 +104,7 @@ class CoinListViewModel(
                     CoinSort.COUNTRY_ZA -> list.sortedByDescending { it.displayCountry() }
                 }
             }
-        CoinListUiState(
+        return CoinListUiState(
             title = when (filter) {
                 CoinFilter.All -> "All coins"
                 is CoinFilter.Year -> if (filter.commonOnly) "${filter.year} · Common issue" else filter.year.toString()
@@ -94,11 +116,7 @@ class CoinListViewModel(
             collection = byKey,
             loading = false,
         )
-    }.flowOn(Dispatchers.Default).stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = CoinListUiState(loading = true),
-    )
+    }
 
     fun onQueryChange(newQuery: String) {
         query.value = newQuery

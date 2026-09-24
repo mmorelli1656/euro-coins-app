@@ -2,6 +2,7 @@ package com.michele.eurocoins.ui.browse
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.displayCountry
@@ -64,7 +65,7 @@ private fun Progress.matches(filter: CompletionFilter): Boolean = when (filter) 
 }
 
 class BrowseViewModel(
-    repository: CoinRepository,
+    private val repository: CoinRepository,
     /** Scheda con cui si apre il catalogo (Impostazioni → Default tab). */
     initialMode: BrowseMode = BrowseMode.YEARS,
 ) : ViewModel() {
@@ -77,7 +78,25 @@ class BrowseViewModel(
         repository.ownedKeys,
         mode,
         prefs,
-    ) { coins, owned, currentMode, p ->
+    ) { coins, owned, currentMode, p -> buildState(coins, owned, currentMode, p) }
+        // Raggruppamenti e progressi su 584 monete: fuori dal thread principale, altrimenti
+        // bloccano la transizione di apertura della schermata.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialState())
+
+    // Se il catalogo è già stato letto (di solito sì: Browse si apre dopo la home) lo stato iniziale è
+    // già completo e la prima schermata non passa da una griglia vuota; altrimenti parte "non caricato".
+    private fun initialState(): BrowseUiState {
+        val coins = repository.coinsNow
+        val items = repository.collectionNow
+        return if (coins != null && items != null) {
+            buildState(coins, items.map { it.coinKey }.toSet(), mode.value, prefs.value)
+        } else {
+            BrowseUiState(mode = mode.value)
+        }
+    }
+
+    private fun buildState(coins: List<Coin>, owned: Set<String>, currentMode: BrowseMode, p: GridPrefs): BrowseUiState =
         BrowseUiState(
             mode = currentMode,
             loaded = true,
@@ -111,11 +130,6 @@ class BrowseViewModel(
                     if (p.countriesAscending) list.sortedBy { it.name } else list.sortedByDescending { it.name }
                 },
         )
-    }
-        // Raggruppamenti e progressi su 584 monete: fuori dal thread principale, altrimenti
-        // bloccano la transizione di apertura della schermata.
-        .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState(mode = initialMode))
 
     fun onModeChange(newMode: BrowseMode) {
         mode.value = newMode
