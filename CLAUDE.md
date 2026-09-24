@@ -165,6 +165,34 @@ Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
 - Il salvataggio sostituisce in blocco le qualità della moneta
   (`CollectionDao.replaceForCoin`, transazione) e conserva `addedAt` delle
   voci già esistenti.
+- **Layout del pannello** (`CollectionSheet.kt`): titolo a max 2 righe,
+  sottotitolo "Paese · Anno", fondo grigio-verde del tema. Una **card da 64 dp
+  per finitura** (Standard "Circulation", BU "Brilliant Uncirculated", Proof
+  "Mirror finish"): checkbox + etichette a sinistra, prezzo a destra. Il
+  campo prezzo è SEMPRE presente (non spuntata: testo piatto al 38%, non
+  editabile), così il pannello non cambia altezza a ogni tocco. Dettagli non
+  ovvi, tutti scelti dopo mockup e prove su telefono:
+  - **Campo prezzo = pillola a dimensioni FISSE** (altezza 40 dp, larghezza
+    misurata su "0000.00" con `rememberTextMeasurer`), bordo viola
+    (`PurpleField*` in `Color.kt`, contrasto ~3.4:1 sul lilla, varianti chiare
+    per il tema scuro, verificato su telefono) e "€" viola scuro nello stesso
+    `decorationBox`, con lo stesso stile delle cifre. Larghezza legata al testo
+    scartata: cambiava a ogni cifra e disallineava le card; l'altezza va
+    fissata perché il segnaposto "0.00" fa più altezza del campo con una cifra
+    e la pillola si assottigliava appena si scriveva. Un `BasicTextField` a
+    riga singola si allarga a tutto lo spazio libero: la larghezza va sempre
+    imposta dall'esterno.
+  - **Tetto 9999.99** (`sanitizePrice`: solo cifre e un separatore, max 4
+    intere e 2 decimali); `,` e `.` accettati ma nel box compare sempre `.`. Un
+    valore già salvato oltre il tetto non entra nella pillola e non viene
+    modificato finché non si riscrive.
+  - **Tocco**: l'intera card è `toggleable` (dopo il `clip` a 16 dp, un solo
+    ripple); il campo prezzo attivo prende i propri tocchi (focus + tastiera
+    numerica), quello disattivato lascia passare il tocco alla card e la
+    spunta. Nessun focus automatico alla spunta (aprirebbe la tastiera a ogni
+    tocco). Scartato il solo lato sinistro: un ripple ritagliato su quell'area
+    lasciava un sottorettangolo visibile. Effetto collaterale: per TalkBack la
+    card è un unico elemento e il campo non è separato.
 
 - **Tabella separata `collection_items`** (`CollectionItem`), chiave
   primaria (`coinKey`, `quality`): sono dati dell'utente, non del catalogo, e
