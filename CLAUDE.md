@@ -153,8 +153,8 @@ Ogni moneta ha una **casella** nell'elenco (vuota / piena con spunta). Un
 tocco apre un pannello dal basso (`CollectionSheet`) con le tre qualità —
 **Standard, BU, Proof**, anche più di una insieme — e, per ciascuna
 spuntata, il prezzo pagato (facoltativo, in euro, salvato in centesimi).
-Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
-"My collection"), così c'è un solo modo di registrare.
+Lo stesso pannello si apre dal dettaglio ("Add to collection" / "Edit collection"
+nella card COLLECTION), così c'è un solo modo di registrare.
 
 - Il pannello lavora su una **bozza** e scrive solo con "Save": chiuderlo
   senza salvare non cambia nulla (un tocco sbagliato non cancella un
@@ -165,6 +165,7 @@ Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
 - Il salvataggio sostituisce in blocco le qualità della moneta
   (`CollectionDao.replaceForCoin`, transazione) e conserva `addedAt` delle
   voci già esistenti.
+- **Tastiera nel pannello**: il contenuto usa `windowInsetsPadding(navigationBars.union(ime))`  e non `navigationBarsPadding()` + `imePadding()` insieme, che contavano due volte la barra  di navigazione (già inclusa nell'altezza della tastiera). Non verificato con la tastiera  aperta sul telefono.
 - **Layout del pannello** (`CollectionSheet.kt`): titolo a max 2 righe,
   sottotitolo "Paese · Anno", fondo grigio-verde del tema. Una **card da 64 dp
   per finitura** (Standard "Circulation", BU "Brilliant Uncirculated", Proof
@@ -548,19 +549,54 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Tipografia**: pesi alti su titoli ed etichette (`Type.kt`: headlineMedium e
   titleLarge Bold, titleMedium e labelLarge SemiBold): un serif Medium risultava
   sottile e le schermate senza gerarchia.
-- **Dettaglio moneta = foto in card bianca + una card di dati + banner collezione
-  + crediti in piccolo.** La card unica ha titolo, mintage (lista compatta
-  Standard / BU / Proof, etichette vicine alle cifre, cifre a destra), divisore con
-  16 dp sopra e sotto e note storiche. Il paese non c'è (è nell'header). La
-  collezione è un **banner** verdigris con pulsante pieno Add/Edit, perché è l'unica
-  azione. "Data source", licenza e credito dell'immagine sono nel piè di pagina; il
-  link "Open source image" è verdigris scurito (`linkColor()`, 6:1) e sottolineato
-  perché il verdigris del tema (4:1) sta sotto il WCAG AA per testo piccolo.
-  **Mintage**: Standard/BU/Proof mostrano le tirature per finitura da Numista
-  quando esistono, "—" quando mancano (mai una riga nascosta: non si sa se "manca
-  il dato" o "la moneta non ha mai avuto quella finitura", nasconderla
-  implicherebbe più certezza di quanta ce ne sia). Niente quarta riga "Other" per
-  ora — vedi § dataset e § Backlog.
+- **Dettaglio moneta = Hero card (foto + titolo) + tre card bianche + crediti in
+  una riga** (`CoinDetailScreen.kt`, deciso dopo una lunga serie di mockup). Tutte le
+  card sono **bianche** (`colorScheme.surface`; la Hero è `Color.White` fisso perché
+  le foto BCE hanno sfondo bianco puro) su fondo grigio-verde, 12 dp tra l'una e
+  l'altra; scartate le card grigio-verdi (`surfaceVariant`): il contrasto card/fondo
+  scendeva. Il paese non c'è (è nell'header).
+  - **Hero**: foto a tutta larghezza della card (padding 12 dp) e titolo sempre
+    intero sotto (`titleMedium` Bold, centrato, 2-3 righe). Scartati: titolo con
+    ellissi + espansione con freccia (complessità inutile) e titolo fuori dalla card.
+  - **Etichette di sezione** identiche: `MINTAGES`, `COLLECTION`,
+    `HISTORICAL NOTES` (`SectionLabel`: `labelLarge` Bold, maiuscolo, `linkColor()`).
+  - **Tipografia solo sans** in questa schermata: `titleMedium` del tema è serif
+    e `labelSmall` monospace, quindi `sansTitleMedium()` e `.copy(fontFamily =
+    FontFamily.Default)` la sostituiscono localmente, senza toccare il tema.
+  - **MINTAGES**: tre colonne di larghezza UGUALE (`weight(1f)`), cifra sopra ed
+    etichetta sotto centrate sull'asse della propria colonna, senza filetti; cifre
+    tutte nello stesso stile (`"tnum"`, mai ridotte anche per `12,600,000`).
+    Provati `SpaceEvenly` con colonne larghe quanto il contenuto (decentrato: la
+    colonna più larga sposta il baricentro) e i filetti (stringevano le cifre).
+    Standard/BU/Proof mostrano le tirature per finitura da Numista quando
+    esistono, "—" quando mancano (mai una riga nascosta: non si sa se "manca il dato"
+    o "la moneta non ha mai avuto quella finitura"). Niente quarta riga "Other" per
+    ora — vedi § dataset e § Backlog.
+  - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
+    centrato e "Add to collection" pieno (48 dp, l'unica azione piena); posseduta =
+    card bianca con **bordo viola da 2 dp** (`PurpleField*`), badge `✓ OWNED` verde
+    scuro in alto a destra, **solo le finiture possedute** (una pillola lilla
+    `LilacLight` a tutta larghezza per riga: nome a sinistra, prezzo in grassetto a
+    destra, `—` se assente o 0.00) e "Edit collection" (TextButton compatto) a
+    destra. Scartati: sfondo verde pieno (alternava colori tra le card), righe
+    non possedute tratteggiate, pulsante Edit a tutta larghezza.
+  - **HISTORICAL NOTES**: `bodyMedium` 14 sp / 20 sp, `TextAlign.Justify` con
+    `LineBreak.Paragraph` e `Hyphens.Auto` (bordo destro regolare; la sillabazione
+    spezza anche "Croa-tia", dizionario di sistema). 4 righe con ellissi e "Show
+    more ∨" / "Show less ∧" centrato in fondo, visibile solo se il testo è
+    troncato. **Animazione fatta a mano** (495 ms `FastOutSlowIn`), NON con
+    `animateContentSize`: in chiusura il testo tornava subito a 4 righe e le righe
+    in più sparivano di colpo lasciando uno spazio vuoto che si restringeva (lo
+    scatto). `showFull` tiene il testo a righe piene finché l'altezza animata non
+    arriva alle 4 righe. In espansione un `LaunchedEffect` scorre la pagina a ogni
+    fotogramma per **centrare la card** nella zona visibile (se è più alta, il bordo
+    superiore resta a filo). Scartati: `BringIntoViewRequester` con ritardo fisso e
+    `BringIntoViewSpec` lenta (scatto finale), e "scorri solo se il bordo inferiore
+    esce" (su schermi alti non scorreva mai).
+  - **Crediti**: una riga centrata "Data source · Image license · Credit" con il
+    link alla fonte come icona (`OpenInNew`, `linkColor()`, tocco da 48 dp) al posto
+    del testo sottolineato; la licenza resta il testo vero (non "Public domain").
+  - Tocco sulla foto per ingrandirla: non c'è nel dettaglio (solo nell'elenco).
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 - **Barra "x / y collected" della home: animata, con onda vettoriale disegnata a
   mano** (`CollectionProgressBar.kt`/`rememberProgressAnimation`), non il
