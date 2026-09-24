@@ -21,3 +21,11 @@ val OutlineDark = Color(0xFF34351F)
 // monete senza foto (tutto il resto è grigio-verde). Il crema/beige di prima è stato tolto:
 // tutto quel giallo rendeva le schermate "troppo crema" e con poco contrasto tra le card.
 val LilacLight = Color(0xFFE2D9F3)
+
+// Viola del campo prezzo nel pannello "My collection" (bordo a riposo, e "€" + bordo in focus):
+// più scuro del lilla delle card, contrasto ~3.4:1 sul lilla (minimo WCAG per componenti UI: 3:1).
+// Le varianti scure sono chiare, perché sul fondo scuro serve il contrario.
+val PurpleFieldLight = Color(0xFF7A62B5)
+val PurpleFieldFocusLight = Color(0xFF4B3391)
+val PurpleFieldDark = Color(0xFFA995DB)
+val PurpleFieldFocusDark = Color(0xFFCBBCF2)

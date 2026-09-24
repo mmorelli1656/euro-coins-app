@@ -1,5 +1,8 @@
 package com.michele.eurocoins.ui.components
 
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -29,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +58,10 @@ import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
+import com.michele.eurocoins.ui.theme.PurpleFieldDark
+import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
+import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
+import com.michele.eurocoins.ui.theme.PurpleFieldLight
 
 /** Sottotitolo di ogni finitura nel pannello (testo nostro, in inglese). */
 private val CoinQuality.descriptor: String
@@ -60,8 +72,6 @@ private val CoinQuality.descriptor: String
     }
 
 private val CardHeight = 64.dp
-private val PriceFieldWidth = 88.dp
-private val PriceFieldHeight = 40.dp
 
 /**
  * Pannello per registrare una moneta: una card per qualità (Standard / BU /
@@ -168,8 +178,8 @@ fun CollectionSheet(
 
 /**
  * Riga a altezza fissa ([CardHeight]): cambia solo il colore di fondo (lilla
- * intera card è `toggleable` DOPO il `clip`, così il ripple segue gli angoli
- * da 16 dp; il campo prezzo, quando attivo, gestisce i propri tocchi.
+ * parte sinistra (checkbox + etichette) è `toggleable` DOPO un `clip`, così il ripple segue gli angoli
+ * arrotondati; il resto della card, prezzo compreso, non spunta né toglie nulla.
  * ha un proprio click), il campo a destra ha il suo.
  */
 @Composable
@@ -192,6 +202,9 @@ private fun FinishCard(
         animationSpec = tween(durationMillis = 150),
         label = "cardBorderColor",
     )
+    // Un solo ripple, sull'intera card (angoli da 16 dp), innescato dal tocco sulla parte sinistra:
+    // un ripple ritagliato sulla sola area sinistra lasciava un sottorettangolo visibile.
+    val interaction = remember { MutableInteractionSource() }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -201,14 +214,22 @@ private fun FinishCard(
             .clip(shape)
             .background(backgroundColor)
             .border(1.5.dp, borderColor, shape)
-            .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+            .indication(interaction, ripple())
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .weight(1f, fill = true)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .toggleable(
+                    value = checked,
+                    interactionSource = interaction,
+                    indication = null,
+                    role = Role.Checkbox,
+                    onValueChange = onCheckedChange,
+                )
+                .padding(end = 8.dp),
         ) {
             Checkbox(checked = checked, onCheckedChange = null)
             Spacer(Modifier.width(12.dp))
@@ -225,7 +246,7 @@ private fun FinishCard(
         }
         PriceField(
             value = price,
-            onValueChange = onPriceChange,
+            onValueChange = { onPriceChange(sanitizePrice(it)) },
             enabled = checked,
             description = "Price paid for ${quality.label} (€)",
         )
@@ -233,13 +254,18 @@ private fun FinishCard(
 }
 
 /**
- * Campo prezzo compatto con "€" DENTRO il campo. Non usa `OutlinedTextField`
- * (altezza minima 56 dp: non entra in una card da 64 dp con margini).
+ * Campo prezzo: "€" + cifre come un'unica riga di testo, dentro una pillola
+ * che cresce con il contenuto (nessuna larghezza fissa: "15000.00" non si
+ * tronca e le etichette a sinistra prendono il resto).
  *
- * UN SOLO contenitore ([Row]) porta dimensione, sfondo e bordo; il
- * `BasicTextField` dentro è nudo (nessun modifier decorativo), così non
- * compare un secondo rettangolo dietro il testo. Attenuato e non editabile se
- * [enabled] è falso.
+ * - Non spuntato: testo piatto al 38%, nessun contenitore.
+ * - Spuntato: pillola con bordo viola da 1.5 dp e fondo chiaro traslucido; in
+ *   focus bordo viola scuro e fondo pieno. Il bordo è SEMPRE da 1.5 dp
+ *   (trasparente quando non serve) così niente si sposta al cambio di stato.
+ * - "€" sta nel `decorationBox` con lo stesso [TextStyle] delle cifre, quindi
+ *   condivide altezza di riga e linea di base. Il segnaposto "0.00" resta
+ *   solo se il campo è vuoto e, insieme alla misura del testo, garantisce la larghezza
+ *   minima di 4 caratteri.
  */
 @Composable
 private fun PriceField(
@@ -249,43 +275,93 @@ private fun PriceField(
     description: String,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(8.dp)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    val dark = colors.surface.luminance() < 0.5f
+    val fieldColor = if (dark) PurpleFieldDark else PurpleFieldLight
+    val focusColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
+    val shape = RoundedCornerShape(12.dp)
+    val idleFill = if (dark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.55f)
+    val borderColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> Color.Transparent
+            focused -> focusColor
+            else -> fieldColor
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "priceBorder",
+    )
+    val fillColor by animateColorAsState(
+        targetValue = when {
+            !enabled -> Color.Transparent
+            focused -> colors.surface
+            else -> idleFill
+        },
+        animationSpec = tween(durationMillis = 150),
+        label = "priceFill",
+    )
+    val textStyle = MaterialTheme.typography.bodyLarge.copy(
+        color = colors.onSurface,
+        fontWeight = FontWeight.Medium,
+        textAlign = TextAlign.End,
+    )
+    // Larghezza = quella del testo (minimo "0.00"): un BasicTextField a riga singola
+    // altrimenti si allarga a tutto lo spazio disponibile e la pillola diventa enorme.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val textWidth = with(density) {
+        val sample = if (value.length > PriceSample.length) value else PriceSample
+        measurer.measure(sample, textStyle).size.width.toDp() + 2.dp
+    }
+
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        enabled = enabled,
+        singleLine = true,
+        interactionSource = interactionSource,
+        textStyle = textStyle,
+        cursorBrush = SolidColor(focusColor),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = Modifier
-            .width(PriceFieldWidth)
-            .height(PriceFieldHeight)
             .alpha(if (enabled) 1f else 0.38f)
             .clip(shape)
-            .background(colors.surface)
-            .border(1.dp, if (enabled) colors.primary else colors.outline, shape)
-            .padding(horizontal = 8.dp),
-    ) {
-        Text("€", style = MaterialTheme.typography.bodyLarge, color = colors.primary)
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            enabled = enabled,
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = colors.onSurface, textAlign = TextAlign.End),
-            cursorBrush = SolidColor(colors.primary),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier
-                .weight(1f)
-                .semantics { contentDescription = description },
-            decorationBox = { inner ->
-                Box(contentAlignment = Alignment.CenterEnd) {
+            .background(fillColor)
+            .border(1.5.dp, borderColor, shape)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .semantics { contentDescription = description },
+        decorationBox = { inner ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = "€",
+                    style = textStyle.copy(color = if (enabled) focusColor else colors.onSurface),
+                )
+                Box(modifier = Modifier.width(textWidth), contentAlignment = Alignment.CenterEnd) {
                     if (value.isEmpty()) {
-                        Text(
-                            text = "0.00",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.onSurfaceVariant,
-                        )
+                        Text(text = "0.00", style = textStyle, color = colors.onSurfaceVariant)
                     }
                     inner()
                 }
-            },
-        )
-    }
+            }
+        },
+    )
+}
+
+/** Campione che fissa la larghezza della pillola: il massimo consentito, 9999.99. */
+private const val PriceSample = "0000.00"
+
+/**
+ * Limita il prezzo a 9999.99: solo cifre e un separatore (`.` o `,`), al massimo
+ * 4 cifre intere e 2 decimali. Così la pillola ha sempre la stessa larghezza.
+ */
+private fun sanitizePrice(input: String): String {
+    val separator = input.indexOfFirst { it == '.' || it == ',' }
+    val integer = input.substring(0, if (separator >= 0) separator else input.length)
+        .filter(Char::isDigit).take(4)
+    if (separator < 0) return integer
+    val decimals = input.substring(separator + 1).filter(Char::isDigit).take(2)
+    return integer + input[separator] + decimals
 }
