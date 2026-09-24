@@ -165,7 +165,10 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 - Il salvataggio sostituisce in blocco le qualità della moneta
   (`CollectionDao.replaceForCoin`, transazione) e conserva `addedAt` delle
   voci già esistenti.
-- **Tastiera nel pannello**: il contenuto usa `windowInsetsPadding(navigationBars.union(ime))`  e non `navigationBarsPadding()` + `imePadding()` insieme, che contavano due volte la barra  di navigazione (già inclusa nell'altezza della tastiera). Non verificato con la tastiera  aperta sul telefono.
+- **Tastiera nel pannello**: il contenuto usa
+  `windowInsetsPadding(navigationBars.union(ime))` e non `navigationBarsPadding()` +
+  `imePadding()` insieme, che contavano due volte la barra di navigazione (già inclusa
+  nell'altezza della tastiera). Non verificato con la tastiera aperta sul telefono.
 - **Layout del pannello** (`CollectionSheet.kt`): titolo a max 2 righe,
   sottotitolo "Paese · Anno", fondo grigio-verde del tema. Una **card da 64 dp
   per finitura** (Standard "Circulation", BU "Brilliant Uncirculated", Proof
