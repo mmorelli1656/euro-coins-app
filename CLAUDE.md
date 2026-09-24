@@ -513,8 +513,10 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   0 = linea dritta). Years/Countries restano con la barra dritta di Material
   (`animation = null`): centinaia di onde insieme sarebbe rumore, non un dettaglio.
   **Tre curve diverse, non una sola**: `EmphasizedEasing` (cubic-bezier
-  0.2,0,0,1) per l'allungamento della barra (durata 800 ms al primo avvio, 600
-  ms per un aggiornamento) e per il pulse finale; `LinearEasing` per la fase
+  0.2,0,0,1) per l'allungamento della barra (durata 1100 ms al primo avvio,
+  preceduta da un'attesa di 450 ms dopo che i dati sono pronti, perché
+  l'animazione di apertura dell'app ne copriva l'inizio; 600 ms per un
+  aggiornamento, senza attesa) e per il pulse finale; `LinearEasing` per la fase
   dell'onda che scorre (1800 ms a ciclo — valori più bassi provati e scartati,
   "vibravano"); `EaseOutEasing` (cubic-bezier 0,0,0.58,1) per la dissolvenza
   dell'ampiezza a fine riempimento. **Non applicare lo scale/pulse al `Canvas`
