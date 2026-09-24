@@ -94,7 +94,7 @@ fun SettingsScreen(
             SectionHeader("Account and backup", first = true)
             BackupSection(backupViewModel)
 
-            SectionHeader("Monetization")
+            Spacer(Modifier.height(12.dp))
             ProBanner(onClick = { showProInfo = true })
 
             SectionHeader("Catalog and display")
