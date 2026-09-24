@@ -3,6 +3,7 @@ package com.michele.eurocoins.ui.detail
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,8 +56,11 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
@@ -73,6 +78,7 @@ import com.michele.eurocoins.ui.theme.InkLight
 import com.michele.eurocoins.ui.theme.LilacLight
 import com.michele.eurocoins.ui.theme.PurpleFieldDark
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
+import com.michele.eurocoins.ui.theme.PurpleFieldLight
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
 import com.michele.eurocoins.ui.theme.VerdigrisDark
 import com.michele.eurocoins.ui.theme.linkColor
@@ -195,8 +201,8 @@ private fun CoinHero(coin: Coin) {
         // Titolo sempre per intero (anche su 3 righe): niente ellissi né espansione.
         Text(
             text = coin.tema,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            style = sansTitleMedium(),
+            fontWeight = FontWeight.Bold,
             color = InkLight,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp),
@@ -251,15 +257,35 @@ private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
+/**
+ * Tipografia di questa schermata: solo sans. `titleMedium` del tema è serif (titoli delle altre
+ * schermate), qui lo si sostituisce localmente senza toccare il tema.
+ */
+@Composable
+private fun sansTitleMedium(): TextStyle =
+    MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Default)
+
+/** Note storiche: 4 righe con ellissi; "Read more" / "Show less" solo se il testo è troncato. */
 @Composable
 private fun NotesCard(note: String) {
+    var expanded by rememberSaveable(note) { mutableStateOf(false) }
+    var truncated by remember(note) { mutableStateOf(false) }
     DetailCard {
         SectionLabel("HISTORICAL NOTES")
         Text(
             text = note,
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(top = 8.dp),
+            maxLines = if (expanded) Int.MAX_VALUE else 4,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (!expanded) truncated = it.hasVisualOverflow },
+            modifier = Modifier.padding(top = 8.dp).animateContentSize(),
         )
+        if (truncated || expanded) {
+            TextButton(
+                onClick = { expanded = !expanded },
+                modifier = Modifier.align(Alignment.Start),
+            ) { Text(if (expanded) "Show less" else "Read more") }
+        }
     }
 }
 
@@ -312,7 +338,7 @@ private fun MintageSection(coin: Coin) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(text = value, style = sansTitleMedium().copy(fontFeatureSettings = "tnum"), fontWeight = FontWeight.SemiBold)
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
@@ -329,7 +355,7 @@ private fun MintageSection(coin: Coin) {
             text = "For ${coin.displayCountry()}, this figure is most likely the country's " +
                 "authorized quota for the period, not the actual mintage of " +
                 "this specific coin — see NOTES.md in the data pipeline.",
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Default),
             color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.padding(top = 8.dp),
         )
@@ -389,9 +415,9 @@ private fun FooterLine(text: String) {
 
 /**
  * Card della collezione. Non posseduta: card neutra con messaggio centrato e "Add to
- * collection" pieno (l'unica azione piena della schermata). Posseduta: contenitore tinto di
- * verdigris, badge OWNED in alto a destra, una riga chiave-valore per finitura (nome a sinistra,
- * prezzo in viola a destra) e "Edit collection" compatto (36 dp visivi, 48 dp di tocco) a destra.
+ * collection" pieno (l'unica azione piena della schermata). Posseduta: card bianca con bordo viola,
+ * badge OWNED in alto a destra, una pillola lilla per finitura posseduta (nome a sinistra,
+ * prezzo a destra) e "Edit collection" compatto (36 dp visivi, 48 dp di tocco) a destra.
  * Lo stesso pannello dell'elenco si apre da entrambi i pulsanti.
  */
 @Composable
@@ -421,64 +447,53 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val dark = colors.surface.luminance() < 0.5f
     val shape = RoundedCornerShape(16.dp)
-    val accent = colors.primary
-    val priceColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
+    // Viola/lilla dell'app (gli stessi del pannello di modifica): bordo della card e righe.
+    val accent = if (dark) PurpleFieldDark else PurpleFieldLight
+    val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
     val pillColor = if (dark) PurpleFieldDark.copy(alpha = 0.25f) else LilacLight
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(colors.surface)
-            .border(1.5.dp, accent, shape)
+            .border(2.dp, accent, shape)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("COLLECTION", modifier = Modifier.weight(1f))
             OwnedBadge(dark)
         }
+        // Solo le finiture possedute: una pillola lilla unica per riga, nome a sinistra e
+        // prezzo a destra (trattino se assente o 0,00, per tenere la colonna allineata).
         Column(
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             CoinQuality.entries.mapNotNull { q -> items.firstOrNull { it.quality == q } }.forEach { item ->
-                val rowShape = RoundedCornerShape(12.dp)
+                val cents = item.priceCents?.takeIf { it > 0 }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
-                        .clip(rowShape)
-                        .background(colors.surface)
-                        .border(1.dp, colors.outline, rowShape)
-                        .padding(horizontal = 14.dp),
+                        .clip(RoundedCornerShape(50))
+                        .background(pillColor)
+                        .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(50))
+                        .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = item.quality.label,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = colors.onSurface,
+                        fontWeight = FontWeight.Medium,
+                        color = inkColor,
                         modifier = Modifier.weight(1f),
                     )
-                    // Prezzo assente o 0,00: trattino discreto, così la colonna resta allineata.
-                    val cents = item.priceCents?.takeIf { it > 0 }
-                    if (cents != null) {
-                        Text(
-                            text = "€${formatPrice(cents)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = priceColor,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(pillColor)
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                        )
-                    } else {
-                        Text(
-                            text = NO_VALUE,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = colors.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 12.dp),
-                        )
-                    }
+                    Text(
+                        text = cents?.let { "€${formatPrice(it)}" } ?: NO_VALUE,
+                        style = sansTitleMedium(),
+                        fontWeight = FontWeight.Bold,
+                        color = if (cents != null) inkColor else inkColor.copy(alpha = 0.7f),
+                    )
                 }
             }
         }
@@ -507,6 +522,6 @@ private fun OwnedBadge(dark: Boolean) {
     ) {
         Icon(Icons.Filled.Check, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(4.dp))
-        Text(text = "OWNED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = fg)
+        Text(text = "OWNED", style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Default), fontWeight = FontWeight.Medium, color = fg)
     }
 }
