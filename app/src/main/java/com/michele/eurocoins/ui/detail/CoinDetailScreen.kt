@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -355,7 +356,7 @@ private fun NotesCard(note: String, scrollState: ScrollState, viewport: () -> Re
         Text(
             text = note,
             style = MaterialTheme.typography.bodyMedium.copy(
-                textAlign = TextAlign.Start,
+                textAlign = TextAlign.Justify,
                 lineHeight = 20.sp,
                 lineBreak = LineBreak.Paragraph,
                 hyphens = Hyphens.Auto,
@@ -435,21 +436,24 @@ private fun MintageSection(coin: Coin) {
         CoinQuality.BU.label to (coin.tiraturaNumistaBu?.let(numberFormat::format) ?: NO_VALUE),
         CoinQuality.PROOF.label to (coin.tiraturaNumistaProof?.let(numberFormat::format) ?: NO_VALUE),
     )
-    // Tre colonne larghe quanto il loro contenuto, distribuite con spazio uguale attorno (senza
-    // filetti): le cifre hanno SEMPRE lo stesso stile, anche "12,600,000". Con "tnum" le cifre
-    // hanno larghezza fissa e restano allineate; niente riduzione del corpo per i numeri lunghi.
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
+    // Tre colonne di larghezza UGUALE (un terzo della card ciascuna), con cifra ed etichetta
+    // centrate sull'asse della propria colonna: con colonne larghe quanto il contenuto
+    // (SpaceEvenly) quella con la cifra più larga spostava il baricentro e il gruppo sembrava
+    // decentrato. Le cifre hanno SEMPRE lo stesso stile, anche "12,600,000" ("tnum": larghezza
+    // fissa); se una cifra eccedesse il terzo esce simmetrica da entrambi i lati.
+    Row(modifier = Modifier.fillMaxWidth()) {
         rows.forEach { (label, value) ->
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
                     text = value,
                     style = sansTitleMedium().copy(fontFeatureSettings = "tnum"),
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     softWrap = false,
+                    modifier = Modifier.wrapContentWidth(Alignment.CenterHorizontally, unbounded = true),
                 )
                 Text(
                     text = label,
