@@ -40,9 +40,21 @@ import com.michele.eurocoins.data.Progress
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 
-/** Durata dell'animazione al primo avvio: 1300 ms faceva attendere troppo, qui più decisa. */
-private const val INTRO_DURATION_MS = 800
+/**
+ * Durata dell'animazione al primo avvio: 1300 ms faceva attendere troppo, 800 ms risultava un
+ * po' troppo veloce (e in parte coperta dall'animazione di apertura dell'app); qui in mezzo.
+ */
+private const val INTRO_DURATION_MS = 1100
+
+/**
+ * Attesa prima di far partire l'animazione del primo avvio, contata da quando i dati sono
+ * pronti: l'animazione di apertura dell'app (e la splash) dura ancora qualche centinaio di
+ * millisecondi e ne copriva l'inizio, che quindi non si vedeva. Vale solo per il primo avvio:
+ * gli aggiornamenti a schermata già mostrata partono subito.
+ */
+private const val INTRO_START_DELAY_MS = 450L
 
 /** Durata quando il conteggio cambia a schermata già mostrata: solo la differenza. */
 private const val UPDATE_DURATION_MS = 600
@@ -117,6 +129,10 @@ fun rememberProgressAnimation(
         if (!ready) return@LaunchedEffect
         val isIntro = playIntro && lastShown == null
         if (isIntro || ownedAnim.value.roundToInt() != owned) {
+            // Solo al primo avvio: lascia finire l'animazione di apertura dell'app prima di partire.
+            // Se l'utente esce durante l'attesa il LaunchedEffect viene annullato prima di
+            // onShown: al ritorno l'intro riparte, come deve.
+            if (isIntro) delay(INTRO_START_DELAY_MS)
             filling = true
             try {
                 // Curva Emphasized per l'allungamento della barra (un giro intermedio l'aveva
