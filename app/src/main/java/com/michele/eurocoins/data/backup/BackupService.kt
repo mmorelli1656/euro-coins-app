@@ -29,6 +29,9 @@ class BackupService(
         return items.size
     }
 
+    /** Monete distinte nella collezione locale (quelle che un backup salverebbe). */
+    suspend fun localCoinCount(): Int = collectionDao.getAll().map { it.coinKey }.distinct().size
+
     /** Data dell'ultimo backup (ISO-8601), null se non ne esiste uno. */
     suspend fun lastBackupTime(token: String): String? = drive.find(token)?.modifiedTime
 }

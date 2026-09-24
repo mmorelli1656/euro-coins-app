@@ -22,6 +22,9 @@ import kotlinx.coroutines.launch
 
 enum class BackupAction { BACKUP, RESTORE, INFO }
 
+/** Richiesta di conferma prima di sovrascrivere un backup già presente: sua data (se leggibile) e monete locali che lo sostituirebbero. */
+data class OverwritePrompt(val date: String?, val coins: Int)
+
 data class BackupUiState(
     val configured: Boolean,
     val account: GoogleAccount? = null,
@@ -31,6 +34,8 @@ data class BackupUiState(
     val lastBackup: String? = null,
     /** true quando Drive è stato davvero interrogato: senza, `lastBackup` null vuol dire "non so", non "nessun backup". */
     val backupChecked: Boolean = false,
+    /** Non null = la UI deve chiedere conferma prima di sovrascrivere il backup esistente. */
+    val overwritePrompt: OverwritePrompt? = null,
     /** Schermata di consenso Drive da lanciare (one-shot: la UI la consuma con [BackupViewModel.consentLaunched]). */
     val consent: IntentSender? = null,
 )
@@ -66,6 +71,14 @@ class BackupViewModel(
 
     fun restore(activity: Activity) = launchBusy { runAction(BackupAction.RESTORE, activity) }
 
+    /** L'utente ha confermato il dialog di sovrascrittura: rifà il backup saltando il controllo. */
+    fun confirmOverwrite(activity: Activity) = launchBusy {
+        _state.update { it.copy(overwritePrompt = null) }
+        runAction(BackupAction.BACKUP, activity, confirmed = true)
+    }
+
+    fun dismissOverwrite() = _state.update { it.copy(overwritePrompt = null) }
+
     fun consentLaunched() = _state.update { it.copy(consent = null) }
 
     /** Chiamata con l'esito della schermata di consenso; [data] null = utente ha rifiutato. */
@@ -78,9 +91,9 @@ class BackupViewModel(
         }
     }
 
-    private suspend fun runAction(action: BackupAction, activity: Activity) {
+    private suspend fun runAction(action: BackupAction, activity: Activity, confirmed: Boolean = false) {
         when (val auth = accounts.authorizeDrive(activity)) {
-            is DriveAuthorization.Granted -> execute(action, auth.accessToken)
+            is DriveAuthorization.Granted -> execute(action, auth.accessToken, confirmed)
             is DriveAuthorization.NeedsConsent -> {
                 if (action == BackupAction.INFO) return
                 pendingAction = action
@@ -89,9 +102,25 @@ class BackupViewModel(
         }
     }
 
-    private suspend fun execute(action: BackupAction, token: String) {
+    private suspend fun execute(action: BackupAction, token: String, confirmed: Boolean = false) {
         when (action) {
             BackupAction.BACKUP -> {
+                // Un backup già presente si sovrascrive solo dopo conferma: su un telefono nuovo la
+                // collezione locale è vuota e cancellerebbe quella salvata. Il controllo sta qui, non
+                // nella UI, perché solo qui c'è il token (e il consenso Drive potrebbe non esserci ancora).
+                if (!confirmed) {
+                    val existing = service.lastBackupTime(token)
+                    if (existing != null) {
+                        _state.update {
+                            it.copy(
+                                lastBackup = formatTime(existing),
+                                backupChecked = true,
+                                overwritePrompt = OverwritePrompt(formatTime(existing), service.localCoinCount()),
+                            )
+                        }
+                        return
+                    }
+                }
                 val count = service.backup(token)
                 _state.update {
                     it.copy(message = "Backed up $count ${entries(count)} to Google Drive.", lastBackup = formatTime(service.lastBackupTime(token)), backupChecked = true)

@@ -98,6 +98,26 @@ fun BackupSection(viewModel: BackupViewModel) {
         }
     }
 
+    state.overwritePrompt?.let { prompt ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissOverwrite,
+            title = { Text("Overwrite existing backup?") },
+            text = {
+                Text(
+                    "A backup" + (prompt.date?.let { " from $it" } ?: "") + " already exists on Google Drive. " +
+                        "Backing up now will overwrite it with your current local collection " +
+                        "(${prompt.coins} ${if (prompt.coins == 1) "coin" else "coins"}).",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmOverwrite(activity) }) {
+                    Text("Overwrite", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = viewModel::dismissOverwrite) { Text("Cancel") } },
+        )
+    }
+
     if (confirmRestore) {
         AlertDialog(
             onDismissRequest = { confirmRestore = false },
