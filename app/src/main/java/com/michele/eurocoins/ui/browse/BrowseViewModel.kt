@@ -61,9 +61,13 @@ private fun Progress.matches(filter: CompletionFilter): Boolean = when (filter) 
     CompletionFilter.COMPLETE -> total > 0 && owned == total
 }
 
-class BrowseViewModel(repository: CoinRepository) : ViewModel() {
+class BrowseViewModel(
+    repository: CoinRepository,
+    /** Scheda con cui si apre il catalogo (Impostazioni → Default tab). */
+    initialMode: BrowseMode = BrowseMode.YEARS,
+) : ViewModel() {
 
-    private val mode = MutableStateFlow(BrowseMode.YEARS)
+    private val mode = MutableStateFlow(initialMode)
     private val prefs = MutableStateFlow(GridPrefs())
 
     val uiState: StateFlow<BrowseUiState> = combine(

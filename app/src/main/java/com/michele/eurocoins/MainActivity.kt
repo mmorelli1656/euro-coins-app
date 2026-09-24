@@ -54,6 +54,7 @@ class MainActivity : ComponentActivity() {
                         backupService = app.backupService,
                         accountManager = app.accountManager,
                         themePreference = app.themePreference,
+                        userSettings = app.userSettings,
                     )
                 }
             }

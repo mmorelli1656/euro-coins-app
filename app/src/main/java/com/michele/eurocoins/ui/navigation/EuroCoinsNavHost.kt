@@ -5,8 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -18,7 +16,9 @@ import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.GoogleAccountManager
-import com.michele.eurocoins.ui.backup.BackupScreen
+import com.michele.eurocoins.ui.settings.SettingsScreen
+import com.michele.eurocoins.ui.settings.SettingsViewModel
+import com.michele.eurocoins.ui.settings.UserSettings
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
@@ -33,7 +33,7 @@ import com.michele.eurocoins.ui.theme.ThemePreference
 
 private const val ROUTE_HOME = "home"
 private const val ROUTE_BROWSE = "browse"
-private const val ROUTE_BACKUP = "backup"
+private const val ROUTE_SETTINGS = "settings"
 private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ARG_KIND = "kind"
@@ -50,6 +50,7 @@ fun EuroCoinsNavHost(
     backupService: BackupService,
     accountManager: GoogleAccountManager,
     themePreference: ThemePreference,
+    userSettings: UserSettings,
 ) {
     val navController = rememberNavController()
 
@@ -69,27 +70,28 @@ fun EuroCoinsNavHost(
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory { initializer { HomeViewModel(repository) } },
             )
-            // Riletto a ogni rientro nella home: dopo login/logout dalla schermata Backup l'icona si aggiorna.
-            val account = accountManager.currentAccount()
-            val themeMode by themePreference.mode.collectAsState()
             HomeScreen(
                 viewModel = viewModel,
-                accountInitial = account?.let { (it.displayName ?: it.email).firstOrNull()?.uppercase() },
-                themeMode = themeMode,
-                onThemeModeChange = themePreference::set,
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
-                onProfileClick = { navController.navigate(ROUTE_BACKUP) },
+                onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
             )
         }
-        composable(ROUTE_BACKUP) {
-            val viewModel: BackupViewModel = viewModel(
+        composable(ROUTE_SETTINGS) {
+            val backupViewModel: BackupViewModel = viewModel(
                 factory = viewModelFactory { initializer { BackupViewModel(backupService, accountManager) } },
             )
-            BackupScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+            val settingsViewModel: SettingsViewModel = viewModel(
+                factory = viewModelFactory { initializer { SettingsViewModel(repository, userSettings, themePreference) } },
+            )
+            SettingsScreen(
+                settingsViewModel = settingsViewModel,
+                backupViewModel = backupViewModel,
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(ROUTE_BROWSE) {
             val browseViewModel: BrowseViewModel = viewModel(
-                factory = viewModelFactory { initializer { BrowseViewModel(repository) } },
+                factory = viewModelFactory { initializer { BrowseViewModel(repository, userSettings.defaultTab.value) } },
             )
             val allCoinsViewModel: CoinListViewModel = viewModel(
                 key = "all",

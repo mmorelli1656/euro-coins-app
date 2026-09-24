@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,8 +49,6 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.ProgressAnimation
 import com.michele.eurocoins.ui.components.rememberProgressAnimation
-import com.michele.eurocoins.ui.components.ThemeModePill
-import com.michele.eurocoins.ui.theme.ThemeMode
 
 /**
  * Schermata d'ingresso: due tile che si dividono l'altezza. Oggi solo le
@@ -62,12 +60,8 @@ import com.michele.eurocoins.ui.theme.ThemeMode
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    /** Iniziale dell'account Google collegato, null se non ha fatto l'accesso. */
-    accountInitial: String?,
-    themeMode: ThemeMode,
-    onThemeModeChange: (ThemeMode) -> Unit,
     onCommemorativeClick: () -> Unit,
-    onProfileClick: () -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -91,8 +85,9 @@ fun HomeScreen(
                 colors = appBarColors(),
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
-                    ThemeModePill(mode = themeMode, onModeChange = onThemeModeChange)
-                    ProfileButton(accountInitial, onProfileClick)
+                    IconButton(onClick = onSettingsClick) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                    }
                 },
             )
         },
@@ -117,26 +112,6 @@ fun HomeScreen(
                     .weight(1f)
                     .fillMaxWidth(),
             )
-        }
-    }
-}
-
-/** Icona profilo: cerchio con l'iniziale se l'utente ha fatto l'accesso, altrimenti l'icona generica. */
-@Composable
-private fun ProfileButton(initial: String?, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
-        if (initial == null) {
-            Icon(Icons.Filled.AccountCircle, contentDescription = "Profile and backup", modifier = Modifier.size(32.dp))
-        } else {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(initial, color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)
-            }
         }
     }
 }

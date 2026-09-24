@@ -3,6 +3,7 @@ package com.michele.eurocoins.data
 import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,15 +25,27 @@ class CoinRepository(
     private val context: Context,
     private val dao: CoinDao,
     private val collectionDao: CollectionDao,
+    hideMicrostates: Flow<Boolean>,
 ) {
-    val coins: Flow<List<Coin>> = dao.observeAll()
-    val paesi: Flow<List<String>> = dao.observePaesi()
+    /** Catalogo visibile: senza i microstati quando l'utente li ha nascosti dalle Impostazioni. */
+    val coins: Flow<List<Coin>> = combine(dao.observeAll(), hideMicrostates) { all, hide ->
+        if (hide) all.filterNot { it.isMicrostate } else all
+    }
+    val paesi: Flow<List<String>> = combine(dao.observePaesi(), hideMicrostates) { all, hide ->
+        if (hide) all.filterNot { it in MICROSTATE_PAESI } else all
+    }
 
     /** Tutte le voci di collezione dell'utente (una per moneta+qualità). */
     val collectionItems: Flow<List<CollectionItem>> = collectionDao.observeAll()
 
     /** Chiavi delle monete possedute in almeno una qualità. */
     val ownedKeys: Flow<Set<String>> = collectionItems.map { items -> items.map { it.coinKey }.toSet() }
+
+    /** Quante monete distinte sono possedute (per il messaggio di conferma del reset). */
+    val ownedCount: Flow<Int> = ownedKeys.map { it.size }
+
+    /** Svuota la collezione dell'utente; il catalogo `coins` non viene toccato. */
+    suspend fun resetCollection() = collectionDao.deleteAll()
 
     /**
      * Salva in blocco le qualità possedute di una moneta ([entries]: qualità

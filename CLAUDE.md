@@ -97,16 +97,18 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinQuality.kt        # Standard / BU / Proof
 │   ├── CollectionItem.kt     # @Entity: moneta posseduta in una qualità
 │   ├── CollectionDao.kt
+│   ├── Microstates.kt        # MICROSTATE_PAESI + Coin.isMicrostate (filtro "Hide microstates")
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
-    ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo), ThemeModePill,
+    ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / circolanti)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
-    ├── backup/               # schermata Backup (login Google, backup/ripristino su Drive)
+    ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
+    ├── backup/               # BackupSection (sezione account/backup di Settings), BackupViewModel
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
     └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> backup
 ```
@@ -143,7 +145,7 @@ calcolati dal database, nessun valore scritto a mano. **Circulation**:
 tratteggiata, "Coming soon", senza azione. La home è anche dove parte il
 seeding del database (`HomeViewModel` chiama `ensureSeeded()`; il Mutex nel
 repository evita il doppio inserimento se più ViewModel lo chiamano). In alto
-a destra l'icona profilo porta alla schermata Backup.
+a destra un'icona ingranaggio apre le Impostazioni (unico accesso: la pillola del tema e l'icona profilo non ci sono più).
 
 ## Collezione utente
 
@@ -189,14 +191,32 @@ Lo stesso pannello si apre dal dettaglio ("Add"/"Edit" accanto al riepilogo
 - Non ancora fatto: note libere, data di acquisto, valuta diversa
   dall'euro, export CSV.
 
+### Impostazioni
+
+Schermata unica (`SettingsScreen`), sezioni: Account and backup, Monetization
+(banner "Go Pro"), Catalog and display, Appearance, Danger zone.
+
+- **Hide microstates** (Andorra, Monaco, San Marino, Città del Vaticano,
+  `MICROSTATE_PAESI`): il filtro sta in `CoinRepository.coins`/`paesi`
+  (`combine` con `UserSettings.hideMicrostates`), quindi elenchi, griglie,
+  ricerca e home lo rispettano tutti e i totali "x / y collected" escludono
+  i microstati nascosti. Le monete già possedute restano nella collezione e
+  nel backup.
+- **Default tab**: scheda di Commemorative che si apre per prima
+  (`UserSettings.defaultTab`, letto alla creazione del `BrowseViewModel`).
+  Scartato il riordino completo dei segmenti: i segmenti restano Years /
+  Countries / All.
+- **Reset collection**: dialog di conferma con il numero di monete; svuota
+  solo `collection_items` (`CoinRepository.resetCollection`). Il backup su
+  Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
+
 ### Backup su Google Drive
 
-Schermata "Backup" (icona profilo in alto a destra nella home: icona
-generica senza accesso, cerchio con l'iniziale dell'account con l'accesso
-fatto): login con Google (Credential Manager) e backup/ripristino della
+Sezione "Account and backup" della schermata Impostazioni (ingranaggio in
+alto a destra nella home; la vecchia schermata Backup è stata assorbita): login con Google (Credential Manager) e backup/ripristino della
 collezione su Drive.
 
-- **UI** (`BackupScreen`): senza accesso una card d'invito + "Sign in with
+- **UI** (`BackupSection`): senza accesso una card d'invito + "Sign in with
   Google"; con l'accesso l'email, una card di stato in evidenza ("Collection
   saved" + data dell'ultimo backup, o "Not backed up yet", con barra di
   avanzamento durante le operazioni), i pulsanti Back up / Restore e in fondo
@@ -454,13 +474,12 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile (causa non chiarita). Solo icona di errore.
-- **Tema: pillola Light / Dark / Auto nella barra della home** (accanto al
-  profilo), Auto predefinito = segue il telefono. `ThemePreference` salva la
+- **Tema: segmented button Auto / Light / Dark nelle Impostazioni** (Appearance), Auto predefinito = segue il telefono. `ThemePreference` salva la
   scelta in SharedPreferences (`theme`); `MainActivity` riapplica
   `enableEdgeToEdge` a ogni cambio (altrimenti le icone delle barre di sistema
   seguono il tema del telefono e spariscono con un tema forzato). Scartati:
-  selettore in Backup (nascosto), pillola a due stati (non si tornerebbe a
-  "segui il telefono"). L'ordine è Light, Dark, Auto per scelta dell'utente.
+  pillola nella barra della home (sostituita quando le impostazioni sono state unificate), pillola a due stati (non si tornerebbe a
+  "segui il telefono"). L'ordine è Auto, Light, Dark per scelta dell'utente (prima era Light, Dark, Auto).
 - **Palette del tema chiaro: grigio-verde, non crema.** Il beige/crema faceva
   sembrare tutto piatto e con poco contrasto tra card e fondo (rapporto ~1.13).
   Ora fondo `D0D7CE`, card `FFFFFF` (bianco puro, come le foto BCE), outline

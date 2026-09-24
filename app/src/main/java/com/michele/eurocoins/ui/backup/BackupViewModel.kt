@@ -13,7 +13,7 @@ import com.michele.eurocoins.data.backup.GoogleAccountManager
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -123,7 +123,7 @@ class BackupViewModel(
 
     private fun formatTime(iso: String?): String? = iso?.let {
         runCatching {
-            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
+            DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm", Locale.ENGLISH)
                 .withZone(ZoneId.systemDefault())
                 .format(Instant.parse(it))
         }.getOrNull()

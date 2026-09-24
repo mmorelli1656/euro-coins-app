@@ -5,9 +5,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Tema scelto dall'utente: [SYSTEM] segue il telefono, gli altri due lo forzano. */
+/** Tema scelto dall'utente: [SYSTEM] ("Auto" in UI) segue il telefono, gli altri due lo forzano. */
 enum class ThemeMode(val label: String) {
-    SYSTEM("System"),
+    SYSTEM("Auto"),
     LIGHT("Light"),
     DARK("Dark"),
 }
