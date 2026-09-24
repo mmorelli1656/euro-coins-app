@@ -506,10 +506,10 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   codice: finché il processo resta vivo l'Activity non viene distrutta.
   **Forma attuale: barra "liquido" sottile.** Il testo sta in una `Row` SOPRA la
   barra ("77 / 584 collected" a sinistra, percentuale a un decimale a destra,
-  "13.2%"), la barra è un `Canvas` alto **12 dp** con angoli da 6 dp (clip
+  "13.2%"), la barra è un `Canvas` alto **15 dp** con angoli da 7.5 dp (clip
   sull'intero Canvas, traccia vuota compresa) e dentro **due onde** che sono
-  percorsi CHIUSI (superficie sinusoidale + curva di raccordo a destra, non un
-  taglio verticale; ampiezza smorzata al 35% negli ultimi 10 dp): una frontale
+  percorsi CHIUSI (superficie sinusoidale + curva di raccordo a destra di 8.75
+  dp, non un taglio verticale; ampiezza smorzata al 35% negli ultimi 12.5 dp): una frontale
   piena e una di sfondo al 38% della stessa tinta, sfasata di 90° e a 0.7× di
   velocità (parallasse). Sostituisce la barra da 22 dp con testo sotto
   (troppo alta e pesante nella tile) e, prima ancora, un tratto sinusoidale
@@ -528,13 +528,20 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   |velocity| / velocità di picco attesa (2.75 × differenza / durata, la
   pendenza massima della FastOutSlowIn), quindi un salto di 1 moneta e uno da 0
   a 77 si agitano allo stesso modo relativo; continua perché la curva ha
-  derivata nulla a inizio e fine. Ampiezza 1 dp a riposo e 1.5 dp al massimo
+  derivata nulla a inizio e fine. Ampiezza 1.25 dp a riposo e 1.9 dp al massimo
   (scelta dell'utente: la differenza tra "in salita" e "ferma" è poca, l'onda
   a riposo continua a scorrere piano — fase infinita con
   `rememberInfiniteTransition`, non si appiattisce più a linea dritta come
   nel giro precedente; costo: un ridisegno continuo di un Canvas piccolo
   finché la home è visibile, il frame clock si ferma da solo in background).
-  Lunghezza d'onda FISSA in dp (`WaveWavelength`, 16 dp, non proporzionale alla
+  **Altezza 15 dp = i 12 dp originali +25%, con TUTTA l'onda in proporzione**
+  (ampiezze, lunghezza d'onda, curva del bordo, smorzamento, angoli): l'utente
+  ha visto un mockup del +50% (18 dp) e ha scelto di restare a 15, perché 18 dp
+  si avvicina alla pillola da 22 dp già giudicata troppo pesante nella tile.
+  Per cambiare ancora l'altezza scalare TUTTE le costanti `Wave*` insieme, non
+  solo `WaveBoxHeight`. "Larghezza" nel senso di spessore, non orizzontale: in
+  orizzontale la barra occupa già tutta la tile.
+  Lunghezza d'onda FISSA in dp (`WaveWavelength`, 20 dp, non proporzionale alla
   larghezza — con "N creste sull'intera barra" a inizio riempimento si
   vedeva una sola gobba, perché nella parte colorata ci stava meno di una
   lunghezza d'onda intera). Years/Countries restano con la barra dritta di
