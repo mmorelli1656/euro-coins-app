@@ -3,6 +3,7 @@ package com.michele.eurocoins.ui.components
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -10,7 +11,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,30 +25,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.Progress
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import java.util.Locale
 import kotlinx.coroutines.delay
 
-/**
- * Durata dell'animazione al primo avvio: 1300 ms faceva attendere troppo, 800 ms risultava un
- * po' troppo veloce (e in parte coperta dall'animazione di apertura dell'app); qui in mezzo.
- */
+/** Durata del riempimento al primo avvio. */
 private const val INTRO_DURATION_MS = 1100
 
 /**
@@ -60,57 +61,82 @@ private const val INTRO_START_DELAY_MS = 450L
 private const val UPDATE_DURATION_MS = 600
 
 /**
- * Curva "Emphasized" di Material 3 (cubic-bezier 0.2, 0, 0, 1): parte più decisa e rallenta più a
- * lungo verso la fine di quanto faccia la FastOutSlowIn standard (0.4, 0, 0.2, 1) — pensata per
- * un movimento che si nota, non per una transizione qualunque dell'interfaccia.
+ * Curva "Emphasized" di Material 3 (cubic-bezier 0.2, 0, 0, 1), usata solo per il pulse finale del
+ * numero. Il riempimento usa la FastOutSlowIn standard di Compose (0.4, 0, 0.2, 1).
  */
 private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-/** "Ease-out" standard (cubic-bezier 0, 0, 0.58, 1): parte spedita e rallenta solo verso la fine
- * — per la dissolvenza finale dell'onda, che deve fondersi nella linea dritta senza scatti. */
-private val EaseOutEasing = CubicBezierEasing(0f, 0f, 0.58f, 1f)
+/**
+ * Derivata massima della FastOutSlowIn (cubic-bezier 0.4, 0, 0.2, 1) rispetto al progresso lineare,
+ * calcolata sul punto più ripido della curva (u ≈ 0.42 → ≈ 2.73). Serve a sapere quale sia la
+ * velocità di picco di un riempimento senza doverla misurare a ogni fotogramma: v_picco =
+ * PEAK_SLOPE × differenza / durata.
+ */
+private const val FAST_OUT_SLOW_IN_PEAK_SLOPE = 2.75f
 
-// Geometria dell'onda: altezza del box che la contiene, spessore del tratto e ampiezza massima
-// dell'oscillazione. Il giro precedente (8 dp di ampiezza, 3.5 creste) risultava un "rimbalzo"
-// grosso e lento; qui l'ampiezza scende un po' e le creste aumentano, per un'onda più fitta e
-// meno vistosa nel singolo balzo. Il box resta alto abbastanza da non tagliarla.
-private val WaveBoxHeight = 20.dp
-private val WaveStrokeWidth = 5.dp
-private val WaveAmplitude = 4.dp
+// Geometria del "liquido": barra sottile (12 dp, la pillola da 22 dp occupava troppo nella card),
+// onda frontale piena e onda di sfondo più trasparente, più alta, sfasata di 90° e più lenta
+// (parallasse). Le ampiezze sono in dp.
+private val WaveBoxHeight = 12.dp
+
+/** Angoli del contenitore: con 12 dp di altezza, 6 dp è una pillola completa. */
+private val WaveCornerRadius = 6.dp
+
+/** Ampiezza a riposo: micro-oscillazione "viva" ma non invadente quando la barra è ferma. */
+private val WaveAmplitudeRest = 1.dp
 
 /**
- * Lunghezza d'onda FISSA in dp, non proporzionale alla larghezza della barra: con "quante creste
- * sull'intera barra" (il tentativo precedente) a inizio riempimento, quando la parte colorata è
- * ancora stretta (es. 43/499), nella parte piena ci stava meno di un'onda intera e sembrava un
- * singolo rigonfiamento invece di un'onda fitta. Una lunghezza fissa dà sempre la stessa densità
- * di creste, dal primo pixel riempito in poi — è anche come la definisce la specifica Material.
+ * Ampiezza massima, raggiunta solo al picco di velocità del riempimento: 1.5 dp su 12 dp di altezza,
+ * in modo che le creste non tocchino il bordo alto o basso venendo tagliate. Poca distanza dal riposo
+ * (1 dp): l'agitazione durante la salita è discreta, per scelta.
  */
+private val WaveAmplitudeMax = 1.5.dp
+
+/** Lunghezza d'onda FISSA in dp (non proporzionale alla larghezza: vedi CLAUDE.md, onda della home). */
 private val WaveWavelength = 16.dp
 
-/** Tempo per un ciclo completo della fase: 900 ms sembrava ancora "vibrare"; il doppio, per un
- * flusso lento e ipnotico invece che frenetico. */
+/** Tempo per un ciclo completo della fase dell'onda frontale: lento e ipnotico, a velocità costante. */
 private const val WAVE_PERIOD_MS = 1800
 
-/** Passo di campionamento del percorso, in dp: più piccolo = curva più morbida, più punti da disegnare. */
-private val WAVE_STEP = 3.dp
+/** L'onda di sfondo scorre a 0.7× la velocità di quella frontale. */
+private const val BACK_WAVE_SPEED = 0.7f
+
+private const val BACK_WAVE_ALPHA = 0.38f
+private const val BACK_WAVE_AMPLITUDE_SCALE = 0.85f
+
+/** Sfasamento dell'onda di sfondo: 90° = un quarto di ciclo. */
+private const val BACK_WAVE_PHASE_OFFSET = 0.25f
+
+/** Linea d'acqua (dall'alto del contenitore) come frazione dell'altezza: sfondo un po' più in alto. */
+private const val FRONT_WAVE_BASELINE = 0.34f
+private const val BACK_WAVE_BASELINE = 0.26f
+
+/**
+ * Bordo destro del riempimento: invece di un taglio verticale, la superficie scende in una curva
+ * di questa larghezza fino al fondo del contenitore, e nell'ultimo tratto ([WaveEdgeTaper]) l'ampiezza
+ * si smorza, così la cresta non urta contro il bordo quando il valore è intermedio (es. 77/584).
+ */
+private val WaveEdgeSlope = 7.dp
+private val WaveEdgeTaper = 10.dp
+
+/** Passo di campionamento del percorso: più piccolo = curva più morbida, più punti da disegnare. */
+private val WaveStep = 3.dp
 
 /**
  * Stato dell'animazione della barra "x / y collected":
  *
  * - **Primo avvio (cold start)**: [playIntro] vero e [lastShown] nullo → [shownOwned] sale da 0
- *   al valore vero; la parte riempita cresce da 0 di larghezza e, mentre cresce, ha una forma a
- *   onda sinuosa che scorre (stile "wavy progress" di Material You / Play Store), non un
- *   riempimento a bordo dritto.
+ *   al valore vero (dopo [INTRO_START_DELAY_MS]).
  * - **Si torna alla schermata nello stesso processo**: [lastShown] arriva già valorizzato dal
  *   ViewModel, si riparte da lì e solo la differenza si anima.
  * - **Il valore cambia a schermata visibile**: stesso trattamento del caso precedente.
  *
- * Mentre il valore è in movimento l'onda è "gonfia" ([waveAmplitude] vicino a 1); appena
- * l'animazione finisce si appiattisce dolcemente verso una linea dritta (0) in mezzo secondo
- * circa — più lenta a calmarsi di quanto sia stata rapida a gonfiarsi. Alla fine di ogni
- * animazione un piccolo impulso ("pulse", scala 1 → 1.08 → 1) tocca barra e numero. "Resume da
- * RAM" non ha bisogno di codice dedicato: finché il processo resta vivo l'Activity non viene
- * distrutta e Compose conserva lo stato così com'era.
+ * [agitation] (0..1) è la velocità istantanea del riempimento rapportata al suo picco: nulla a
+ * barra ferma, massima nel punto più ripido della curva. La barra ne ricava l'ampiezza dell'onda:
+ * mentre sale il liquido è "agitato", quando si ferma torna alla micro-oscillazione a riposo, in
+ * modo continuo perché la FastOutSlowIn ha derivata nulla all'inizio e alla fine (niente scatti).
+ * Alla fine di ogni animazione un piccolo impulso ("pulse") tocca il numero. "Resume da RAM" non
+ * ha bisogno di codice dedicato: finché il processo resta vivo l'Activity non viene distrutta.
  */
 @Composable
 fun rememberProgressAnimation(
@@ -122,8 +148,8 @@ fun rememberProgressAnimation(
 ): ProgressAnimation {
     val ownedAnim = remember { Animatable((lastShown ?: 0).toFloat()) }
     val pulse = remember { Animatable(1f) }
-    val waveAmplitude = remember { Animatable(0f) }
-    var filling by remember { mutableStateOf(false) }
+    val agitationState = remember { mutableFloatStateOf(0f) }
+    var agitation by agitationState
 
     LaunchedEffect(owned, ready) {
         if (!ready) return@LaunchedEffect
@@ -133,57 +159,60 @@ fun rememberProgressAnimation(
             // Se l'utente esce durante l'attesa il LaunchedEffect viene annullato prima di
             // onShown: al ritorno l'intro riparte, come deve.
             if (isIntro) delay(INTRO_START_DELAY_MS)
-            filling = true
+            val durationMs = if (isIntro) INTRO_DURATION_MS else UPDATE_DURATION_MS
+            val delta = abs(owned - ownedAnim.value)
+            // Velocità di picco attesa (monete al secondo): serve a normalizzare l'agitazione, così
+            // un salto di 1 moneta e uno da 0 a 77 si agitano allo stesso modo relativo.
+            val peakVelocity = (FAST_OUT_SLOW_IN_PEAK_SLOPE * delta / (durationMs / 1000f)).coerceAtLeast(1e-3f)
             try {
-                // Curva Emphasized per l'allungamento della barra (un giro intermedio l'aveva
-                // portata alla FastOutSlowIn standard, su richiesta di allora; qui si torna
-                // all'Emphasized, richiesta esplicita più recente). La fase invece scorre a
-                // velocità costante (Linear, più sotto): il movimento orizzontale non accelera
-                // né rallenta mai, indipendentemente da come accelera il riempimento.
                 ownedAnim.animateTo(
                     owned.toFloat(),
-                    tween(if (isIntro) INTRO_DURATION_MS else UPDATE_DURATION_MS, easing = EmphasizedEasing),
-                )
+                    tween(durationMs, easing = FastOutSlowInEasing),
+                ) {
+                    agitation = (abs(velocity) / peakVelocity).coerceIn(0f, 1f)
+                }
             } finally {
-                filling = false
+                agitation = 0f
             }
-            // Micro-pulse di conferma, solo quando è appena finito di riempirsi.
+            // Micro-pulse di conferma sul numero, solo quando è appena finito di riempirsi.
             pulse.animateTo(1.08f, tween(120, easing = EmphasizedEasing))
             pulse.animateTo(1f, tween(180, easing = EmphasizedEasing))
         }
         onShown(owned)
     }
 
-    // Ampiezza separata dal riempimento: sale in fretta (250 ms, Emphasized) quando si inizia a
-    // riempire, scende (300 ms, ease-out) quando ci si ferma: parte ancora decisa ma rallenta
-    // verso zero, così le creste si fondono nella linea dritta senza uno scatto visibile alla
-    // fine (un "ease-in-out" simmetrico, provato prima, partiva già lento e sembrava trascinarsi).
-    LaunchedEffect(filling) {
-        waveAmplitude.animateTo(if (filling) 1f else 0f, tween(if (filling) 250 else 300, easing = EaseOutEasing))
-    }
-
-    return remember(ownedAnim, pulse, waveAmplitude) { ProgressAnimation(ownedAnim, pulse, waveAmplitude) }
+    return remember(ownedAnim, pulse, agitationState) { ProgressAnimation(ownedAnim, pulse, agitationState) }
 }
 
 class ProgressAnimation internal constructor(
     private val ownedAnim: Animatable<Float, AnimationVector1D>,
     private val pulse: Animatable<Float, AnimationVector1D>,
-    private val waveAmplitude: Animatable<Float, AnimationVector1D>,
+    private val agitationState: androidx.compose.runtime.FloatState,
 ) {
     val shownOwned: Float get() = ownedAnim.value
     val pulseScale: Float get() = pulse.value
 
-    /** 0 = linea dritta, 1 = ampiezza massima dell'onda. */
-    val waveAmplitudeFraction: Float get() = waveAmplitude.value
+    /** 0 = barra ferma, 1 = punto più ripido del riempimento. */
+    val agitation: Float get() = agitationState.floatValue
 }
 
 /**
  * Barra "x / y possedute" usata su home, card anno e card paese.
  *
  * [animation] (da [rememberProgressAnimation]) è opzionale: le card di Years/Countries non lo
- * passano (499 barre non hanno bisogno di animarsi una per una, tantomeno di ondeggiare tutte
- * insieme) e restano una barra dritta come prima. Il conteggio testuale è dietro un
+ * passano (centinaia di barre non hanno bisogno di animarsi una per una, tantomeno di ondeggiare
+ * tutte insieme) e restano una barra dritta di Material. Il conteggio testuale è dietro un
  * `derivedStateOf`, che si ricompone solo quando il numero intero cambia.
+ *
+ * **Barra animata** (con [animation]): una riga di testo SOPRA la barra, con "x / y collected" a
+ * sinistra e la percentuale a destra, e sotto la barra sottile tutta per il liquido. Il Canvas non
+ * sovrappone mai il testo, quindi la leggibilità dipende solo dal colore del testo sullo sfondo della
+ * card, qualunque sia il valore a cui si ferma l'onda. Il testo va in [labelColor]: sulla tile della
+ * home è il colore "onPrimary" (5.9:1 nel tema chiaro, 6.2:1 nello scuro); `onSurface` darebbe 2.6:1 e
+ * 2.0:1 perché la tile è colorata, non una superficie.
+ *
+ * **Barra normale** (senza animazione, card Years/Countries): barra dritta con il testo sotto, come
+ * prima.
  */
 @Composable
 fun CollectionProgressBar(
@@ -198,6 +227,18 @@ fun CollectionProgressBar(
     val shownOwned by remember(progress.owned, animation) {
         derivedStateOf { (animation?.shownOwned ?: progress.owned.toFloat()).roundToInt() }
     }
+    // Percentuale in decimi di punto (77/584 → 132 → "13.2%"): si ricompone solo quando cambia il
+    // decimo, non a ogni fotogramma.
+    val percentTenths by remember(progress.total, animation) {
+        derivedStateOf {
+            val owned = animation?.shownOwned ?: progress.owned.toFloat()
+            if (progress.total == 0) 0 else (owned / progress.total * 1000f).roundToInt()
+        }
+    }
+    val pulseModifier = Modifier.graphicsLayer {
+        scaleX = animation?.pulseScale ?: 1f
+        scaleY = animation?.pulseScale ?: 1f
+    }
     Column(modifier = modifier) {
         if (animation == null) {
             LinearProgressIndicator(
@@ -209,8 +250,32 @@ fun CollectionProgressBar(
                 color = color,
                 trackColor = trackColor,
             )
+            Text(
+                text = "$shownOwned / ${progress.total} collected",
+                style = labelStyle,
+                color = labelColor,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         } else {
-            WavyProgressBar(
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = "$shownOwned / ${progress.total} collected",
+                    style = labelStyle,
+                    color = labelColor,
+                    modifier = pulseModifier,
+                )
+                Text(
+                    text = String.format(Locale.US, "%.1f%%", percentTenths / 10f),
+                    style = labelStyle,
+                    color = labelColor,
+                    modifier = pulseModifier,
+                )
+            }
+            LiquidProgressBar(
                 progress = progress,
                 animation = animation,
                 color = color,
@@ -218,88 +283,140 @@ fun CollectionProgressBar(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        Text(
-            text = "$shownOwned / ${progress.total} collected",
-            style = labelStyle,
-            color = labelColor,
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .graphicsLayer { scaleX = animation?.pulseScale ?: 1f; scaleY = animation?.pulseScale ?: 1f },
-        )
     }
 }
 
 /**
- * Il tratto riempito è un percorso sinusoidale, non un rettangolo: ampiezza e fase animate danno
- * l'effetto "wavy" di Material You. La parte non ancora riempita resta una linea dritta in
- * [trackColor], come il resto vuoto di una barra normale.
+ * Barra "liquido": una pillola (la traccia) con dentro due onde sovrapposte — una di sfondo, più
+ * trasparente, sfasata e più lenta, e una frontale piena — tagliate rigorosamente sulla forma della
+ * pillola. Ogni onda è un percorso CHIUSO: parte dal fondo a sinistra, segue la superficie
+ * sinusoidale e scende in una curva fino al fondo, a destra. Tutto ciò che varia a ogni fotogramma
+ * (fasi, valore, agitazione) è letto dentro il blocco di disegno, non nella composizione: si
+ * ridisegna soltanto, senza ricomporre.
  */
 @Composable
-private fun WavyProgressBar(
+private fun LiquidProgressBar(
     progress: Progress,
     animation: ProgressAnimation,
     color: Color,
     trackColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val amplitudeFraction = animation.waveAmplitudeFraction
-    // La fase scorre solo quando c'è ampiezza da mostrare: a barra piatta non serve animare nulla.
-    val phase = if (amplitudeFraction > 0.001f) {
-        val infinite = rememberInfiniteTransition(label = "wave_phase")
-        val p by infinite.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing), RepeatMode.Restart),
-            label = "phase",
+    // Le fasi girano sempre, anche a barra ferma: la micro-oscillazione a riposo è voluta. Con
+    // l'app in background il frame clock si ferma da solo, e con "rimuovi animazioni" attivo
+    // l'onda resta ferma.
+    val infinite = rememberInfiniteTransition(label = "liquid_phase")
+    val frontPhase = infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(WAVE_PERIOD_MS, easing = LinearEasing), RepeatMode.Restart),
+        label = "front_phase",
+    )
+    val backPhase = infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            tween((WAVE_PERIOD_MS / BACK_WAVE_SPEED).toInt(), easing = LinearEasing),
+            RepeatMode.Restart,
+        ),
+        label = "back_phase",
+    )
+
+    // Un solo Path per tutta la vita del composable, azzerato con reset() a ogni disegno: allocarne
+    // uno nuovo a ogni fotogramma (due onde × 60 al secondo) produrrebbe garbage inutile.
+    val path = remember { Path() }
+
+    Canvas(
+        modifier = modifier
+            .height(WaveBoxHeight)
+            // Il clip vale per tutto quello che il Canvas disegna, traccia vuota compresa: a sinistra
+            // e a destra il liquido rispetta la sagoma arrotondata del contenitore.
+            .clip(RoundedCornerShape(WaveCornerRadius)),
+    ) {
+        drawRect(color = trackColor)
+
+        val owned = animation.shownOwned
+        // 0%: nessun percorso (una cresta sul bordo sinistro vuoto sembrerebbe una sbavatura).
+        if (progress.total == 0 || owned <= 0.001f) return@Canvas
+        val fraction = (owned / progress.total).coerceIn(0f, 1f)
+        // 100%: il riempimento occupa tutto il contenitore, angoli compresi (li tiene il clip).
+        if (fraction >= 1f - 0.0005f) {
+            drawRect(color = color)
+            return@Canvas
+        }
+        val xEnd = size.width * fraction
+        if (xEnd < 1f) return@Canvas
+
+        val restPx = WaveAmplitudeRest.toPx()
+        val amplitudePx = restPx + (WaveAmplitudeMax.toPx() - restPx) * animation.agitation
+
+        drawLiquidWave(
+            path = path,
+            color = color.copy(alpha = BACK_WAVE_ALPHA),
+            xEnd = xEnd,
+            baselineY = size.height * BACK_WAVE_BASELINE,
+            amplitudePx = amplitudePx * BACK_WAVE_AMPLITUDE_SCALE,
+            phase = backPhase.value + BACK_WAVE_PHASE_OFFSET,
         )
-        p
-    } else {
-        0f
+        drawLiquidWave(
+            path = path,
+            color = color,
+            xEnd = xEnd,
+            baselineY = size.height * FRONT_WAVE_BASELINE,
+            amplitudePx = amplitudePx,
+            phase = frontPhase.value,
+        )
+    }
+}
+
+/**
+ * Disegna una superficie d'onda piena da x = 0 a [xEnd]. [phase] è in cicli (1 = un giro completo).
+ *
+ * Il bordo destro non è un taglio verticale: negli ultimi [WaveEdgeSlope] la superficie scende con
+ * una curva cubica fino al fondo (tangente orizzontale alla cresta, verticale sul fondo), e prima
+ * di essa l'ampiezza si smorza fino al 35% ([WaveEdgeTaper]) per non far urtare la cresta contro
+ * il bordo. Se il riempimento è più stretto della curva, questa si accorcia con lui.
+ *
+ * [path] è un'istanza riusata dal chiamante: qui viene solo azzerata con `reset()` e riempita, così
+ * non si alloca nulla a ogni fotogramma.
+ */
+private fun DrawScope.drawLiquidWave(
+    path: Path,
+    color: Color,
+    xEnd: Float,
+    baselineY: Float,
+    amplitudePx: Float,
+    phase: Float,
+) {
+    val height = size.height
+    val wavelengthPx = WaveWavelength.toPx()
+    val taperPx = WaveEdgeTaper.toPx()
+    val stepPx = WaveStep.toPx()
+
+    fun surfaceY(x: Float): Float {
+        val taper = ((xEnd - x) / taperPx).coerceIn(0f, 1f)
+        val damping = 0.35f + 0.65f * taper
+        return baselineY + amplitudePx * damping * sin(2f * PI.toFloat() * (x / wavelengthPx - phase))
     }
 
-    // Niente graphicsLayer/scaleY qui: scalare verticalmente il Canvas del pulse (come faceva
-    // prima) stira l'onda in verticale per un istante subito dopo il riempimento — esattamente il
-    // "salto"/"sobbalzo" percepito, proprio nel momento in cui l'onda dovrebbe placarsi e
-    // scorrere solo in orizzontale. Il pulse resta solo sul numero (sotto).
-    Canvas(modifier = modifier.height(WaveBoxHeight)) {
-        val strokeWidthPx = WaveStrokeWidth.toPx()
-        val amplitudePx = WaveAmplitude.toPx() * amplitudeFraction
-        val centerY = size.height / 2f
-        val fraction = if (progress.total == 0) 0f else (animation.shownOwned / progress.total).coerceIn(0f, 1f)
-        val filledWidth = size.width * fraction
+    val edge = min(WaveEdgeSlope.toPx(), xEnd)
+    val edgeStartX = xEnd - edge
+    val edgeStartY = surfaceY(edgeStartX)
 
-        if (filledWidth < size.width) {
-            drawLine(
-                color = trackColor,
-                start = Offset(filledWidth, centerY),
-                end = Offset(size.width, centerY),
-                strokeWidth = strokeWidthPx,
-                cap = StrokeCap.Round,
-            )
-        }
-
-        if (filledWidth > 0f) {
-            val wavelengthPx = WaveWavelength.toPx()
-            val stepPx = WAVE_STEP.toPx()
-            val path = Path()
-            var x = 0f
-            var first = true
-            fun yAt(px: Float) = centerY + amplitudePx * sin(2f * PI.toFloat() * (px / wavelengthPx - phase))
-            while (x < filledWidth) {
-                if (first) {
-                    path.moveTo(x, yAt(x))
-                    first = false
-                } else {
-                    path.lineTo(x, yAt(x))
-                }
-                x += stepPx
-            }
-            path.lineTo(filledWidth, yAt(filledWidth))
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(width = strokeWidthPx, cap = StrokeCap.Round, join = StrokeJoin.Round),
-            )
-        }
+    path.reset()
+    path.moveTo(0f, height)
+    path.lineTo(0f, surfaceY(0f))
+    var x = stepPx
+    while (x < edgeStartX) {
+        path.lineTo(x, surfaceY(x))
+        x += stepPx
     }
+    path.lineTo(edgeStartX, edgeStartY)
+    path.cubicTo(
+        edgeStartX + edge * 0.55f, edgeStartY,
+        xEnd, edgeStartY + (height - edgeStartY) * 0.35f,
+        xEnd, height,
+    )
+    path.close()
+    drawPath(path = path, color = color)
 }
