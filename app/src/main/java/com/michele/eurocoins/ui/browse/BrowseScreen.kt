@@ -1,5 +1,7 @@
 package com.michele.eurocoins.ui.browse
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.Progress
@@ -98,6 +101,7 @@ fun BrowseScreen(
 
                 when (state.mode) {
                     BrowseMode.YEARS -> CardGrid(
+                        loaded = state.loaded,
                         resetScrollKey = state.prefs.yearsAscending,
                         hazeState = hazeState,
                     ) {
@@ -112,6 +116,7 @@ fun BrowseScreen(
                         }
                     }
                     BrowseMode.COUNTRIES -> CardGrid(
+                        loaded = state.loaded,
                         resetScrollKey = state.prefs.countriesAscending,
                         hazeState = hazeState,
                     ) {
@@ -240,6 +245,7 @@ private fun ModeSelector(
 @Composable
 private fun CardGrid(
     resetScrollKey: Any,
+    loaded: Boolean,
     hazeState: HazeState,
     content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit,
 ) {
@@ -248,10 +254,13 @@ private fun CardGrid(
     // Stato ricreato nella stessa composizione (non con un LaunchedEffect, che
     // arriva un frame dopo e lascia un fotogramma con l'ordine nuovo scorso a metà).
     val gridState = key(resetScrollKey) { rememberLazyGridState() }
+    // Alla prima apertura i dati arrivano qualche fotogramma dopo la schermata: senza questo la griglia
+    // vuota lascia il posto alle card di colpo. Il fade parte dall'arrivo dei dati (vedi BrowseUiState.loaded).
+    val alpha by animateFloatAsState(if (loaded) 1f else 0f, tween(220), label = "gridFade")
     LazyVerticalGrid(
         state = gridState,
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+        modifier = Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha }.hazeSource(hazeState),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = floatingBarClearance()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),

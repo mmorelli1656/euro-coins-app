@@ -45,6 +45,9 @@ import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -155,9 +158,12 @@ fun CoinListContent(
     // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
     val listState = key(state.options.sort) { rememberLazyListState() }
     PrefetchThumbnails(listState = listState, coins = state.coins)
+    // Alla prima apertura la lista arriva dopo la schermata (state.loading): senza il fade si vedeva
+    // "0 coins" e poi le righe di colpo.
+    val alpha by animateFloatAsState(if (state.loading) 0f else 1f, tween(220), label = "listFade")
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize().hazeSource(hazeState),
+        modifier = modifier.fillMaxSize().graphicsLayer { this.alpha = alpha }.hazeSource(hazeState),
         contentPadding = PaddingValues(bottom = floatingBarClearance()),
     ) {
         item {

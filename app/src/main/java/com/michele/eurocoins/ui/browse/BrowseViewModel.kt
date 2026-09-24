@@ -51,6 +51,8 @@ data class GridPrefs(
 data class BrowseUiState(
     val mode: BrowseMode = BrowseMode.YEARS,
     val prefs: GridPrefs = GridPrefs(),
+    /** false finché il catalogo non è stato letto e raggruppato: la UI tiene la griglia trasparente e la sfuma all'arrivo dei dati. */
+    val loaded: Boolean = false,
     val years: List<YearCardData> = emptyList(),
     val countries: List<CountryCardData> = emptyList(),
 )
@@ -78,6 +80,7 @@ class BrowseViewModel(
     ) { coins, owned, currentMode, p ->
         BrowseUiState(
             mode = currentMode,
+            loaded = true,
             prefs = p,
             years = coins
                 .groupBy { it.anno }
