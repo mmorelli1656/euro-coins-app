@@ -1,6 +1,9 @@
 package com.michele.eurocoins.ui.navigation
 
 import android.net.Uri
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -51,7 +54,16 @@ fun EuroCoinsNavHost(
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
 
-    NavHost(navController = navController, startDestination = ROUTE_HOME) {
+    // Il default di Navigation Compose è una dissolvenza da 700 ms: la nuova schermata
+    // resta quasi trasparente per un istante e sembra un ritardo dopo il tocco.
+    NavHost(
+        navController = navController,
+        startDestination = ROUTE_HOME,
+        enterTransition = { fadeIn(tween(280)) },
+        exitTransition = { fadeOut(tween(120)) },
+        popEnterTransition = { fadeIn(tween(280)) },
+        popExitTransition = { fadeOut(tween(120)) },
+    ) {
         composable(ROUTE_HOME) {
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory { initializer { HomeViewModel(repository) } },

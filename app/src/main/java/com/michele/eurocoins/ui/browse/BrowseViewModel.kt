@@ -7,10 +7,12 @@ import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.flagEmoji
 import com.michele.eurocoins.data.progress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
@@ -94,7 +96,11 @@ class BrowseViewModel(repository: CoinRepository) : ViewModel() {
                     if (p.countriesAscending) list.sortedBy { it.name } else list.sortedByDescending { it.name }
                 },
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState())
+    }
+        // Raggruppamenti e progressi su 584 monete: fuori dal thread principale, altrimenti
+        // bloccano la transizione di apertura della schermata.
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState())
 
     fun onModeChange(newMode: BrowseMode) {
         mode.value = newMode

@@ -8,10 +8,12 @@ import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -86,7 +88,7 @@ class CoinListViewModel(
             collection = byKey,
             loading = false,
         )
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = CoinListUiState(loading = true),
