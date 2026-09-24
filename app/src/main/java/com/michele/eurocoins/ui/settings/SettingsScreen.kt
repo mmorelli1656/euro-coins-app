@@ -108,7 +108,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    // Colori espliciti: in tema scuro il pallino e la traccia di default si confondevano con la card.
+                    // Colori espliciti: l'outline del tema scuro (34351F) è quasi uguale alla card, quindi da spento bordo e pallino usano onSurfaceVariant e la traccia lo sfondo.
                     Switch(
                         checked = hideMicrostates,
                         onCheckedChange = settingsViewModel::setHideMicrostates,
@@ -121,9 +121,9 @@ fun SettingsScreen(
                             checkedTrackColor = MaterialTheme.colorScheme.primary,
                             checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                             checkedIconColor = MaterialTheme.colorScheme.primary,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.background,
                             uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                            uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                     )
                 }

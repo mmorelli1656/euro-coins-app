@@ -474,12 +474,12 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile (causa non chiarita). Solo icona di errore.
-- **Tema: segmented button Auto / Light / Dark nelle Impostazioni** (Appearance), Auto predefinito = segue il telefono. `ThemePreference` salva la
+- **Tema: segmented button System / Light / Dark nelle Impostazioni** (Appearance), System predefinito = segue il telefono. `ThemePreference` salva la
   scelta in SharedPreferences (`theme`); `MainActivity` riapplica
   `enableEdgeToEdge` a ogni cambio (altrimenti le icone delle barre di sistema
   seguono il tema del telefono e spariscono con un tema forzato). Scartati:
   pillola nella barra della home (sostituita quando le impostazioni sono state unificate), pillola a due stati (non si tornerebbe a
-  "segui il telefono"). L'ordine è Auto, Light, Dark per scelta dell'utente (prima era Light, Dark, Auto).
+  "segui il telefono"). L'ordine è System, Light, Dark; "System" e non "Auto" perché è la dicitura di Android e "Auto" farebbe pensare a un cambio a orari.
 - **Palette del tema chiaro: grigio-verde, non crema.** Il beige/crema faceva
   sembrare tutto piatto e con poco contrasto tra card e fondo (rapporto ~1.13).
   Ora fondo `D0D7CE`, card `FFFFFF` (bianco puro, come le foto BCE), outline
