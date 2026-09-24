@@ -3,7 +3,14 @@ package com.michele.eurocoins.ui.detail
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
+import kotlin.math.roundToInt
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +20,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,9 +35,10 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,22 +50,31 @@ import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +100,7 @@ import com.michele.eurocoins.ui.theme.VerdigrisDark
 import com.michele.eurocoins.ui.theme.linkColor
 import java.text.NumberFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +111,8 @@ fun CoinDetailScreen(
     val coin by viewModel.coin.collectAsState()
     val items by viewModel.items.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    var viewport by remember { mutableStateOf<Rect?>(null) }
 
     Scaffold(
         topBar = {
@@ -128,7 +147,8 @@ fun CoinDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState()),
+                .onGloballyPositioned { viewport = it.boundsInWindow() }
+                .verticalScroll(scrollState),
         ) {
             // Hero card bianca (foto + titolo), poi tre card con la stessa etichetta maiuscola
             // (OFFICIAL MINTAGES, COLLECTION, HISTORICAL NOTES) e i crediti in una riga in fondo.
@@ -140,7 +160,7 @@ fun CoinDetailScreen(
                 CoinHero(currentCoin)
                 MintageCard(currentCoin)
                 CollectionCard(items = items, onEdit = { showSheet = true })
-                currentCoin.noteStoriche?.let { NotesCard(it) }
+                currentCoin.noteStoriche?.let { NotesCard(it, scrollState) { viewport } }
                 ImageCreditFooter(currentCoin)
             }
         }
@@ -264,27 +284,111 @@ private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 @Composable
 private fun sansTitleMedium(): TextStyle =
     MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Default)
+/** Misure del testo delle note, scritte durante il layout (non sono stato osservabile). */
+private class NotesMetrics {
+    var natural = 0 // altezza naturale del testo con le righe attuali
+    var fourLines = 0 // altezza delle prime 4 righe (dal layout a righe piene)
+}
 
-/** Note storiche: 4 righe con ellissi; "Read more" / "Show less" solo se il testo è troncato. */
+/**
+ * Note storiche: 4 righe con ellissi; il pulsante "Show more ∨" / "Show less ∧" compare solo se
+ * il testo è troncato.
+ *
+ * L'altezza del testo è animata a mano (non con `animateContentSize`): in chiusura il testo deve
+ * restare a righe piene mentre il riquadro si accorcia, altrimenti le righe in più sparivano di
+ * colpo e poi restava uno spazio vuoto che si restringeva (lo scatto). `showFull` tiene il
+ * testo a righe piene per tutta l'animazione; a fine chiusura torna a 4 righe con ellissi
+ * (stessa altezza, quindi senza salti). In espansione la pagina scorre in sincronia per
+ * centrare la card.
+ */
 @Composable
-private fun NotesCard(note: String) {
+private fun NotesCard(note: String, scrollState: ScrollState, viewport: () -> Rect?) {
     var expanded by rememberSaveable(note) { mutableStateOf(false) }
+    var showFull by remember(note) { mutableStateOf(expanded) }
+    var animating by remember(note) { mutableStateOf(false) }
     var truncated by remember(note) { mutableStateOf(false) }
-    DetailCard {
+    var coords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val metrics = remember(note) { NotesMetrics() }
+    val height = remember(note) { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val spec = tween<Float>(NotesExpandMillis, easing = FastOutSlowInEasing)
+
+    // In espansione, a ogni fotogramma: porta il centro della card verso il centro della zona
+    // visibile (se la card è più alta della zona, il bordo superiore resta a filo con la zona).
+    LaunchedEffect(expanded) {
+        if (!expanded) return@LaunchedEffect
+        val start = withFrameNanos { it }
+        while (true) {
+            val now = withFrameNanos { it }
+            if ((now - start) / 1_000_000 > NotesExpandMillis + 100) break
+            val card = coords?.takeIf { it.isAttached } ?: continue
+            val visible = viewport() ?: continue
+            val bounds = card.boundsInWindow()
+            val delta = minOf(bounds.center.y - visible.center.y, bounds.top - visible.top)
+            if (delta > 0f) scrollState.scrollBy(delta)
+        }
+    }
+
+    fun toggle() {
+        if (animating) return
+        scope.launch {
+            animating = true
+            if (!expanded) {
+                height.snapTo(metrics.natural.toFloat()) // altezza a 4 righe, senza salti
+                val rest = metrics.natural
+                showFull = true
+                expanded = true
+                repeat(6) { if (metrics.natural <= rest) withFrameNanos { } } // attende la misura piena
+                height.animateTo(metrics.natural.toFloat(), spec)
+            } else {
+                expanded = false
+                height.snapTo(metrics.natural.toFloat())
+                height.animateTo(metrics.fourLines.toFloat(), spec)
+                showFull = false
+            }
+            animating = false
+        }
+    }
+
+    DetailCard(modifier = Modifier.onGloballyPositioned { coords = it }) {
         SectionLabel("HISTORICAL NOTES")
         Text(
             text = note,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = if (expanded) Int.MAX_VALUE else 4,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                textAlign = TextAlign.Start,
+                lineHeight = 20.sp,
+                lineBreak = LineBreak.Paragraph,
+                hyphens = Hyphens.Auto,
+            ),
+            maxLines = if (showFull) Int.MAX_VALUE else 4,
             overflow = TextOverflow.Ellipsis,
-            onTextLayout = { if (!expanded) truncated = it.hasVisualOverflow },
-            modifier = Modifier.padding(top = 8.dp).animateContentSize(),
+            onTextLayout = {
+                if (showFull) metrics.fourLines = it.getLineBottom(minOf(3, it.lineCount - 1)).toInt()
+                else truncated = it.hasVisualOverflow
+            },
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clipToBounds()
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints)
+                    metrics.natural = placeable.height
+                    val h = if (animating) minOf(placeable.height, height.value.roundToInt()) else placeable.height
+                    layout(placeable.width, h) { placeable.place(0, 0) }
+                },
         )
         if (truncated || expanded) {
             TextButton(
-                onClick = { expanded = !expanded },
-                modifier = Modifier.align(Alignment.Start),
-            ) { Text(if (expanded) "Show less" else "Read more") }
+                onClick = { toggle() },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) {
+                Text(if (expanded) "Show less" else "Show more")
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
     }
 }
@@ -292,14 +396,14 @@ private fun NotesCard(note: String) {
 @Composable
 private fun MintageCard(coin: Coin) {
     DetailCard {
-        SectionLabel("OFFICIAL MINTAGES")
+        SectionLabel("MINTAGES")
         Spacer(Modifier.height(10.dp))
         MintageSection(coin)
     }
 }
 
 /**
- * Tiratura in una griglia a 3 colonne Standard / BU / Proof con filetti verticali: la cifra
+ * Tiratura in una griglia a 3 colonne Standard / BU / Proof (senza filetti): la cifra
  * in evidenza sopra, l'etichetta della finitura centrata sotto.
  *
  * Standard/BU/Proof vengono da Numista (`tiraturaNumista*`), fonte indipendente da quella BCE
@@ -331,14 +435,22 @@ private fun MintageSection(coin: Coin) {
         CoinQuality.BU.label to (coin.tiraturaNumistaBu?.let(numberFormat::format) ?: NO_VALUE),
         CoinQuality.PROOF.label to (coin.tiraturaNumistaProof?.let(numberFormat::format) ?: NO_VALUE),
     )
-    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        rows.forEachIndexed { index, (label, value) ->
-            if (index > 0) VerticalDivider(color = MaterialTheme.colorScheme.outline)
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(text = value, style = sansTitleMedium().copy(fontFeatureSettings = "tnum"), fontWeight = FontWeight.SemiBold)
+    // Tre colonne larghe quanto il loro contenuto, distribuite con spazio uguale attorno (senza
+    // filetti): le cifre hanno SEMPRE lo stesso stile, anche "12,600,000". Con "tnum" le cifre
+    // hanno larghezza fissa e restano allineate; niente riduzione del corpo per i numeri lunghi.
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+    ) {
+        rows.forEach { (label, value) ->
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = value,
+                    style = sansTitleMedium().copy(fontFeatureSettings = "tnum"),
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                )
                 Text(
                     text = label,
                     style = MaterialTheme.typography.bodySmall,
@@ -525,3 +637,5 @@ private fun OwnedBadge(dark: Boolean) {
         Text(text = "OWNED", style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Default), fontWeight = FontWeight.Medium, color = fg)
     }
 }
+
+private const val NotesExpandMillis = 495
