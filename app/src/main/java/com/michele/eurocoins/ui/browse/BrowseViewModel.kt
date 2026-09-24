@@ -112,7 +112,7 @@ class BrowseViewModel(
         // Raggruppamenti e progressi su 584 monete: fuori dal thread principale, altrimenti
         // bloccano la transizione di apertura della schermata.
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BrowseUiState(mode = initialMode))
 
     fun onModeChange(newMode: BrowseMode) {
         mode.value = newMode
