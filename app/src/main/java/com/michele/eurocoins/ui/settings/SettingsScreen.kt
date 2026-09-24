@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.AlertDialog
@@ -31,6 +32,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,7 +44,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.ui.backup.BackupViewModel
@@ -104,7 +108,24 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(checked = hideMicrostates, onCheckedChange = settingsViewModel::setHideMicrostates)
+                    // Colori espliciti: in tema scuro il pallino e la traccia di default si confondevano con la card.
+                    Switch(
+                        checked = hideMicrostates,
+                        onCheckedChange = settingsViewModel::setHideMicrostates,
+                        thumbContent = if (hideMicrostates) {
+                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+                        } else {
+                            null
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedTrackColor = MaterialTheme.colorScheme.primary,
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedIconColor = MaterialTheme.colorScheme.primary,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                        ),
+                    )
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -142,7 +163,7 @@ fun SettingsScreen(
             }
 
             SectionHeader("Danger zone", color = MaterialTheme.colorScheme.error)
-            ResetRow(onClick = { confirmReset = true })
+            ResetRow(ownedCount = ownedCount, onClick = { confirmReset = true })
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -188,7 +209,7 @@ private fun SectionHeader(
 ) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
         color = color,
         modifier = Modifier.padding(start = 4.dp, top = if (first) 4.dp else 24.dp, bottom = 8.dp),
     )
@@ -204,6 +225,7 @@ private fun <T> SegmentedChoice(
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             SegmentedButton(
+                modifier = Modifier.weight(1f),
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
@@ -240,16 +262,18 @@ private fun ProBanner(onClick: () -> Unit) {
 
 /** Riga distruttiva: bordo e testo in colore d'errore; il tocco apre la conferma, non cancella. */
 @Composable
-private fun ResetRow(onClick: () -> Unit) {
+private fun ResetRow(ownedCount: Int, onClick: () -> Unit) {
     val error = MaterialTheme.colorScheme.error
     val shape = RoundedCornerShape(14.dp)
+    val enabled = ownedCount > 0
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else 0.5f)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, error, shape)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -258,7 +282,7 @@ private fun ResetRow(onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Reset collection", style = MaterialTheme.typography.titleMedium, color = error)
             Text(
-                "Removes every coin from this device",
+                if (enabled) "Removes $ownedCount ${if (ownedCount == 1) "coin" else "coins"} from local storage" else "Collection is currently empty",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

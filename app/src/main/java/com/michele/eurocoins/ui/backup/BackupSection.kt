@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudUpload
@@ -138,7 +141,7 @@ private fun NotConfiguredCard() {
     }
 }
 
-/** Email dell'account e, subito sotto, "Sign out" in bronzo (l'accento secondario, come prima in fondo alla pagina). */
+/** Email dell'account e, subito sotto, "Sign out": pulsante a contorno bronzo (l'accento secondario) con icona. */
 @Composable
 private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOut: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -157,12 +160,25 @@ private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOu
         }
         Column {
             Text(account.email, style = MaterialTheme.typography.bodyLarge)
-            TextButton(
+            OutlinedButton(
                 onClick = onSignOut,
                 enabled = signOutEnabled,
-                contentPadding = PaddingValues(0.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                modifier = Modifier.padding(top = 4.dp).height(34.dp),
             ) {
-                Text("Sign out", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.labelLarge)
+                Icon(
+                    Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "Sign out",
+                    color = MaterialTheme.colorScheme.secondary,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(start = 6.dp),
+                )
             }
         }
     }
