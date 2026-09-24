@@ -219,14 +219,28 @@ collezione su Drive.
 - **UI** (`BackupSection`): senza accesso una card d'invito + "Sign in with
   Google"; con l'accesso l'email, una card di stato in evidenza ("Collection
   saved" + data dell'ultimo backup, o "Not backed up yet", con barra di
-  avanzamento durante le operazioni), i pulsanti Back up / Restore e in fondo
-  "Sign out" (bordo e testo bronzo, l'accento secondario). Lo stato non
-  dice "up to date": confrontare backup e collezione locale non è
+  avanzamento durante le operazioni) con "Last backup: <data>", "Back up now"
+  (2/3 della riga, pieno) e "Restore" (1/3, a contorno: è quello che
+  sovrascrive). "Sign out" è un TextButton nel colore primario a destra
+  dell'email, sulla stessa riga. Lo stato non dice "up to date": confrontare backup e collezione locale non è
   implementato, quindi non lo si afferma.
-- **Banner "Go Pro"** (rimozione pubblicità, colore bronzo): oggi solo
+- **Banner "Go Pro"** (rimozione pubblicità, colore bronzo; card separata
+  sotto quella del backup, senza titolo di sezione): oggi solo
   segnaposto, il tocco apre un avviso "coming soon". Non esistono ancora
   Play Billing, AdMob né consenso GDPR (UMP); l'app non è pubblica. Quando
   ci saranno: acquisto dal banner, banner nascosto per gli utenti Pro.
+- **Sovrascrittura del backup**: "Back up now" controlla prima se su Drive
+  esiste già un backup (`BackupViewModel.execute`, flag `confirmed`); se sì
+  apre "Overwrite existing backup?" con la data e il numero di monete locali
+  che lo sostituirebbero, e carica solo con "Overwrite". Motivo: su un telefono
+  nuovo la collezione locale è vuota e cancellerebbe il backup. Il controllo
+  sta nel ViewModel perché serve il token Drive, e il consenso potrebbe non
+  esserci ancora.
+- **Restore disabilitato solo se Drive è stato interrogato** e non ha un
+  backup (`BackupUiState.backupChecked`). Senza consenso Drive (telefono
+  nuovo, appena fatto l'accesso) la data resta null anche se il backup esiste:
+  disabilitarlo lì bloccherebbe il caso d'uso principale del ripristino.
+  Senza file su Drive, Restore mostra "No backup found on this Google account.".
 
 - **Formato**: un unico JSON versionato (`BackupFile`, `schemaVersion`) con
   le voci di `collection_items`, agganciate a `coinKey` (= `stableKey`) —
@@ -379,6 +393,14 @@ lingua da servire.
     da solo costruendo una copia pulita di `HEAD` (worktree) prima del push;
   - file di contesto come questo si modificano con un commit breve e mirato
     (`git commit CLAUDE.md`), perché tutte le chat lo aggiornano.
+
+## Test
+
+Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
+`MicrostatesTest` legge il `coins.json` vero e controlla che i nomi in
+`MICROSTATE_PAESI` esistano (24 paesi -> 20 nascondendoli) e che `stableKey` sia
+unica. Non ci sono test di UI né di backup (serve un account Google reale). Il
+lint non gira offline (`lint-gradle` non è in cache): serve la rete.
 
 ## Verifica su emulatore e telefono
 
