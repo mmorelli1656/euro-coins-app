@@ -84,12 +84,12 @@ fun FloatingSearchBar(
     modifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
-    // Tema scuro: fondo molto opaco (0.94), altrimenti il solo blur lascia leggibile il testo
+    // Tema scuro: fondo molto opaco (0.84), altrimenti il solo blur lascia leggibile il testo
     // chiaro che scorre sotto. Tema chiaro: la superficie quasi bianca sopra un fondo chiaro
-    // non lasciava vedere né il blur né il bordo; meno opaco di quello scuro (0.88) il vetro si vede ma il
+    // non lasciava vedere né il blur né il bordo; meno opaco di quello scuro (0.78) il vetro si vede ma il
     // testo sotto non deve leggersi (0.72 era troppo trasparente); contorno scuro da 2 dp.
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.94f else 0.88f)
+    val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.84f else 0.78f)
     val borderColor = if (isDark) onSurface.copy(alpha = 0.15f) else onSurface.copy(alpha = 0.5f)
     val borderWidth = if (isDark) 1.dp else 2.dp
     val focusManager = LocalFocusManager.current
