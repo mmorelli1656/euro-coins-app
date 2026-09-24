@@ -4,7 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,10 +23,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BrokenImage
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,13 +50,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -61,7 +68,13 @@ import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayImageLicense
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
+import com.michele.eurocoins.ui.theme.BackgroundDark
 import com.michele.eurocoins.ui.theme.InkLight
+import com.michele.eurocoins.ui.theme.LilacLight
+import com.michele.eurocoins.ui.theme.PurpleFieldDark
+import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
+import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
+import com.michele.eurocoins.ui.theme.VerdigrisDark
 import com.michele.eurocoins.ui.theme.linkColor
 import java.text.NumberFormat
 import java.util.Locale
@@ -111,66 +124,83 @@ fun CoinDetailScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            CoinHero(currentCoin)
-
-            // Una card con i dati della moneta, un banner per la collezione (l'unica azione) e in
-            // fondo i crediti in piccolo: margini di 16 dp come la card della foto.
+            // Hero card bianca (foto + titolo), poi tre card con la stessa etichetta maiuscola
+            // (OFFICIAL MINTAGES, COLLECTION, HISTORICAL NOTES) e i crediti in una riga in fondo.
+            // Margini di 16 dp, 12 dp tra le card.
             Column(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                CoinDetailsCard(currentCoin)
-                CollectionBanner(items = items, onEdit = { showSheet = true })
+                CoinHero(currentCoin)
+                MintageCard(currentCoin)
+                CollectionCard(items = items, onEdit = { showSheet = true })
+                currentCoin.noteStoriche?.let { NotesCard(it) }
                 ImageCreditFooter(currentCoin)
             }
         }
     }
 }
 
+/**
+ * Hero card: foto della moneta grande e titolo sotto, nello stesso riquadro bianco puro (angoli
+ * 24 dp). Lo sfondo delle foto BCE è bianco puro (255,255,255), quindi la moneta sembra
+ * appoggiata sulla card. Bianco FISSO, non del tema: il bianco crema mostrerebbe il bordo della
+ * foto; testi scuri fissi di conseguenza anche nel tema scuro. Il titolo è sempre intero: le
+ * righe in più allungano la card, che non ha altezza fissa.
+ */
 @Composable
 private fun CoinHero(coin: Coin) {
     val hasImage = !coin.immaginePlaceholder && coin.urlImmagineFonte != null
-    // Un solo riquadro: card bianca pura (angoli 24 dp, margine 16 dp), senza un secondo
-    // riquadro dentro. Lo sfondo delle foto BCE è bianco puro (255,255,255), quindi la
-    // moneta sembra appoggiata direttamente sulla card. Bianco FISSO, non del tema: il
-    // bianco crema delle card mostrerebbe il bordo della foto; testi scuri fissi di
-    // conseguenza anche nel tema scuro. Il bordo da 1 dp la stacca dal fondo chiaro.
-    Box(
+    val shape = RoundedCornerShape(24.dp)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 8.dp)
-            .aspectRatio(1.3f)
-            .clip(RoundedCornerShape(24.dp))
+            .clip(shape)
             .background(Color.White)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp)),
-        contentAlignment = Alignment.Center,
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (hasImage) {
-            SubcomposeAsyncImage(
-                model = coin.urlImmagineFonte,
-                contentDescription = coin.tema,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-            ) {
-                // Distinto da "immagine non ancora pubblicata" qui sotto:
-                // qui il link c'era ma il caricamento è fallito ora
-                // (rete/link morto) — vedi
-                // scripts/validate_image_links.py nella pipeline dati.
-                if (painter.state.value is AsyncImagePainter.State.Error) {
-                    CoinHeroFallback(
-                        icon = Icons.Filled.BrokenImage,
-                        message = "Couldn't load this image",
-                    )
-                } else {
-                    SubcomposeAsyncImageContent()
+        Box(
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (hasImage) {
+                SubcomposeAsyncImage(
+                    model = coin.urlImmagineFonte,
+                    contentDescription = coin.tema,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    // Distinto da "immagine non ancora pubblicata" qui sotto:
+                    // qui il link c'era ma il caricamento è fallito ora
+                    // (rete/link morto) — vedi
+                    // scripts/validate_image_links.py nella pipeline dati.
+                    if (painter.state.value is AsyncImagePainter.State.Error) {
+                        CoinHeroFallback(
+                            icon = Icons.Filled.BrokenImage,
+                            message = "Couldn't load this image",
+                        )
+                    } else {
+                        SubcomposeAsyncImageContent()
+                    }
                 }
+            } else {
+                CoinHeroFallback(
+                    icon = Icons.Filled.MonetizationOn,
+                    message = "Image not yet published by the source",
+                )
             }
-        } else {
-            CoinHeroFallback(
-                icon = Icons.Filled.MonetizationOn,
-                message = "Image not yet published by the source",
-            )
         }
+        // Titolo sempre per intero (anche su 3 righe): niente ellissi né espansione.
+        Text(
+            text = coin.tema,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = InkLight,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp),
+        )
     }
 }
 
@@ -208,36 +238,43 @@ private fun DetailCard(modifier: Modifier = Modifier, content: @Composable Colum
     )
 }
 
-/**
- * Card unica con i dati della moneta: titolo, mintage, divisore e note storiche. Il paese non
- * c'è: è già nell'header ("Andorra · 2025"). Lo spazio sopra e sotto il divisore è lo stesso
- * (16 dp). "Data source" è nel piè di pagina insieme agli altri crediti.
- */
+/** Etichetta maiuscola comune a tutte le card del dettaglio. */
 @Composable
-private fun CoinDetailsCard(coin: Coin) {
+private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.8.sp,
+        color = linkColor(),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun NotesCard(note: String) {
     DetailCard {
-        Text(text = coin.tema, style = MaterialTheme.typography.titleLarge)
+        SectionLabel("HISTORICAL NOTES")
+        Text(
+            text = note,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
 
-        Spacer(Modifier.height(12.dp))
+@Composable
+private fun MintageCard(coin: Coin) {
+    DetailCard {
+        SectionLabel("OFFICIAL MINTAGES")
+        Spacer(Modifier.height(10.dp))
         MintageSection(coin)
-
-        coin.noteStoriche?.let { note ->
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(16.dp))
-            Text(text = "Historical notes", style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = note,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
     }
 }
 
 /**
- * Tiratura in una lista compatta Standard / BU / Proof: etichette e cifre in due colonne
- * vicine (cifre allineate a destra, così le migliaia si incolonnano).
+ * Tiratura in una griglia a 3 colonne Standard / BU / Proof con filetti verticali: la cifra
+ * in evidenza sopra, l'etichetta della finitura centrata sotto.
  *
  * Standard/BU/Proof vengono da Numista (`tiraturaNumista*`), fonte indipendente da quella BCE
  * (`Coin.tiratura`) e mai fusa con essa. Il numero BCE va sulla riga Standard solo se Numista
@@ -268,20 +305,19 @@ private fun MintageSection(coin: Coin) {
         CoinQuality.BU.label to (coin.tiraturaNumistaBu?.let(numberFormat::format) ?: NO_VALUE),
         CoinQuality.PROOF.label to (coin.tiraturaNumistaProof?.let(numberFormat::format) ?: NO_VALUE),
     )
-    Text(
-        text = "MINTAGE",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-    Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-        Column {
-            rows.forEach { (label, _) ->
-                Text(text = label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            rows.forEach { (_, value) ->
-                Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        rows.forEachIndexed { index, (label, value) ->
+            if (index > 0) VerticalDivider(color = MaterialTheme.colorScheme.outline)
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
@@ -312,68 +348,165 @@ private const val NO_VALUE = "—"
 private fun ImageCreditFooter(coin: Coin) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        FooterLine("Data source: ${coin.fonteDati.uppercase(Locale.ENGLISH)}")
-        FooterLine("Image license: ${coin.displayImageLicense()}")
-        coin.attribuzioneImmagineRaw?.let { FooterLine("Credit: $it") }
-
-        coin.urlImmagineFonte?.let { url ->
-            Text(
-                text = "Open source image",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = TextDecoration.Underline,
-                color = linkColor(),
-                modifier = Modifier
-                    .padding(top = 6.dp)
-                    .clickable {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    },
-            )
+        // Una sola voce compatta: fonte · licenza · credito (l'attribuzione resta sempre visibile).
+        val parts = listOfNotNull(
+            "Data source: ${coin.fonteDati.uppercase(Locale.ENGLISH)}",
+            "Image license: ${coin.displayImageLicense()}",
+            coin.attribuzioneImmagineRaw?.let { "Credit: $it" },
+        )
+        // Il link alla fonte è un'icona discreta accanto ai crediti (tocco da 48 dp), non più un
+        // testo sottolineato: l'attribuzione resta visibile e il link raggiungibile.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.weight(1f, fill = false)) { FooterLine(parts.joinToString(" · ")) }
+            coin.urlImmagineFonte?.let { url ->
+                IconButton(
+                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "Open source image",
+                        tint = linkColor(),
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun FooterLine(text: String) {
-    Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
+    )
 }
 
 /**
- * Banner della collezione: l'unica azione della schermata, quindi tinto di verdigris (non
- * bianco come le card di dati) e con il pulsante pieno. "Add"/"Edit" apre lo stesso pannello
- * dell'elenco.
+ * Card della collezione. Non posseduta: card neutra con messaggio centrato e "Add to
+ * collection" pieno (l'unica azione piena della schermata). Posseduta: contenitore tinto di
+ * verdigris, badge OWNED in alto a destra, una riga chiave-valore per finitura (nome a sinistra,
+ * prezzo in viola a destra) e "Edit collection" compatto (36 dp visivi, 48 dp di tocco) a destra.
+ * Lo stesso pannello dell'elenco si apre da entrambi i pulsanti.
  */
 @Composable
-private fun CollectionBanner(items: List<CollectionItem>, onEdit: () -> Unit) {
+private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
+    if (items.isEmpty()) {
+        DetailCard {
+            SectionLabel("COLLECTION")
+            Text(
+                text = "Not in your collection yet",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            )
+            Button(
+                onClick = onEdit,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(48.dp),
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Add to collection")
+            }
+        }
+        return
+    }
+
+    val colors = MaterialTheme.colorScheme
+    val dark = colors.surface.luminance() < 0.5f
     val shape = RoundedCornerShape(16.dp)
-    val accent = MaterialTheme.colorScheme.primary
-    Row(
+    val accent = colors.primary
+    val priceColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
+    val pillColor = if (dark) PurpleFieldDark.copy(alpha = 0.25f) else LilacLight
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(accent.copy(alpha = 0.16f))
-            .border(1.dp, accent, shape)
-            .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .background(colors.surface)
+            .border(1.5.dp, accent, shape)
+            .padding(16.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = "My collection", style = MaterialTheme.typography.titleMedium)
-            if (items.isEmpty()) {
-                Text(
-                    text = "Not in your collection yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            CoinQuality.entries.mapNotNull { quality -> items.firstOrNull { it.quality == quality } }.forEach { item ->
-                val price = item.priceCents?.let { " · €${formatPrice(it)}" }.orEmpty()
-                Text(text = item.quality.label + price, style = MaterialTheme.typography.bodyLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SectionLabel("COLLECTION", modifier = Modifier.weight(1f))
+            OwnedBadge(dark)
+        }
+        Column(
+            modifier = Modifier.padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            CoinQuality.entries.mapNotNull { q -> items.firstOrNull { it.quality == q } }.forEach { item ->
+                val rowShape = RoundedCornerShape(12.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(rowShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.outline, rowShape)
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = item.quality.label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    // Prezzo assente o 0,00: trattino discreto, così la colonna resta allineata.
+                    val cents = item.priceCents?.takeIf { it > 0 }
+                    if (cents != null) {
+                        Text(
+                            text = "€${formatPrice(cents)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = priceColor,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(pillColor)
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
+                        )
+                    } else {
+                        Text(
+                            text = NO_VALUE,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = colors.onSurfaceVariant,
+                            modifier = Modifier.padding(end = 12.dp),
+                        )
+                    }
+                }
             }
         }
-        Button(onClick = onEdit) { Text(if (items.isEmpty()) "Add" else "Edit") }
+        TextButton(
+            onClick = onEdit,
+            modifier = Modifier.align(Alignment.End).padding(top = 4.dp),
+        ) {
+            Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Edit collection")
+        }
+    }
+}
+
+/** Pillola "✓ OWNED": verde scuro con testo bianco (tema chiaro), invertita nello scuro. */
+@Composable
+private fun OwnedBadge(dark: Boolean) {
+    val bg = if (dark) VerdigrisDark else Color(0xFF2F4A38)
+    val fg = if (dark) BackgroundDark else Color.White
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .padding(start = 8.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Check, contentDescription = null, tint = fg, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(text = "OWNED", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Medium, color = fg)
     }
 }
