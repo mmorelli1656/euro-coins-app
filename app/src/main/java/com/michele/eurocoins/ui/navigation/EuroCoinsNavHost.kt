@@ -61,7 +61,7 @@ fun EuroCoinsNavHost(
     // Fade-through: la schermata che esce sfuma in fretta, quella nuova entra dopo una breve pausa con
     // una frenata morbida alla fine (è la parte che dà la sensazione "burrosa"). Nella pausa si vede il
     // fondo dell'app, che in MainActivity è `background` (non `surface`, bianco nel tema chiaro).
-    val enterFade = fadeIn(tween(durationMillis = 340, delayMillis = 90, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)))
+    val enterFade = fadeIn(tween(durationMillis = 420, delayMillis = 90, easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)))
     val exitFade = fadeOut(tween(durationMillis = 120, easing = LinearEasing))
 
     // Il default di Navigation Compose è una dissolvenza da 700 ms: la nuova schermata
