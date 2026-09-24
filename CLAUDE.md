@@ -504,25 +504,53 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   un `remember` che sparirebbe uscendo dalla schermata), il valore cambia a
   schermata aperta (stesso trattamento). "Resume da RAM" non ha bisogno di
   codice: finché il processo resta vivo l'Activity non viene distrutta.
-  Geometria dell'onda: lunghezza d'onda FISSA in dp (`WaveWavelength`, non
-  proporzionale alla larghezza della barra — con "N creste sull'intera barra"
-  a inizio riempimento si vedeva una sola gobba invece di un'onda fitta,
-  perché nella parte colorata ci stava meno di una lunghezza d'onda intera).
-  L'ampiezza è un valore separato dal riempimento (sale in 250 ms quando parte
-  un riempimento, scende in 300 ms con curva ease-out quando finisce, verso lo
-  0 = linea dritta). Years/Countries restano con la barra dritta di Material
-  (`animation = null`): centinaia di onde insieme sarebbe rumore, non un dettaglio.
-  **Tre curve diverse, non una sola**: `EmphasizedEasing` (cubic-bezier
-  0.2,0,0,1) per l'allungamento della barra (durata 1100 ms al primo avvio,
-  preceduta da un'attesa di 450 ms dopo che i dati sono pronti, perché
+  **Forma attuale: barra "liquido" sottile.** Il testo sta in una `Row` SOPRA la
+  barra ("77 / 584 collected" a sinistra, percentuale a un decimale a destra,
+  "13.2%"), la barra è un `Canvas` alto **12 dp** con angoli da 6 dp (clip
+  sull'intero Canvas, traccia vuota compresa) e dentro **due onde** che sono
+  percorsi CHIUSI (superficie sinusoidale + curva di raccordo a destra, non un
+  taglio verticale; ampiezza smorzata al 35% negli ultimi 10 dp): una frontale
+  piena e una di sfondo al 38% della stessa tinta, sfasata di 90° e a 0.7× di
+  velocità (parallasse). Sostituisce la barra da 22 dp con testo sotto
+  (troppo alta e pesante nella tile) e, prima ancora, un tratto sinusoidale
+  con `stroke` e un riflesso scorrevole (scartato: non era l'onda vettoriale
+  richiesta). Stati limite: a 0% nessun percorso (una cresta sul bordo vuoto
+  sembrava una sbavatura), a 100% riempimento pieno con gli angoli del clip.
+  **Un solo `Path` riusato** (`remember`) con `reset()` a ogni disegno: niente
+  allocazioni per fotogramma. Tutto ciò che varia per fotogramma (fasi,
+  valore, agitazione) è letto dentro il blocco di disegno, non nella
+  composizione: la barra si ridisegna senza ricomporre. Il testo usa
+  `onPrimary` (`labelColor` passato dalla home): 5.9:1 nel tema chiaro e 6.2:1
+  nello scuro, mentre `onSurface` darebbe 2.6:1 e 2.0:1 perché la tile è
+  colorata, non una superficie — `onSurface` richiesto due volte, rifiutato
+  due volte con i numeri.
+  **Ampiezza legata alla velocità reale** del riempimento: `agitation` =
+  |velocity| / velocità di picco attesa (2.75 × differenza / durata, la
+  pendenza massima della FastOutSlowIn), quindi un salto di 1 moneta e uno da 0
+  a 77 si agitano allo stesso modo relativo; continua perché la curva ha
+  derivata nulla a inizio e fine. Ampiezza 1 dp a riposo e 1.5 dp al massimo
+  (scelta dell'utente: la differenza tra "in salita" e "ferma" è poca, l'onda
+  a riposo continua a scorrere piano — fase infinita con
+  `rememberInfiniteTransition`, non si appiattisce più a linea dritta come
+  nel giro precedente; costo: un ridisegno continuo di un Canvas piccolo
+  finché la home è visibile, il frame clock si ferma da solo in background).
+  Lunghezza d'onda FISSA in dp (`WaveWavelength`, 16 dp, non proporzionale alla
+  larghezza — con "N creste sull'intera barra" a inizio riempimento si
+  vedeva una sola gobba, perché nella parte colorata ci stava meno di una
+  lunghezza d'onda intera). Years/Countries restano con la barra dritta di
+  Material (`animation = null`): centinaia di onde insieme sarebbe rumore.
+  **Temporizzazione**: riempimento `FastOutSlowInEasing` (1100 ms al primo
+  avvio, preceduto da un'attesa di 450 ms dopo che i dati sono pronti, perché
   l'animazione di apertura dell'app ne copriva l'inizio; 600 ms per un
-  aggiornamento, senza attesa) e per il pulse finale; `LinearEasing` per la fase
-  dell'onda che scorre (1800 ms a ciclo — valori più bassi provati e scartati,
-  "vibravano"); `EaseOutEasing` (cubic-bezier 0,0,0.58,1) per la dissolvenza
-  dell'ampiezza a fine riempimento. **Non applicare lo scale/pulse al `Canvas`
-  dell'onda** (solo al testo del conteggio): scalare in verticale un disegno
-  che contiene un'onda la stira per un istante, ed è quello il "salto"/
-  "sobbalzo" segnalato una volta dall'utente, non un difetto della sinusoide.
+  aggiornamento, senza attesa); fase dell'onda `LinearEasing` (1800 ms a
+  ciclo — valori più bassi provati e scartati, "vibravano"); pulse finale
+  (`EmphasizedEasing`, cubic-bezier 0.2,0,0,1) **solo sul testo**, non sul
+  `Canvas`: scalare in verticale un disegno che contiene un'onda la stira per un
+  istante, ed è quello il "salto"/"sobbalzo" segnalato una volta
+  dall'utente, non un difetto della sinusoide.
+  **Nota sul processo**: l'utente chiede un mockup di ogni modifica grafica
+  PRIMA del codice (vedi memoria), e i mockup animati vanno fatti col pulsante
+  "Riavvia animazione" (era sparito in un giro e l'ha richiesto).
 
 ## Backlog e decisioni aperte
 
