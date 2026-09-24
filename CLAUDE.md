@@ -528,6 +528,27 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile (causa non chiarita). Solo icona di errore.
+- **Transizioni di navigazione: fade-through** (`EuroCoinsNavHost.kt`): uscita 120 ms
+  lineare, entrata 420 ms dopo una pausa di 90 ms con `cubic-bezier(0.05, 0.7, 0.1, 1)`
+  (la frenata finale è ciò che dà la sensazione "burrosa"). Storia: il default di
+  Navigation Compose (700 ms) sembrava un ritardo dopo il tocco -> 280/120 ms -> troppo
+  veloce e "a scatti" -> fade-through; l'entrata è stata allungata da 340 a 420 ms su
+  richiesta e si può portare a ~500, oltre sembra lenta. Confrontate con un mockup
+  animato tre varianti: la terza (fade-through + scorrimento laterale di 24 dp) non si
+  distingueva dalla seconda e costa di più (il blur Haze di Browse verrebbe ricalcolato a
+  ogni fotogramma), scartata. **Il `Surface` di `MainActivity` usa `background`, non
+  `surface`**: nella pausa tra le due schermate si vede il fondo, e col bianco del tema
+  chiaro comparirebbe un lampo bianco.
+- **Browse ed elenchi si aprono già pieni.** `CoinRepository.coins` e `collectionItems` sono
+  `SharedFlow` caldi (`shareIn` `Eagerly`, replay 1) e `BrowseViewModel` / `CoinListViewModel`
+  calcolano lo stato iniziale subito (`coinsNow`/`collectionNow`, sul thread principale:
+  ~584 monete, pochi ms). Prima lo stato iniziale era vuoto e i dati arrivavano qualche
+  fotogramma dopo (griglia vuota o "0 coins" e poi le card di colpo, e un primo tentativo di
+  fade dei contenuti girava a scatti sopra il lavoro di composizione). Il ripiego "non
+  caricato" (`BrowseUiState.loaded`, `CoinListUiState.loading`) con fade di 220 ms resta
+  per quando Room non ha ancora risposto. Lo stato iniziale di `BrowseViewModel` deve
+  usare la scheda scelta in Impostazioni: con `BrowseUiState()` predefinito si vedeva
+  Years per un istante e poi Countries.
 - **Tema: segmented button System / Light / Dark nelle Impostazioni** (Appearance), System predefinito = segue il telefono. `ThemePreference` salva la
   scelta in SharedPreferences (`theme`); `MainActivity` riapplica
   `enableEdgeToEdge` a ogni cambio (altrimenti le icone delle barre di sistema
