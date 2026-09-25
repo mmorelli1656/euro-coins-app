@@ -3,6 +3,7 @@ package com.michele.eurocoins.ui.list
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,7 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.outlined.Euro
 import androidx.compose.material.icons.filled.Public
 
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -64,6 +65,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
+import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.floatingBarClearance
@@ -141,17 +143,20 @@ fun CoinListContent(
         )
     }
 
-    var zoomed by remember { mutableStateOf<Coin?>(null) }
-    zoomed?.let { coin ->
-        CoinImageDialog(
-            coin = coin,
-            onDismiss = { zoomed = null },
-            onDetails = {
-                zoomed = null
-                onCoinClick(coin.id)
-            },
-        )
-    }
+    // Anteprima ingrandita DISATTIVATA: il tocco sulla miniatura ora apre il dettaglio come il resto
+    // della riga. Per riattivarla: decommentare questo blocco e passare
+    // `onImageClick = { zoomed = coin }` a CoinRow. CoinImageDialog resta intatto.
+    // var zoomed by remember { mutableStateOf<Coin?>(null) }
+    // zoomed?.let { coin ->
+    //     CoinImageDialog(
+    //         coin = coin,
+    //         onDismiss = { zoomed = null },
+    //         onDetails = {
+    //             zoomed = null
+    //             onCoinClick(coin.id)
+    //         },
+    //     )
+    // }
 
     val filtering = state.query.isNotBlank() || state.options.isActive
     // Stato nuovo a ogni cambio d'ordinamento: con le chiavi stabili la lista
@@ -179,7 +184,6 @@ fun CoinListContent(
                 coin = coin,
                 owned = coin.stableKey in state.collection,
                 onClick = { onCoinClick(coin.id) },
-                onImageClick = { zoomed = coin },
                 onEditCollection = { editing = coin },
             )
         }
@@ -187,7 +191,7 @@ fun CoinListContent(
 }
 
 /** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
-private val ThumbnailSize = 52.dp
+private val ThumbnailSize = 46.dp
 
 /** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
 private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
@@ -230,7 +234,8 @@ private fun CoinRow(
     coin: Coin,
     owned: Boolean,
     onClick: () -> Unit,
-    onImageClick: () -> Unit,
+    // Null = la miniatura non ha un tocco proprio e segue la riga (dettaglio).
+    onImageClick: (() -> Unit)? = null,
     onEditCollection: () -> Unit,
 ) {
     val hasImage = coin.hasImage()
@@ -241,32 +246,36 @@ private fun CoinRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 3.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
-            .padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+            .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Area di tocco 60dp attorno alla miniatura da 52dp: ingrandisce la foto.
-        // Senza foto (non ancora pubblicata) non c'è nulla da ingrandire: il tocco
-        // resta quello della riga.
+        // Area 52dp attorno alla miniatura da 46dp. Il tocco proprio (anteprima ingrandita) è
+        // disattivo salvo `onImageClick`: di default segue la riga e apre il dettaglio.
         Box(
             modifier = Modifier
-                .size(60.dp)
+                .size(52.dp)
                 .clip(CircleShape)
-                .then(if (hasImage) Modifier.clickable(onClick = onImageClick) else Modifier),
+                .then(if (hasImage && onImageClick != null) Modifier.clickable(onClick = onImageClick) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             CoinThumbnail(coin)
         }
-        Column(modifier = Modifier.padding(start = 10.dp).weight(1f)) {
+        // 4 dp sopra/sotto il testo: con 3 righe i discendenti non toccano il bordo della card;
+        // con 1 riga l'altezza resta quella della miniatura.
+        Column(
+            modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp).weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${coin.displayCountry()} · ${coin.anno}",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (coin.emissioneComune) {
                     Icon(
@@ -274,16 +283,17 @@ private fun CoinRow(
                         contentDescription = "Common issue, minted jointly by all Eurozone countries",
                         // Stesso colore della riga "Paese · Anno" accanto: si legge come parte
                         // dell'etichetta, non come un nuovo accento aggiunto solo qui.
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp).size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp).size(13.dp),
                     )
                 }
             }
             Text(
-                text = coin.tema,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                maxLines = 2,
+                text = coin.displayTema(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -362,7 +372,7 @@ private fun CoinThumbnail(coin: Coin) {
             }
         } else {
             Icon(
-                imageVector = Icons.Filled.MonetizationOn,
+                imageVector = Icons.Outlined.Euro,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(26.dp),

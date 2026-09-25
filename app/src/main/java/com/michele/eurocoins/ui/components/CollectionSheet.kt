@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
@@ -135,7 +136,7 @@ fun CollectionSheet(
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                text = coin.tema,
+                text = coin.displayTema(),
                 style = MaterialTheme.typography.titleMedium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,

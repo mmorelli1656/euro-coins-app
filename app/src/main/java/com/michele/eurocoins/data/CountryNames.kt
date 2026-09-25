@@ -23,6 +23,17 @@ package com.michele.eurocoins.data
 private val CANONICAL_COUNTRY_NAMES = mapOf(
     "Città del Vaticano" to "Vatican City",
     "Paesi Bassi" to "Netherlands",
+    // Una moneta ha zeccaRaw "EIRE" (nome irlandese) e una "IRELAND": forma unica inglese.
+    "Irlanda" to "Ireland",
 )
 
-fun Coin.displayCountry(): String = CANONICAL_COUNTRY_NAMES[paese] ?: zeccaRaw
+/**
+ * Alcune pagine BCE scrivono il paese tutto in maiuscolo ("SPAIN": 31 monete su 584): la UI mostra
+ * sempre la forma con le sole iniziali maiuscole, come le altre. Solo se il testo è
+ * interamente maiuscolo, per non toccare nomi già corretti.
+ */
+fun Coin.displayCountry(): String {
+    CANONICAL_COUNTRY_NAMES[paese]?.let { return it }
+    val raw = zeccaRaw
+    return if (raw == raw.uppercase()) raw.lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } } else raw
+}

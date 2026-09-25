@@ -29,6 +29,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.displayCountry
 
 /**
@@ -87,7 +88,7 @@ fun CoinImageDialog(coin: Coin, onDismiss: () -> Unit, onDetails: () -> Unit) {
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
-                Text(text = coin.tema, style = MaterialTheme.typography.bodyLarge)
+                Text(text = coin.displayTema(), style = MaterialTheme.typography.bodyLarge)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,

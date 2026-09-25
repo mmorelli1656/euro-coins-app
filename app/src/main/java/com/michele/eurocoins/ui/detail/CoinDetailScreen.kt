@@ -84,6 +84,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
@@ -221,7 +222,7 @@ private fun CoinHero(coin: Coin) {
         }
         // Titolo sempre per intero (anche su 3 righe): niente ellissi né espansione.
         Text(
-            text = coin.tema,
+            text = coin.displayTema(),
             style = sansTitleMedium(),
             fontWeight = FontWeight.Bold,
             color = InkLight,
