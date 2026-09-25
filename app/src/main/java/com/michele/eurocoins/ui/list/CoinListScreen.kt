@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -60,6 +61,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -247,6 +249,8 @@ private fun CoinRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 3.dp)
+            // Altezza FISSA: le card non cambiano misura con la lunghezza del titolo (max 2 righe).
+            .height(72.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
@@ -265,17 +269,18 @@ private fun CoinRow(
         ) {
             CoinThumbnail(coin)
         }
-        // 4 dp sopra/sotto il testo: con 3 righe i discendenti non toccano il bordo della card;
-        // con 1 riga l'altezza resta quella della miniatura.
+        // Altezza della card fissa a 72 dp: il testo (sottotitolo + titolo a 2 righe) è centrato e
+        // sta con 2 dp di margine sopra e sotto.
         Column(
-            modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp).weight(1f),
+            modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 2.dp, bottom = 2.dp).weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "${coin.displayCountry()} · ${coin.anno}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 if (coin.emissioneComune) {
                     Icon(
@@ -283,7 +288,7 @@ private fun CoinRow(
                         contentDescription = "Common issue, minted jointly by all Eurozone countries",
                         // Stesso colore della riga "Paese · Anno" accanto: si legge come parte
                         // dell'etichetta, non come un nuovo accento aggiunto solo qui.
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 4.dp).size(13.dp),
                     )
                 }
@@ -293,7 +298,7 @@ private fun CoinRow(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
