@@ -226,8 +226,25 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 
 ### Impostazioni
 
-Schermata unica (`SettingsScreen`), sezioni: Account and backup, Monetization
-(banner "Go Pro"), Catalog and display, Appearance, Danger zone.
+Schermata unica (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro
+sotto, senza titolo proprio), Catalog and display, Appearance, Danger zone.
+
+**Palette: tre livelli visibili** — neutro (sfondi, testi, titoli), lilla (selezioni) e
+rosso (distruttivo), con il verdigris riservato alle azioni (avatar, "Back up now",
+"Restore", "Sign out", switch acceso). Scelta fatta su mockup (l'alternativa, tutto
+l'interattivo in lilla, avrebbe tolto peso a "Back up now", perché un lilla pallido non
+regge un pulsante pieno):
+- **Titoli di sezione** in `onSurface` Bold, NON verdigris (sembravano azioni); anche
+  "Danger zone" è neutro, il rosso sta solo sulla card di reset (bordo, icona, titolo e
+  sottotitolo).
+- **`SegmentedButton`** (Default tab, Theme): selezionato `secondaryContainer` (lilla),
+  inattivo trasparente, bordo `onSurfaceVariant` al 40% — l'`outline` del tema scuro
+  (`34351F`) è quasi uguale alla card e il bordo spariva —, `icon = {}` (la spunta di
+  default spostava l'etichetta e sbilanciava le larghezze) e `weight(1f)` su ogni segmento.
+- **Switch** "Hide microstates": colori espliciti anche da spento (bordo e pallino
+  `onSurfaceVariant`, traccia `background`) per lo stesso motivo; spunta nel pallino solo
+  da acceso.
+
 
 - **Hide microstates** (Andorra, Monaco, San Marino, Città del Vaticano,
   `MICROSTATE_PAESI`): il filtro sta in `CoinRepository.coins`/`paesi`
@@ -257,8 +274,9 @@ collezione su Drive.
   sovrascrive). "Sign out" è un TextButton nel colore primario a destra
   dell'email, sulla stessa riga. Lo stato non dice "up to date": confrontare backup e collezione locale non è
   implementato, quindi non lo si afferma.
-- **Banner "Go Pro"** (rimozione pubblicità, colore bronzo; card separata
-  sotto quella del backup, senza titolo di sezione): oggi solo
+- **Banner "Go Pro"** (rimozione pubblicità; card neutra come le altre, sotto quella del
+  backup, senza titolo di sezione; l'accento è solo la corona nel viola `PurpleField*` su
+  un cerchio `secondaryContainer`, non più il bronzo): oggi solo
   segnaposto, il tocco apre un avviso "coming soon". Non esistono ancora
   Play Billing, AdMob né consenso GDPR (UMP); l'app non è pubblica. Quando
   ci saranno: acquisto dal banner, banner nascosto per gli utenti Pro.
