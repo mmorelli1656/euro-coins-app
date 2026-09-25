@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -46,12 +48,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.backup.SettingsCard
 import com.michele.eurocoins.ui.browse.BrowseMode
+import com.michele.eurocoins.ui.theme.PurpleFieldDark
+import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
 import com.michele.eurocoins.ui.theme.ThemeMode
 import com.michele.eurocoins.ui.theme.appBarColors
 
@@ -162,7 +167,7 @@ fun SettingsScreen(
                 )
             }
 
-            SectionHeader("Danger zone", color = MaterialTheme.colorScheme.error)
+            SectionHeader("Danger zone")
             ResetRow(ownedCount = ownedCount, onClick = { confirmReset = true })
             Spacer(Modifier.height(24.dp))
         }
@@ -205,12 +210,12 @@ fun SettingsScreen(
 private fun SectionHeader(
     title: String,
     first: Boolean = false,
-    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
 ) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        color = color,
+        // Neutro: il colore primario è riservato agli elementi interattivi, i titoli non devono sembrarlo.
+        color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(start = 4.dp, top = if (first) 4.dp else 24.dp, bottom = 8.dp),
     )
 }
@@ -222,6 +227,8 @@ private fun <T> SegmentedChoice(
     label: (T) -> String,
     onSelect: (T) -> Unit,
 ) {
+    // L'outline del tema scuro (34351F) è quasi uguale alla card: il bordo dei segmenti usa onSurfaceVariant attenuato.
+    val border = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             SegmentedButton(
@@ -229,34 +236,61 @@ private fun <T> SegmentedChoice(
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                // Nessuna spunta sul segmento selezionato: spostava l'etichetta e rendeva i segmenti sbilanciati.
+                icon = {},
+                colors = SegmentedButtonDefaults.colors(
+                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    activeBorderColor = border,
+                    inactiveContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    inactiveContentColor = MaterialTheme.colorScheme.onSurface,
+                    inactiveBorderColor = border,
+                ),
                 label = { Text(label(option)) },
             )
         }
     }
 }
 
-/** Invito a diventare Pro (rimozione pubblicità): bronzo, l'accento secondario, per distinguerlo dalle azioni di backup. */
+/** Invito a diventare Pro (rimozione pubblicità): card neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app. */
 @Composable
 private fun ProBanner(onClick: () -> Unit) {
-    val accent = MaterialTheme.colorScheme.secondary
     val shape = RoundedCornerShape(14.dp)
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(accent.copy(alpha = 0.12f))
-            .border(1.dp, accent, shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(Icons.Filled.WorkspacePremium, contentDescription = null, tint = accent, modifier = Modifier.size(30.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.WorkspacePremium,
+                contentDescription = null,
+                tint = if (dark) PurpleFieldDark else PurpleFieldFocusLight,
+                modifier = Modifier.size(22.dp),
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text("Go Pro", style = MaterialTheme.typography.titleMedium)
-            Text("Remove ads and support the app", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Remove ads and support the app",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = accent)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -284,7 +318,7 @@ private fun ResetRow(ownedCount: Int, onClick: () -> Unit) {
             Text(
                 if (enabled) "Removes $ownedCount ${if (ownedCount == 1) "coin" else "coins"} from local storage" else "Collection is currently empty",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = error,
             )
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = error)
