@@ -194,6 +194,7 @@ fun CoinListContent(
 
 /** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
 private val ThumbnailSize = 52.dp
+private val PlaceholderSize = 50.dp
 
 /** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
 private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
@@ -348,8 +349,7 @@ private fun CoinThumbnail(coin: Coin) {
         modifier = Modifier
             .size(ThumbnailSize)
             .aspectRatio(1f)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondaryContainer),
+            .clip(CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         // Icona dell'euro solo quando la foto NON c'è: non ancora pubblicata dalla fonte o non
@@ -370,19 +370,34 @@ private fun CoinThumbnail(coin: Coin) {
                 when (painter.state.collectAsState().value) {
                     is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
                     is AsyncImagePainter.State.Error -> EuroPlaceholder()
-                    else -> Unit
+                    else -> PlaceholderCircle()
                 }
             }
         }
     }
 }
 
+// Cerchio lilla un po' più piccolo della foto (50 dp contro 52): le foto BCE hanno un margine bianco
+// attorno alla moneta, quindi a pari riquadro il lilla, pieno, sembrava più grande delle monete.
+@Composable
+private fun PlaceholderCircle(content: @Composable () -> Unit = {}) {
+    Box(
+        modifier = Modifier
+            .size(PlaceholderSize)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.secondaryContainer),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
 @Composable
 private fun EuroPlaceholder() {
-    Icon(
-        imageVector = Icons.Filled.EuroSymbol,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier.size(26.dp),
-    )
+    PlaceholderCircle {
+        Icon(
+            imageVector = Icons.Filled.EuroSymbol,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(26.dp),
+        )
+    }
 }
