@@ -193,7 +193,7 @@ fun CoinListContent(
 }
 
 /** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
-private val ThumbnailSize = 46.dp
+private val ThumbnailSize = 52.dp
 
 /** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
 private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
