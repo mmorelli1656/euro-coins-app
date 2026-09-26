@@ -675,6 +675,15 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   default Material da 12 dp), pillola (`RoundedCornerShape(50)`) per finiture e pulsanti. Prima c'erano
   12, 14, 16 e 24 fianco a fianco senza un criterio. Elementi interni piccoli (10 dp del box di stato
   del backup, 7 dp delle caselle, 12 dp del campo prezzo) restano: sono annidati, non card.
+- **Font di sistema ingrandito (prova a 130%, `adb shell settings put system font_scale 1.3`, poi
+  riportare a 1.0)**: quattro rotture trovate e sistemate senza cambiare nulla a 1.0: "Restore" a una
+  riga sola con padding 12 dp (`maxLines = 1`, `softWrap = false`: andava a capo come "Restor/e"),
+  riga di statistiche della tile Home fino a 2 righe (`maxLines = 2`: l'intervallo di anni veniva
+  tagliato), titolo delle tile Home con `padding(end = 8.dp)` verso la pillola "Coming soon" (ora
+  può andare a capo, non la tocca), pillola "COMMON ISSUE" che NON scala con il font
+  (`CompositionLocalProvider(LocalDensity ... fontScale = 1f)`: cresceva e copriva l'anno). Restano
+  accettabili: titoli dell'elenco tagliati a una riga (card da 72 dp fissi) e email accorciata.
+  Non verificati: landscape, TalkBack, schermi molto piccoli.
 - **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
   (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
   di rimuovere quasi tutta la serif: la serif su numeri e titoli grandi non è un

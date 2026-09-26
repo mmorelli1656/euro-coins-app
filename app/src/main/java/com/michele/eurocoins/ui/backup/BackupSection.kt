@@ -111,7 +111,8 @@ fun BackupSection(viewModel: BackupViewModel) {
                             else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         ),
                         modifier = Modifier.weight(1f),
-                    ) { Text("Restore") }
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    ) { Text("Restore", maxLines = 1, softWrap = false) }
                 }
             }
         }

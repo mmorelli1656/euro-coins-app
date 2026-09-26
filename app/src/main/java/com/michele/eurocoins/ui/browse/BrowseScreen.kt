@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
@@ -326,6 +329,10 @@ private fun BrowseCard(
 /** Pillola "COMMON ISSUE": segnala le card degli anni con un'emissione commemorativa congiunta. */
 @Composable
 private fun CommonIssueBadge() {
+    // Decorazione: non segue la dimensione del carattere di sistema, altrimenti a font grandi cresce
+    // e copre l'anno della card (non c'è spazio in quell'angolo).
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
     Text(
         text = "COMMON ISSUE",
         style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Medium),
@@ -334,6 +341,7 @@ private fun CommonIssueBadge() {
             .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(20.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
     )
+    }
 }
 
 @Composable

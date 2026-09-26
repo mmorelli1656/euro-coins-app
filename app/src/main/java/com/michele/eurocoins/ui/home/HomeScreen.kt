@@ -217,7 +217,7 @@ private fun StatsLine(color: Color, coins: String, countries: String, years: Str
         // 15 sp: a 16 sp la riga (~290 dp) supera la larghezza utile della scheda sui telefoni stretti.
         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
         color = color,
-        maxLines = 1,
+        maxLines = 2,
     )
 }
 
@@ -246,7 +246,7 @@ private fun CardContent(
                         title,
                         style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 26.sp),
                         color = titleColor,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).padding(end = 8.dp),
                     )
                     titleTrailing()
                 }
