@@ -198,7 +198,7 @@ private fun FinishCard(
     onPriceChange: (String) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     val backgroundColor by animateColorAsState(
         targetValue = if (checked) colors.secondaryContainer else colors.surface,
         animationSpec = tween(durationMillis = 150),

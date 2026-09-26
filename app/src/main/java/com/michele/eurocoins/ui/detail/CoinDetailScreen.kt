@@ -178,7 +178,7 @@ fun CoinDetailScreen(
 @Composable
 private fun CoinHero(coin: Coin) {
     val hasImage = !coin.immaginePlaceholder && coin.urlImmagineFonte != null
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(22.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -254,7 +254,7 @@ private fun CoinHeroFallback(icon: ImageVector, message: String?) {
 /** Superficie delle card del dettaglio: colore del tema, bordo da 1 dp, angoli 16 dp. */
 @Composable
 private fun DetailCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -563,7 +563,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
 
     val colors = MaterialTheme.colorScheme
     val dark = colors.surface.luminance() < 0.5f
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(14.dp)
     // Bordo verdigris (stato "posseduta", come badge OWNED e spunte); righe e pillole lilla/viola (finiture).
     val accent = if (dark) PurpleFieldDark else PurpleFieldLight
     val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight

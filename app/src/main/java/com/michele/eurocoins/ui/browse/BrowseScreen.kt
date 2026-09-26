@@ -307,6 +307,7 @@ private fun BrowseCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         // Bordo: nel tema chiaro fondo e card sono troppo vicini di tono per separarsi da soli.
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),

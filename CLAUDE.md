@@ -668,7 +668,13 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   sopra i titoli delle voci (17 sp), che prima erano quasi uguali; (c) titoli dei dialog con
   `DialogTitle` (`components/DialogTitle.kt`, 20 sp Bold) invece del default Material da 24 sp a
   peso normale; (d) pillola "COMMON ISSUE" a 9 sp (era 8): a 10-11 sp toccava o copriva l'anno
-  "2022" della card, non c'è spazio in quell'angolo. Poi sistemati: bordo della barra di ricerca nello scuro (1.5 dp al 40%, era 1 dp al 15%), bordo delle righe del pannello di modifica viola come le pillole del dettaglio (era `secondary` bronzo, che sul lilla sembrava rosato), padding inferiore della card COLLECTION 6 dp (era 16: sotto "Edit collection" c'era il doppio dello spazio che sopra). ANCORA aperti (servono mockup): bandiere con bianco (Cipro, Estonia) che si confondono con la card bianca nel tema chiaro, 4 raggi di bordo diversi.
+  "2022" della card, non c'è spazio in quell'angolo. Poi sistemati: bordo della barra di ricerca nello scuro (1.5 dp al 40%, era 1 dp al 15%), bordo delle righe del pannello di modifica viola come le pillole del dettaglio (era `secondary` bronzo, che sul lilla sembrava rosato), padding inferiore della card COLLECTION 6 dp (era 16: sotto "Edit collection" c'era il doppio dello spazio che sopra). Bandiere con bianco (Cipro, Estonia) sulla card bianca nel chiaro: valutate e lasciate com'erano su decisione dell'utente.
+- **Raggi dei bordi a tre livelli**: 22 dp per le card "grandi" (tile della Home `CardShape`, card con la
+  foto del dettaglio), 14 dp per tutte le altre card (elenco, Impostazioni, backup, card del dettaglio,
+  righe del pannello di modifica, card di Browse: `BrowseCard` ha `shape` esplicito, prima usava il
+  default Material da 12 dp), pillola (`RoundedCornerShape(50)`) per finiture e pulsanti. Prima c'erano
+  12, 14, 16 e 24 fianco a fianco senza un criterio. Elementi interni piccoli (10 dp del box di stato
+  del backup, 7 dp delle caselle, 12 dp del campo prezzo) restano: sono annidati, non card.
 - **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
   (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
   di rimuovere quasi tutta la serif: la serif su numeri e titoli grandi non è un
