@@ -205,7 +205,7 @@ private fun FinishCard(
         label = "cardBackgroundColor",
     )
     val borderColor by animateColorAsState(
-        targetValue = if (checked) colors.secondary.copy(alpha = 0.35f) else Color.Transparent,
+        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight).copy(alpha = 0.4f) else Color.Transparent,
         animationSpec = tween(durationMillis = 150),
         label = "cardBorderColor",
     )

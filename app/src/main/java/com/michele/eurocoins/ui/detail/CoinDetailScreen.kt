@@ -574,7 +574,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
             .clip(shape)
             .background(colors.surface)
             .border(2.dp, colors.primary, shape)
-            .padding(16.dp),
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SectionLabel("COLLECTION", modifier = Modifier.weight(1f))

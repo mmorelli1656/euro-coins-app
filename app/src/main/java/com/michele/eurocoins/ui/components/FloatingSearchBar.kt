@@ -100,8 +100,8 @@ fun FloatingSearchBar(
     // testo sotto non deve leggersi (0.72 era troppo trasparente); contorno scuro da 2 dp.
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val glassTint = MaterialTheme.colorScheme.surface.copy(alpha = if (isDark) 0.84f else 0.78f)
-    val borderColor = if (isDark) onSurface.copy(alpha = 0.15f) else onSurface.copy(alpha = 0.5f)
-    val borderWidth = if (isDark) 1.dp else 2.dp
+    val borderColor = if (isDark) onSurface.copy(alpha = 0.4f) else onSurface.copy(alpha = 0.5f)
+    val borderWidth = if (isDark) 1.5.dp else 2.dp
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
     // Testo e cursore restano QUI: il valore che torna da `query` passa da un StateFlow e arriva

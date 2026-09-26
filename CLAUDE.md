@@ -668,10 +668,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   sopra i titoli delle voci (17 sp), che prima erano quasi uguali; (c) titoli dei dialog con
   `DialogTitle` (`components/DialogTitle.kt`, 20 sp Bold) invece del default Material da 24 sp a
   peso normale; (d) pillola "COMMON ISSUE" a 9 sp (era 8): a 10-11 sp toccava o copriva l'anno
-  "2022" della card, non c'è spazio in quell'angolo. Aperti e non sistemati: bordo della barra di
-  ricerca quasi invisibile nello scuro (1 dp al 15%), bordi rosati delle righe del pannello di
-  modifica nel chiaro, spazio vuoto sotto "Edit collection", bandiere con bianco (Cipro, Estonia)
-  che si confondono con la card bianca, 4 raggi di bordo diversi.
+  "2022" della card, non c'è spazio in quell'angolo. Poi sistemati: bordo della barra di ricerca nello scuro (1.5 dp al 40%, era 1 dp al 15%), bordo delle righe del pannello di modifica viola come le pillole del dettaglio (era `secondary` bronzo, che sul lilla sembrava rosato), padding inferiore della card COLLECTION 6 dp (era 16: sotto "Edit collection" c'era il doppio dello spazio che sopra). ANCORA aperti (servono mockup): bandiere con bianco (Cipro, Estonia) che si confondono con la card bianca nel tema chiaro, 4 raggi di bordo diversi.
 - **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
   (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
   di rimuovere quasi tutta la serif: la serif su numeri e titoli grandi non è un
