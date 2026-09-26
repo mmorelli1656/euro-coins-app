@@ -73,6 +73,7 @@ fun SettingsScreen(
 ) {
     val hideMicrostates by settingsViewModel.hideMicrostates.collectAsState()
     val defaultTab by settingsViewModel.defaultTab.collectAsState()
+    val rotateHomeCoins by settingsViewModel.rotateHomeCoins.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val ownedCount by settingsViewModel.ownedCount.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -104,34 +105,12 @@ fun SettingsScreen(
 
             SectionHeader("Catalog and display")
             SettingsCard {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Hide microstates", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Andorra, Monaco, San Marino, Vatican City",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    // Colori espliciti: l'outline del tema scuro (34351F) è quasi uguale alla card, quindi da spento bordo e pallino usano onSurfaceVariant e la traccia lo sfondo.
-                    Switch(
-                        checked = hideMicrostates,
-                        onCheckedChange = settingsViewModel::setHideMicrostates,
-                        thumbContent = if (hideMicrostates) {
-                            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
-                        } else {
-                            null
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedTrackColor = MaterialTheme.colorScheme.primary,
-                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                            checkedIconColor = MaterialTheme.colorScheme.primary,
-                            uncheckedTrackColor = MaterialTheme.colorScheme.background,
-                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    )
-                }
+                SwitchRow(
+                    title = "Hide microstates",
+                    subtitle = "Andorra, Monaco, San Marino, Vatican City",
+                    checked = hideMicrostates,
+                    onCheckedChange = settingsViewModel::setHideMicrostates,
+                )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Default tab", style = MaterialTheme.typography.titleMedium)
@@ -157,14 +136,24 @@ fun SettingsScreen(
 
             SectionHeader("Appearance")
             SettingsCard {
-                Text("Theme", style = MaterialTheme.typography.titleMedium)
-                // Ordine Auto, Light, Dark = ordine dell'enum; "Auto" segue il telefono.
-                SegmentedChoice(
-                    options = ThemeMode.entries,
-                    selected = themeMode,
-                    label = { it.label },
-                    onSelect = settingsViewModel::setThemeMode,
+                // Stesso ordine di "Catalog and display": prima l'interruttore, poi il selettore a segmenti.
+                SwitchRow(
+                    title = "Rotate home coins",
+                    subtitle = "Shows a different set of coins on the home screen every day.",
+                    checked = rotateHomeCoins,
+                    onCheckedChange = settingsViewModel::setRotateHomeCoins,
                 )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Theme", style = MaterialTheme.typography.titleMedium)
+                    // Ordine Auto, Light, Dark = ordine dell'enum; "Auto" segue il telefono.
+                    SegmentedChoice(
+                        options = ThemeMode.entries,
+                        selected = themeMode,
+                        label = { it.label },
+                        onSelect = settingsViewModel::setThemeMode,
+                    )
+                }
             }
 
             SectionHeader("Danger zone")
@@ -322,5 +311,38 @@ private fun ResetRow(ownedCount: Int, onClick: () -> Unit) {
             )
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = error)
+    }
+}
+
+/** Riga con titolo, spiegazione e interruttore (stessa resa per tutte le opzioni on/off). */
+@Composable
+private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // Colori espliciti: l'outline del tema scuro (34351F) è quasi uguale alla card, quindi da spento bordo e pallino usano onSurfaceVariant e la traccia lo sfondo.
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            thumbContent = if (checked) {
+                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+            } else {
+                null
+            },
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedIconColor = MaterialTheme.colorScheme.primary,
+                uncheckedTrackColor = MaterialTheme.colorScheme.background,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                uncheckedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        )
     }
 }

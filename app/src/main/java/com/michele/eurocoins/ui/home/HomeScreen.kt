@@ -30,8 +30,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,10 +47,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -90,6 +97,24 @@ fun HomeScreen(
         onShown = { viewModel.lastShownOwned = it },
     )
 
+    // Precarica le foto del set di domani (con la rotazione accesa): domani la Home è già pronta, anche
+    // senza rete se oggi l'app è stata aperta online. Coil le tiene nella cache su disco.
+    val context = LocalContext.current
+    LaunchedEffect(state.nextShowcase) {
+        val loader = SingletonImageLoader.get(context)
+        state.nextShowcase.forEach { coin ->
+            coin.urlImmagineFonte?.let { loader.enqueue(ImageRequest.Builder(context).data(it).build()) }
+        }
+    }
+
+    // Foto effettivamente mostrate per slot: quando le 4 sono arrivate, quel set diventa il ripiego per
+    // le aperture in cui le foto del giorno non si caricano (vedi `ShowcaseCoin`). Nessuna dissolvenza né
+    // attesa: le monete sono lì appena la foto è decodificata (dalla cache su disco, se c'è).
+    val shown = remember(state.showcase) { mutableStateMapOf<Int, String>() }
+    LaunchedEffect(shown.size) {
+        if (shown.size == SHOWCASE_SIZE) viewModel.saveLastShowcase((0 until SHOWCASE_SIZE).map { shown.getValue(it) })
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -120,6 +145,7 @@ fun HomeScreen(
                     state = state,
                     progressAnimation = progressAnimation,
                     onClick = onCommemorativeClick,
+                    onSlotLoaded = { slot, url -> shown[slot] = url },
                     minHeight = cardHeight,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -128,6 +154,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 private val HomePadding = 16.dp
 private val CardGap = 14.dp
@@ -235,6 +262,7 @@ private fun CommemorativeCard(
     state: HomeUiState,
     progressAnimation: ProgressAnimation,
     onClick: () -> Unit,
+    onSlotLoaded: (Int, String) -> Unit,
     minHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -248,17 +276,15 @@ private fun CommemorativeCard(
         CardContent(
             band = { bandModifier ->
                 CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
-                    Box(modifier = Modifier.size(size).clip(CircleShape)) {
-                        val url = state.showcase.getOrNull(i)?.urlImmagineFonte
-                        if (url != null) {
-                            AsyncImage(
-                                model = url,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = PHOTO_ZOOM, scaleY = PHOTO_ZOOM),
-                            )
-                        }
-                    }
+                    // Catena per moneta: foto di oggi, poi quella dell'ultimo set mostrato, poi moneta disegnata.
+                    ShowcaseCoin(
+                        urls = listOfNotNull(state.showcase.getOrNull(i)?.urlImmagineFonte, state.lastShowcaseUrls.getOrNull(i)).distinct(),
+                        dataReady = state.progress.total > 0,
+                        size = size,
+                        index = i,
+                        tint = onFill.copy(alpha = 0.10f),
+                        onLoaded = { url -> onSlotLoaded(i, url) },
+                    )
                 }
             },
             title = "Commemorative",
@@ -396,5 +422,46 @@ private fun RegularIssuesCard(minHeight: Dp, modifier: Modifier = Modifier) {
             },
             minHeight = minHeight,
         )
+    }
+}
+
+/** Monete disegnate per gli slot della fascia Commemorative senza foto: due 2€ bimetalliche alternate. */
+private val FallbackCoins = listOf(
+    DrawnCoin("2€", Color(0xFFD3B56C), Color(0xFFD9DBD9)),
+    DrawnCoin("2€", Color(0xFFD9DBD9), Color(0xFFD3B56C)),
+)
+
+/**
+ * Una moneta della fascia con catena di ripiego: prova gli [urls] in ordine (foto di oggi, poi quella
+ * dell'ultimo set mostrato: sta già nella cache su disco di Coil; è anche l'unico usato finché il database non ha risposto, così le monete ci sono già al primo fotogramma); se falliscono tutti, o non ce ne
+ * sono (meno di 4 monete con foto), mostra una moneta disegnata invece di un buco. Finché i dati non
+ * sono pronti ([dataReady] falso) o una foto sta arrivando, resta un tondo tenue in [tint].
+ */
+@Composable
+private fun ShowcaseCoin(
+    urls: List<String>,
+    dataReady: Boolean,
+    size: Dp,
+    index: Int,
+    tint: Color,
+    onLoaded: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    var attempt by remember(urls) { mutableIntStateOf(0) }
+    val url = urls.getOrNull(attempt)
+    // Il tondo tenue sta sotto solo per il caso in cui la foto tardi; niente animazioni di entrata.
+    Box(modifier = Modifier.size(size).clip(CircleShape).background(tint)) {
+        if (url == null && dataReady) {
+            RegularCoin(FallbackCoins[index % FallbackCoins.size], size)
+        } else if (url != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(url).build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                onSuccess = { onLoaded(url) },
+                onError = { attempt++ },
+                modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = PHOTO_ZOOM, scaleY = PHOTO_ZOOM),
+            )
+        }
     }
 }

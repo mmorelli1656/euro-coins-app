@@ -20,6 +20,7 @@ class SettingsViewModel(
 
     val hideMicrostates: StateFlow<Boolean> = settings.hideMicrostates
     val defaultTab: StateFlow<BrowseMode> = settings.defaultTab
+    val rotateHomeCoins: StateFlow<Boolean> = settings.rotateHomeCoins
     val themeMode: StateFlow<ThemeMode> = themePreference.mode
 
     /** Monete possedute (in almeno una qualità), anche quelle di microstati nascosti: sono tutte quelle che il reset toglie. */
@@ -28,6 +29,7 @@ class SettingsViewModel(
 
     fun setHideMicrostates(value: Boolean) = settings.setHideMicrostates(value)
     fun setDefaultTab(mode: BrowseMode) = settings.setDefaultTab(mode)
+    fun setRotateHomeCoins(value: Boolean) = settings.setRotateHomeCoins(value)
     fun setThemeMode(mode: ThemeMode) = themePreference.set(mode)
 
     fun resetCollection() {

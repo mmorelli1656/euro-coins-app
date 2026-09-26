@@ -76,7 +76,7 @@ fun EuroCoinsNavHost(
     ) {
         composable(ROUTE_HOME) {
             val viewModel: HomeViewModel = viewModel(
-                factory = viewModelFactory { initializer { HomeViewModel(repository) } },
+                factory = viewModelFactory { initializer { HomeViewModel(repository, userSettings) } },
             )
             HomeScreen(
                 viewModel = viewModel,

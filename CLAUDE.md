@@ -148,7 +148,7 @@ meno: se servisse più peso, tornare alla griglia — commit 48df1ca). Scelta do
 2×2; prima ancora A numero grande, B medaglione disegnato, C tre statistiche): le
 foto stanno in una fascia orizzontale perché il mosaico 2×2/3×3 e le schede basse
 davano problemi di proporzioni/spazio vuoto — non riproporli. Foto = **cerchi
-ritagliati** dalle foto BCE con zoom 1.05 (taglia l'anello bianco; qualche moneta può
+ritagliati** dalle foto BCE, scelte da `pickShowcase` (a rotazione giornaliera, vedi § Impostazioni "Rotate home coins"), zoom 1.05 (taglia l'anello bianco; qualche moneta può
 risultare poco centrata, accettato). Nessun contatore globale. **Commemorative**
 (attiva, cliccabile per intero, angoli 22 dp, fondo `primary`): riga dati con gli anni come
 **intervallo** e barra "x / y collected" con onda — numeri dal database. **Regular Issues**
@@ -241,6 +241,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 
 Schermata unica (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro
 sotto, senza titolo proprio), Catalog and display, Appearance, Danger zone.
+Ordine interno delle card, uguale in ogni sezione: prima gli interruttori (`SwitchRow`), poi i selettori a segmenti (`SegmentedChoice`), separati da un filetto. Titoli con "and", non "&" (coerenza con "Account and backup").
 
 **Palette: tre livelli visibili** — neutro (sfondi, testi, titoli), lilla (selezioni) e
 rosso (distruttivo), con il verdigris riservato alle azioni (avatar, "Back up now",
@@ -269,6 +270,18 @@ regge un pulsante pieno):
   (`UserSettings.defaultTab`, letto alla creazione del `BrowseViewModel`).
   Scartato il riordino completo dei segmenti: i segmenti restano Years /
   Countries / All.
+- **Rotate home coins** (sezione Appearance, interruttore, **acceso di default**;
+  `UserSettings.rotateHomeCoins`): le 4 monete della fascia della Home cambiano ogni giorno.
+  Solo on/off, senza scegliere la frequenza (scelta dell'utente; scartati "a ogni apertura",
+  che scarica 4 foto nuove a ogni avvio, e "settimanale"). `pickShowcase` (`HomeShowcase.kt`)
+  sceglie con seme = `LocalDate.toEpochDay()`: DETERMINISTICO (stesso giorno = stesse monete,
+  niente da salvare, foto in cache di Coil), una moneta per paese, solo con foto, rispetta Hide
+  microstates perché parte da `repository.coins`. Spento: set fisso (i primi 4 paesi). La Home
+  precarica in Coil le foto del set di DOMANI (`nextShowcase`): domani è già pronta, anche
+  offline se oggi l'app è stata aperta online. **Foto che non si carica: catena per moneta** (`ShowcaseCoin`): foto di oggi → foto dello stesso slot dell'ultimo set mostrato per intero (`UserSettings.lastShowcase`, salvato quando le 4 sono arrivate; sta già nella cache su disco di Coil, quindi regge anche offline) → moneta DISEGNATA (2€ bimetallica, `FallbackCoins`) se non c'è altro. NON ci sono foto BCE nell'APK come set predefinito: licenza "uso editoriale", da chiarire prima di pubblicare (§ Backlog). **NESSUNA animazione di entrata** (scelta dell'utente: la dissolvenza per moneta di Coil dava comparse scaglionate; una dissolvenza coordinata dopo aver atteso tutte le foto risultava "lenta"; le monete devono esserci all'apertura, come prima della rotazione). Per esserci al primo fotogramma la Home non aspetta il database: `UserSettings` salva gli URL del set di OGGI e di DOMANI (`saveShowcaseUrls`, chiavi `showcase_day_<giorno>`) e `HomeViewModel` li usa subito all'avvio (ripiego: l'ultimo set mostrato); quando arriva il database il set calcolato coincide e non si nota nulla. Le foto sono già nella cache su disco perché la Home le precarica il giorno prima. (Prima non gestito: foto che non si carica il
+  giorno stesso.) **Quando ci saranno le Regular Issues l'impostazione
+  dovrà valere anche per la loro fascia**: chiamare `pickShowcase` con le loro monete. Test:
+  `HomeShowcaseTest`.
 - **Reset collection**: dialog di conferma con il numero di monete; svuota
   solo `collection_items` (`CoinRepository.resetCollection`). Il backup su
   Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
