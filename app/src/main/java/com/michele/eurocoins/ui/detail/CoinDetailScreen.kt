@@ -239,7 +239,7 @@ private fun CoinHeroFallback(icon: ImageVector, message: String?) {
             imageVector = icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.25f),
+            modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.225f),
         )
         if (message != null) {
             Text(

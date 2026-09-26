@@ -443,7 +443,8 @@ lingua da servire.
   `MonetizationOn` a dollaro e l'elenco un vuoto offline). La distinzione sta
   solo nel testo del dettaglio: "Image not yet published by the source"
   (dato) contro "Couldn't load this image" (rete/link); mentre carica, o se
-  il caricamento resta in sospeso senza rete, solo l'icona senza testo — vedi
+  il caricamento resta in sospeso senza rete, solo l'icona senza testo. Misure: 26 dp nell'elenco,
+  22,5% della larghezza della card nel dettaglio (era 25%, ridotta del 10% su richiesta) — vedi
   `AsyncImagePainter.State` in `CoinListScreen.kt`/`CoinDetailScreen.kt`. La pipeline dati ha uno
   script (`scripts/validate_image_links.py`) che controlla periodicamente
   se qualcuno dei 495 URL delle monete originali è morto, per distinguere
