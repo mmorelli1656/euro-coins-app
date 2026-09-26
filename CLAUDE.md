@@ -138,10 +138,10 @@ hanno spazi/accenti.
 
 ### Home
 
-Due schede di **pari peso** che si dividono l'altezza (`weight(1f)` ciascuna, 14 dp
-tra le due, niente scroll), stessa struttura (`CardContent`): fascia di 4 monete a
-bordo scheda (occupa TUTTO lo spazio che avanza: monete in proporzione alla fascia ma dentro la larghezza; cerchi sovrapposti di 8 dp, i due centrali più grandi), titolo,
-**riga unica di dati** (`StatsLine`, `bodyMedium`, numeri in grassetto: "**584** coins · **24** countries · **2004–2025**") e
+Due schede di **pari peso** (14 dp tra le due; altezza: vedi sotto, con scroll di riserva),
+stessa struttura (`CardContent`): fascia di 4 monete a
+bordo scheda (fascia FISSA da 153 dp (era 160: -10% di aria sopra/sotto le monete). ALTEZZA delle schede: `heightIn(min = (spazio - 14 dp) / 2)` con tetto `CardMaxHeight` = 320 dp — dividono lo spazio disponibile, sugli schermi alti l'avanzo resta libero in fondo (dove andrà il banner, nel `bottomBar` dello Scaffold, uguale per base e Pro: nessun ramo Pro), e mai sotto il contenuto; la colonna ha `verticalScroll` di riserva per schermi bassi o banner. L'avanzo dentro la scheda va tra i testi (`SpaceEvenly`), non alla fascia. Storia: la fascia che prendeva tutto l'avanzo (~185 dp) lasciava le monete "perse in un deserto" (sono limitate dalla larghezza), schede compatte da 128 dp lasciavano la pagina vuota e la variante "superficie unica" con card `wrapContent` e monete su fondo pulito è stata provata e bocciata; 160 dp è il compromesso; cerchi sovrapposti di 14 dp, i due centrali più grandi), titolo,
+**riga unica di dati** (`StatsLine`, 15 sp, titolo 26 sp, numeri in grassetto: "**584** coins · **24** countries · **2004–2025**") e
 footer. La riga unica ha sostituito una griglia di tre statistiche a 22 sp (le colonne non
 stavano centrate e costavano ~50 dp che ora vanno alla fascia; in cambio i numeri pesano
 meno: se servisse più peso, tornare alla griglia — commit 48df1ca). Scelta dopo mockup (X fascia in alto, scartata Y foto a sinistra + griglia

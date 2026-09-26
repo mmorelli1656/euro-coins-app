@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -101,34 +103,52 @@ fun HomeScreen(
             )
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            CommemorativeCard(
-                state = state,
-                progressAnimation = progressAnimation,
-                onClick = onCommemorativeClick,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-            )
-            RegularIssuesCard(modifier = Modifier.weight(1f).fillMaxWidth())
+        // Altezza delle schede: si dividono lo spazio disponibile ma mai oltre CardMaxHeight (sugli
+        // schermi alti l'avanzo resta libero in fondo, dove potrà stare il banner) e mai sotto il proprio
+        // contenuto (`heightIn(min)` cede al contenuto). Se le due schede non entrano — schermo basso o
+        // banner in `bottomBar` — la colonna scorre invece di comprimerle.
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val cardHeight = ((maxHeight - HomePadding * 2 - CardGap) / 2).coerceAtMost(CardMaxHeight)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(HomePadding),
+                verticalArrangement = Arrangement.spacedBy(CardGap),
+            ) {
+                CommemorativeCard(
+                    state = state,
+                    progressAnimation = progressAnimation,
+                    onClick = onCommemorativeClick,
+                    minHeight = cardHeight,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                RegularIssuesCard(minHeight = cardHeight, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }
+
+private val HomePadding = 16.dp
+private val CardGap = 14.dp
+
+/** Tetto all'altezza di una scheda sugli schermi alti. */
+private val CardMaxHeight = 320.dp
 
 private val CardShape = RoundedCornerShape(22.dp)
 
 /** Ingrandimento delle foto dentro il cerchio: taglia l'anello bianco dello sfondo del JPEG BCE. */
 private const val PHOTO_ZOOM = 1.05f
 
+/** Altezza fissa della fascia e aria sopra/sotto le monete; l'avanzo della scheda si distribuisce tra i testi. */
+private val BandHeight = 153.dp
+private val BandPadding = 20.dp
+
 /** Sovrapposizione tra monete vicine nella fascia. */
-private val BandOverlap = 8.dp
+private val BandOverlap = 14.dp
 
 /** Proporzioni dei diametri delle 4 monete: le centrali più grandi. */
-private val BandRatios = listOf(0.8f, 1f, 1f, 0.8f)
+private val BandRatios = listOf(0.85f, 1f, 1f, 0.85f)
 
 /**
  * Fascia di monete a bordo scheda, sopra un velo leggero. Prende tutta l'altezza che avanza
@@ -138,8 +158,8 @@ private val BandRatios = listOf(0.8f, 1f, 1f, 0.8f)
 @Composable
 private fun CoinBand(veil: Color, modifier: Modifier = Modifier, coin: @Composable (index: Int, size: Dp) -> Unit) {
     BoxWithConstraints(modifier = modifier.fillMaxWidth().background(veil), contentAlignment = Alignment.Center) {
-        val fitWidth = (maxWidth - 24.dp + BandOverlap * (BandRatios.size - 1)) / BandRatios.sum()
-        val base = minOf(maxHeight * 0.82f, fitWidth)
+        val fitWidth = (maxWidth - 12.dp + BandOverlap * (BandRatios.size - 1)) / BandRatios.sum()
+        val base = minOf(maxHeight - BandPadding * 2, fitWidth)
         Row(
             horizontalArrangement = Arrangement.spacedBy(-BandOverlap),
             verticalAlignment = Alignment.CenterVertically,
@@ -164,7 +184,8 @@ private fun StatsLine(color: Color, coins: String, countries: String, years: Str
             append(" countries · ")
             withStyle(bold) { append(years) }
         },
-        style = MaterialTheme.typography.bodyMedium,
+        // 15 sp: a 16 sp la riga (~290 dp) supera la larghezza utile della scheda sui telefoni stretti.
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
         color = color,
         maxLines = 1,
     )
@@ -179,18 +200,21 @@ private fun CardContent(
     titleTrailing: @Composable () -> Unit,
     stats: @Composable () -> Unit,
     footer: @Composable () -> Unit,
+    minHeight: Dp,
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        band(Modifier.weight(1f))
+    // Altezza almeno [minHeight]: in una colonna a max illimitato (dentro lo scroll) il `weight` prende
+    // proprio quel minimo, quindi l'avanzo si distribuisce tra i testi (SpaceEvenly) invece di stirare la fascia.
+    Column(modifier = Modifier.fillMaxWidth().heightIn(min = minHeight)) {
+        band(Modifier.height(BandHeight))
         Column(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.SpaceEvenly,
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
                         color = titleColor,
                         modifier = Modifier.weight(1f),
                     )
@@ -198,7 +222,10 @@ private fun CardContent(
                 }
                 stats()
             }
-            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp), contentAlignment = Alignment.CenterStart) { footer() }
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp).heightIn(min = 34.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) { footer() }
         }
     }
 }
@@ -208,6 +235,7 @@ private fun CommemorativeCard(
     state: HomeUiState,
     progressAnimation: ProgressAnimation,
     onClick: () -> Unit,
+    minHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
     val onFill = MaterialTheme.colorScheme.onPrimary
@@ -219,7 +247,7 @@ private fun CommemorativeCard(
     ) {
         CardContent(
             band = { bandModifier ->
-                CoinBand(veil = onFill.copy(alpha = 0.14f), modifier = bandModifier) { i, size ->
+                CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
                     Box(modifier = Modifier.size(size).clip(CircleShape)) {
                         val url = state.showcase.getOrNull(i)?.urlImmagineFonte
                         if (url != null) {
@@ -252,6 +280,7 @@ private fun CommemorativeCard(
                     animation = progressAnimation,
                 )
             },
+            minHeight = minHeight,
         )
     }
 }
@@ -302,7 +331,7 @@ private fun RegularCoin(coin: DrawnCoin, size: Dp) {
 }
 
 @Composable
-private fun RegularIssuesCard(modifier: Modifier = Modifier) {
+private fun RegularIssuesCard(minHeight: Dp, modifier: Modifier = Modifier) {
     // Tratteggio: nel tema scuro il 50% del colore del testo su fondo quasi nero risultava troppo
     // debole; al 75% si vede bene. Nel tema chiaro resta al 50%.
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
@@ -326,7 +355,7 @@ private fun RegularIssuesCard(modifier: Modifier = Modifier) {
         CardContent(
             // Monete disegnate e desaturate (finché non ci sono foto): un disco per taglio, con l'etichetta.
             band = { bandModifier ->
-                CoinBand(veil = muted.copy(alpha = 0.07f), modifier = bandModifier) { i, size ->
+                CoinBand(veil = muted.copy(alpha = 0.03f), modifier = bandModifier) { i, size ->
                     RegularCoin(RegularCoins[i], size)
                 }
             },
@@ -365,6 +394,7 @@ private fun RegularIssuesCard(modifier: Modifier = Modifier) {
                     )
                 }
             },
+            minHeight = minHeight,
         )
     }
 }
