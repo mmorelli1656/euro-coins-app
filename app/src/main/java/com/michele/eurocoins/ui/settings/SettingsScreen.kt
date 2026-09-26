@@ -164,6 +164,7 @@ fun SettingsScreen(
 
     if (confirmReset) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { confirmReset = false },
             title = { Text("Reset collection?") },
             text = {
@@ -187,6 +188,7 @@ fun SettingsScreen(
     // e il banner sparisce per gli utenti Pro.
     if (showProInfo) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { showProInfo = false },
             title = { Text("Euro Coins Pro") },
             text = { Text("Pro will remove ads and support the development of the app. It's coming soon.") },

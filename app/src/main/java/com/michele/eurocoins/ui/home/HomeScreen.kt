@@ -30,6 +30,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
+import com.michele.eurocoins.ui.theme.TileDark
+import com.michele.eurocoins.ui.theme.InkDark
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -267,11 +269,12 @@ private fun CommemorativeCard(
     minHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
-    val onFill = MaterialTheme.colorScheme.onPrimary
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val onFill = if (dark) InkDark else MaterialTheme.colorScheme.onPrimary
     Box(
         modifier = modifier
             .clip(CardShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(if (dark) TileDark else MaterialTheme.colorScheme.primary)
             .clickable(onClick = onClick),
     ) {
         CardContent(

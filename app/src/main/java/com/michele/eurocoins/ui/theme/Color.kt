@@ -11,11 +11,11 @@ val BronzeDark = Color(0xFFD0A05E)
 val InkLight = Color(0xFF1F2620)
 val InkDark = Color(0xFFEBE7D8)
 val BackgroundLight = Color(0xFFBEC8BB)
-val BackgroundDark = Color(0xFF15170F)
+val BackgroundDark = Color(0xFF0F110B)
 val SurfaceLight = Color(0xFFFFFFFF)
-val SurfaceDark = Color(0xFF1C1E15)
+val SurfaceDark = Color(0xFF20231A)
 val OutlineLight = Color(0xFF8A968A)
-val OutlineDark = Color(0xFF34351F)
+val OutlineDark = Color(0xFF4A4F3A)
 
 // Piccolo accento viola del tema chiaro: selettore attivo, chip selezionati e cerchi delle
 // monete senza foto (tutto il resto è grigio-verde). Il crema/beige di prima è stato tolto:
@@ -29,3 +29,7 @@ val PurpleFieldLight = Color(0xFF7A62B5)
 val PurpleFieldFocusLight = Color(0xFF4B3391)
 val PurpleFieldDark = Color(0xFFA995DB)
 val PurpleFieldFocusDark = Color(0xFFCBBCF2)
+
+// Tile Commemorative della Home nel tema scuro: verde profondo con testo crema, al posto del
+// salvia chiaro (primary) che era la cosa più luminosa dell'app. Nel chiaro resta primary.
+val TileDark = Color(0xFF2F4A38)

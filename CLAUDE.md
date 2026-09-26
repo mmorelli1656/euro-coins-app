@@ -639,7 +639,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   `8A968A` (era `A9B3A8`), inchiostro `1F2620` (rapporto fondo/card ~1.7). L'outline è anche
   traccia delle barre di avanzamento. Un **lilla** (`LilacLight`, `E2D9F3`) resta
   come piccolo accento su segmento attivo del selettore, chip selezionati e cerchi
-  delle monete senza foto (`secondaryContainer`). Il tema scuro non è stato toccato.
+  delle monete senza foto (`secondaryContainer`). Tema scuro (riallineato dopo un giro sul telefono: card e fondo erano quasi lo stesso nero, rapporto ~1.07): fondo `0F110B`, card `20231A` (~1.3), outline `4A4F3A` (~2:1 sulle card), bordo 1 dp; la tile Commemorative della Home è verde profondo `2F4A38` (`TileDark`) con testo crema, non più il salvia chiaro `primary` (troppo luminoso), mentre FILTER, spunte, barre e badge restano salvia. La card con la foto resta `Color.White` anche nello scuro (sfondo bianco delle foto BCE). `FilterSheet` usa `background` come il pannello di modifica collezione e gli `AlertDialog` usano `surface` (`containerColor` esplicito): senza, Material metteva il suo grigio-viola `1E1D24`, fuori palette.
 - **Card ovunque**: Years/Countries (bordo 1 dp) e **una card bianca per moneta
   nell'elenco** (angoli 14 dp, 8 dp tra le card): senza, le righe stavano
   direttamente sul fondo e l'elenco era piatto. La barra del titolo ha lo stesso

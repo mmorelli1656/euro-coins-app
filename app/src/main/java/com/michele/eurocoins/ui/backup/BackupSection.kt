@@ -120,6 +120,7 @@ fun BackupSection(viewModel: BackupViewModel) {
 
     state.overwritePrompt?.let { prompt ->
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = viewModel::dismissOverwrite,
             title = { Text("Overwrite existing backup?") },
             text = {
@@ -140,6 +141,7 @@ fun BackupSection(viewModel: BackupViewModel) {
 
     if (confirmRestore) {
         AlertDialog(
+            containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { confirmRestore = false },
             title = { Text("Replace your collection?") },
             text = {
