@@ -564,7 +564,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val dark = colors.surface.luminance() < 0.5f
     val shape = RoundedCornerShape(16.dp)
-    // Viola/lilla dell'app (gli stessi del pannello di modifica): bordo della card e righe.
+    // Bordo verdigris (stato "posseduta", come badge OWNED e spunte); righe e pillole lilla/viola (finiture).
     val accent = if (dark) PurpleFieldDark else PurpleFieldLight
     val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
     val pillColor = if (dark) PurpleFieldDark.copy(alpha = 0.25f) else LilacLight
@@ -573,7 +573,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
             .fillMaxWidth()
             .clip(shape)
             .background(colors.surface)
-            .border(2.dp, accent, shape)
+            .border(2.dp, colors.primary, shape)
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

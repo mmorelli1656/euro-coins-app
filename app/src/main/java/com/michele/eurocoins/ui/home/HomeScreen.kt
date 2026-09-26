@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -241,7 +242,7 @@ private fun CardContent(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         title,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp),
+                        style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 26.sp),
                         color = titleColor,
                         modifier = Modifier.weight(1f),
                     )

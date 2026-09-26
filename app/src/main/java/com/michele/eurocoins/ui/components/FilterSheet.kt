@@ -19,6 +19,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
 /**
@@ -49,7 +50,7 @@ fun FilterSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Filter & sort", style = MaterialTheme.typography.titleLarge)
+                Text("Filter & sort", style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default))
                 TextButton(onClick = onReset) { Text("Reset") }
             }
             content()

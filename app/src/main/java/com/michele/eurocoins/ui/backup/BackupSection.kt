@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -162,7 +163,7 @@ fun BackupSection(viewModel: BackupViewModel) {
 private fun SignedOutContent(busy: Boolean, onSignIn: () -> Unit) {
     CenteredCard {
         Icon(Icons.Filled.CloudUpload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
-        Text("Back up your collection", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text("Back up your collection", style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default), textAlign = TextAlign.Center)
         Text(
             text = "Sign in with Google to save your collection and restore it on a new phone. " +
                 "It's stored in a private folder of this app on Google Drive: the app can't see your other files.",
@@ -178,7 +179,7 @@ private fun SignedOutContent(busy: Boolean, onSignIn: () -> Unit) {
 private fun NotConfiguredCard() {
     CenteredCard {
         Icon(Icons.Filled.CloudOff, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
-        Text("Google sign-in isn't set up", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+        Text("Google sign-in isn't set up", style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default), textAlign = TextAlign.Center)
         Text(
             text = "Set google.webClientId in local.properties and rebuild the app.",
             style = MaterialTheme.typography.bodyMedium,

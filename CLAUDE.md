@@ -648,9 +648,16 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
 - **Barra di ricerca flottante nel tema chiaro**: fondo meno opaco del tema scuro
   (0.78 contro 0.84 dopo la riduzione del 10%) perché il blur si veda, ma non meno: a 0.72 il testo sotto si
   leggeva ancora; contorno scuro da 2 dp. Nel tema scuro 0.84 e bordo 1 dp.
-- **Tipografia**: pesi alti su titoli ed etichette (`Type.kt`: headlineMedium e
-  titleLarge Bold, titleMedium e labelLarge SemiBold): un serif Medium risultava
-  sottile e le schermate senza gerarchia.
+- **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
+  (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
+  di rimuovere quasi tutta la serif: la serif su numeri e titoli grandi non è un
+  problema di leggibilità e dà il carattere numismatico all'app). Serif =
+  `titleLarge` (titolo delle barre in alto, "Euro Coins" compreso) e `headlineMedium`
+  (anni grandi delle card Years). Sans = `titleMedium`, corpo, etichette e
+  `labelSmall` (i contatori "27 / 36 collected" erano monospace). I `titleLarge`
+  che NON sono barre (tile Home, invito backup, "Filter & sort") passano da
+  `.copy(fontFamily = FontFamily.Default)`. Pesi alti (headlineMedium e titleLarge
+  Bold, titleMedium e labelLarge SemiBold): un serif Medium risultava sottile.
 - **Dettaglio moneta = Hero card (foto + titolo) + tre card bianche + crediti in
   una riga** (`CoinDetailScreen.kt`, deciso dopo una lunga serie di mockup). Tutte le
   card sono **bianche** (`colorScheme.surface`; la Hero è `Color.White` fisso perché
@@ -662,9 +669,9 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     ellissi + espansione con freccia (complessità inutile) e titolo fuori dalla card.
   - **Etichette di sezione** identiche: `MINTAGES`, `COLLECTION`,
     `HISTORICAL NOTES` (`SectionLabel`: `labelLarge` Bold, maiuscolo, `linkColor()`).
-  - **Tipografia solo sans** in questa schermata: `titleMedium` del tema è serif
-    e `labelSmall` monospace, quindi `sansTitleMedium()` e `.copy(fontFamily =
-    FontFamily.Default)` la sostituiscono localmente, senza toccare il tema.
+  - **Tipografia solo sans** in questa schermata: `titleMedium` era serif
+    e `labelSmall` monospace: `sansTitleMedium()` e `.copy(fontFamily = FontFamily.Default)` lo
+    imponevano localmente; ora il tema è già sans su quegli stili e restano solo ridondanti.
   - **MINTAGES**: tre colonne di larghezza UGUALE (`weight(1f)`), cifra sopra ed
     etichetta sotto centrate sull'asse della propria colonna, senza filetti; cifre
     tutte nello stesso stile (`"tnum"`, mai ridotte anche per `12,600,000`).
@@ -676,7 +683,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     ora — vedi § dataset e § Backlog.
   - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
     centrato e "Add to collection" pieno (48 dp, l'unica azione piena); posseduta =
-    card bianca con **bordo viola da 2 dp** (`PurpleField*`), badge `✓ OWNED` verde
+    card bianca con **bordo verdigris da 2 dp** (`colorScheme.primary`, come badge OWNED e spunte: verde = "posseduta"; era viola `PurpleField*`, cambiato su richiesta lasciando lilla le pillole delle finiture), badge `✓ OWNED` verde
     scuro in alto a destra, **solo le finiture possedute** (una pillola lilla
     `LilacLight` a tutta larghezza per riga: nome a sinistra, prezzo in grassetto a
     destra, `—` se assente o 0.00) e "Edit collection" (TextButton compatto) a
