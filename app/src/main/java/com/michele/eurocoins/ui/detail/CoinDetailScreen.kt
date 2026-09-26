@@ -199,18 +199,16 @@ private fun CoinHero(coin: Coin) {
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Stessa icona dell'euro in tutti i casi senza foto (elenco compreso): "non ancora
-                    // pubblicata" (dato) e "non caricata ora" (rete assente/link morto, vedi
-                    // scripts/validate_image_links.py nella pipeline dati) si distinguono dal testo.
-                    // Mentre la foto arriva, o se il caricamento resta in sospeso senza rete, l'icona
-                    // senza testo evita un riquadro vuoto.
-                    when (painter.state.value) {
+                    // Icona dell'euro solo se la foto non c'è o non si carica ("non ancora pubblicata" e
+                    // "non caricata ora" si distinguono dal testo, vedi scripts/validate_image_links.py
+                    // nella pipeline dati). Mentre la foto arriva resta la sola card bianca.
+                    when (painter.state.collectAsState().value) {
                         is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
                         is AsyncImagePainter.State.Error -> CoinHeroFallback(
                             icon = Icons.Filled.EuroSymbol,
                             message = "Couldn't load this image",
                         )
-                        else -> CoinHeroFallback(icon = Icons.Filled.EuroSymbol, message = null)
+                        else -> Unit
                     }
                 }
             } else {

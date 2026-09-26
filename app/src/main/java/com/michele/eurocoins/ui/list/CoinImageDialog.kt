@@ -19,6 +19,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,7 +72,7 @@ fun CoinImageDialog(coin: Coin, onDismiss: () -> Unit, onDetails: () -> Unit) {
                         // ramo che lo salta in Loading lasciava la richiesta senza avviarsi.
                         // Nessuna rotella: la prima apertura non tornava mai a Success e la
                         // rotella girava all'infinito sopra la foto già visibile.
-                        if (painter.state.value is AsyncImagePainter.State.Error) {
+                        if (painter.state.collectAsState().value is AsyncImagePainter.State.Error) {
                             Icon(
                                 imageVector = Icons.Filled.BrokenImage,
                                 contentDescription = "Couldn't load this image",

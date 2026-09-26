@@ -352,27 +352,37 @@ private fun CoinThumbnail(coin: Coin) {
             .background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        // Icona dell'euro SEMPRE sotto: è ciò che si vede quando la foto non c'è (non ancora pubblicata
-        // dalla fonte), sta arrivando, o non si carica (rete assente o link morto, anche con cache
-        // svuotata). Una foto caricata la copre. Un'unica icona per tutti i casi, invece di vuoti o
-        // di un'icona diversa per il caricamento fallito: la distinzione "non pubblicata / non
-        // caricata" resta nel dettaglio, dove c'è il testo (vedi scripts/validate_image_links.py
-        // nella pipeline dati).
-        Icon(
-            imageVector = Icons.Filled.EuroSymbol,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(26.dp),
-        )
-        if (coin.hasImage()) {
+        // Icona dell'euro solo quando la foto NON c'è: non ancora pubblicata dalla fonte o non
+        // caricata (rete assente, link morto). Mentre la foto sta arrivando resta il solo cerchio
+        // lilla: a processo appena riaperto la cache in memoria è vuota e la lettura dal disco
+        // richiede qualche decina di ms, e il lampo dell'icona sembrava un nuovo download (in
+        // realtà la cache su disco regge). La distinzione "non pubblicata / non caricata" resta
+        // nel dettaglio, dove c'è il testo (vedi scripts/validate_image_links.py nella pipeline).
+        if (!coin.hasImage()) {
+            EuroPlaceholder()
+        } else {
             SubcomposeAsyncImage(
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                if (painter.state.value is AsyncImagePainter.State.Success) SubcomposeAsyncImageContent()
+                when (painter.state.collectAsState().value) {
+                    is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                    is AsyncImagePainter.State.Error -> EuroPlaceholder()
+                    else -> Unit
+                }
             }
         }
     }
+}
+
+@Composable
+private fun EuroPlaceholder() {
+    Icon(
+        imageVector = Icons.Filled.EuroSymbol,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.secondary,
+        modifier = Modifier.size(26.dp),
+    )
 }
