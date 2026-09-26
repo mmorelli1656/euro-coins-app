@@ -138,12 +138,24 @@ hanno spazi/accenti.
 
 ### Home
 
-Due tile che si dividono l'altezza dello schermo (non due card piccole con
-spazio vuoto: era una critica esplicita). **Commemorative**: mosaico 3×3 di
-monete reali (9 paesi diversi, prese dal database), titolo, "584 coins · 24
-countries", intervallo di anni e barra "x / y collected" — tutti numeri
-calcolati dal database, nessun valore scritto a mano. **Circulation**:
-tratteggiata, "Coming soon", senza azione. La home è anche dove parte il
+Due schede di **pari peso** che si dividono l'altezza (`weight(1f)` ciascuna, 14 dp
+tra le due, niente scroll), stessa struttura (`CardContent`): fascia di 4 monete a
+bordo scheda (occupa TUTTO lo spazio che avanza: monete in proporzione alla fascia ma dentro la larghezza; cerchi sovrapposti di 8 dp, i due centrali più grandi), titolo,
+**tre statistiche grandi** (22 sp Bold, CENTRATE sulla propria colonna: pesi 1/1/1.3, la terza per l'intervallo di anni; sono ciò che l'utente vuole vedere subito) e
+footer. Scelta dopo mockup (X fascia in alto, scartata Y foto a sinistra + griglia
+2×2; prima ancora A numero grande, B medaglione disegnato, C tre statistiche): le
+foto stanno in una fascia orizzontale perché il mosaico 2×2/3×3 e le schede basse
+davano problemi di proporzioni/spazio vuoto — non riproporli. Foto = **cerchi
+ritagliati** dalle foto BCE con zoom 1.05 (taglia l'anello bianco; qualche moneta può
+risultare poco centrata, accettato). Nessun contatore globale. **Commemorative**
+(attiva, cliccabile per intero, angoli 22 dp, fondo `primary`): statistiche "584
+coins", "24 countries" e gli anni come **intervallo** ("2004–2025", colonna con peso
+1.3), poi barra "x / y collected" con onda — numeri dal database. **Regular Issues**
+(ex Circulation): fondo `onSurfaceVariant` al 10% con contorno tratteggiato
+(`drawBehind`; `OutlinedCard` non sa tratteggiare), fascia di 4 monete DISEGNATE e desaturate (1c, 10c, 1€, 2€),
+pillola "Coming soon" a destra del titolo, gli stessi tre campi di Commemorative con "—",
+barra "— / — collected" vuota (specchio di quella di Commemorative; niente sottotitolo); senza
+azione. La home è anche dove parte il
 seeding del database (`HomeViewModel` chiama `ensureSeeded()`; il Mutex nel
 repository evita il doppio inserimento se più ViewModel lo chiamano). In alto
 a destra un'icona ingranaggio apre le Impostazioni (unico accesso: la pillola del tema e l'icona profilo non ci sono più).

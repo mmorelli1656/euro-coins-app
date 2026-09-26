@@ -1,14 +1,16 @@
 package com.michele.eurocoins.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,29 +33,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.michele.eurocoins.R
-import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.ProgressAnimation
 import com.michele.eurocoins.ui.components.rememberProgressAnimation
 
 /**
- * Schermata d'ingresso: due tile che si dividono l'altezza. Oggi solo le
+ * Schermata d'ingresso: due schede di pari peso che si dividono l'altezza. Oggi solo le
  * commemorative sono navigabili (l'unico dataset che la pipeline produce);
- * la tile divisionale è tratteggiata e senza azione finché quella fonte non
+ * "Regular Issues" è tratteggiata e senza azione finché quella fonte non
  * esiste — vedi CLAUDE.md § Scopo del progetto nel repo della pipeline dati.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -96,139 +103,269 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            CommemorativeTile(
+            CommemorativeCard(
                 state = state,
                 progressAnimation = progressAnimation,
                 onClick = onCommemorativeClick,
-                modifier = Modifier
-                    .weight(3f)
-                    .fillMaxWidth(),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
             )
-            CirculationTile(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            )
+            RegularIssuesCard(modifier = Modifier.weight(1f).fillMaxWidth())
+        }
+    }
+}
+
+private val CardShape = RoundedCornerShape(22.dp)
+
+/** Ingrandimento delle foto dentro il cerchio: taglia l'anello bianco dello sfondo del JPEG BCE. */
+private const val PHOTO_ZOOM = 1.05f
+
+/** Sovrapposizione tra monete vicine nella fascia. */
+private val BandOverlap = 8.dp
+
+/** Proporzioni dei diametri delle 4 monete: le centrali più grandi. */
+private val BandRatios = listOf(0.8f, 1f, 1f, 0.8f)
+
+/**
+ * Fascia di monete a bordo scheda, sopra un velo leggero. Prende tutta l'altezza che avanza
+ * (la scheda ha altezza fissa, testi a parte): le monete crescono con la fascia, ma senza
+ * uscire in larghezza. Ogni moneta è composta da [coin].
+ */
+@Composable
+private fun CoinBand(veil: Color, modifier: Modifier = Modifier, coin: @Composable (index: Int, size: Dp) -> Unit) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth().background(veil), contentAlignment = Alignment.Center) {
+        val fitWidth = (maxWidth - 24.dp + BandOverlap * (BandRatios.size - 1)) / BandRatios.sum()
+        val base = minOf(maxHeight * 0.82f, fitWidth)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(-BandOverlap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BandRatios.forEachIndexed { i, ratio -> coin(i, base * ratio) }
+        }
+    }
+}
+
+/** Una statistica centrata sulla propria colonna: numero grande sopra, etichetta sotto. */
+@Composable
+private fun Stat(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            value,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
+            color = color,
+            maxLines = 1,
+            softWrap = false,
+            textAlign = TextAlign.Center,
+        )
+        Text(label, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, textAlign = TextAlign.Center)
+    }
+}
+
+/** Le tre colonne di statistiche: stesse larghezze in entrambe le schede (la terza, per l'intervallo di anni, è più larga). */
+@Composable
+private fun StatsRow(color: Color, coins: String, countries: String, years: String) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Stat(coins, "coins", color, Modifier.weight(1f))
+        Stat(countries, "countries", color, Modifier.weight(1f))
+        Stat(years, "years", color, Modifier.weight(1.3f))
+    }
+}
+
+/** Struttura condivisa: fascia di monete (occupa lo spazio che avanza), titolo, statistiche, footer. */
+@Composable
+private fun CardContent(
+    band: @Composable (Modifier) -> Unit,
+    title: String,
+    titleColor: Color,
+    titleTrailing: @Composable () -> Unit,
+    stats: @Composable () -> Unit,
+    footer: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        band(Modifier.weight(1f))
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = titleColor,
+                    modifier = Modifier.weight(1f),
+                )
+                titleTrailing()
+            }
+            stats()
+            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp), contentAlignment = Alignment.CenterStart) { footer() }
         }
     }
 }
 
 @Composable
-private fun CommemorativeTile(
+private fun CommemorativeCard(
     state: HomeUiState,
     progressAnimation: ProgressAnimation,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(20.dp)
     val onFill = MaterialTheme.colorScheme.onPrimary
-    Column(
+    Box(
         modifier = modifier
-            .clip(shape)
+            .clip(CardShape)
             .background(MaterialTheme.colorScheme.primary)
-            .clickable(onClick = onClick)
-            .padding(20.dp),
+            .clickable(onClick = onClick),
     ) {
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            Showcase(state.showcase)
-        }
-        Spacer(Modifier.height(16.dp))
-
-        Column {
-            Text("Commemorative", style = MaterialTheme.typography.headlineMedium, color = onFill)
-            Text(
-                text = "${state.progress.total} coins · ${state.countries} countries",
-                style = MaterialTheme.typography.bodyLarge,
-                color = onFill,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            if (state.firstYear != null && state.lastYear != null) {
-                Text(
-                    text = "${state.firstYear} – ${state.lastYear}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = onFill,
-                )
-            }
-            Spacer(Modifier.height(16.dp))
-            CollectionProgressBar(
-                progress = state.progress,
-                color = onFill,
-                // Track e etichetta più leggibili (tema scuro: tile salvia con testo scuro): track al
-                // 45% invece di 30%, etichetta 12 sp SemiBold invece di 11 sp Normal.
-                trackColor = onFill.copy(alpha = 0.45f),
-                labelColor = onFill,
-                labelStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
-                animation = progressAnimation,
-            )
-        }
-    }
-}
-
-/** Mosaico 3 colonne di monete reali (paesi diversi): riempie lo spazio sopra il titolo. */
-@Composable
-private fun Showcase(coins: List<Coin>, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        coins.chunked(SHOWCASE_COLUMNS).forEach { rowCoins ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                rowCoins.forEach { coin ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(1f)
-                            .clip(CircleShape),
-                    ) {
-                        // Nessun fondo sotto la foto: il 20% di onPrimary (bianco nel tema chiaro) sporgeva
-                        // come sfrangiatura chiara sul bordo tondo. Lo zoom leggero taglia l'anello bianco
-                        // che lo sfondo del JPEG BCE lascia tra la moneta e il cerchio.
-                        AsyncImage(
-                            model = coin.urlImmagineFonte,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = SHOWCASE_ZOOM, scaleY = SHOWCASE_ZOOM),
-                        )
+        CardContent(
+            band = { bandModifier ->
+                CoinBand(veil = onFill.copy(alpha = 0.14f), modifier = bandModifier) { i, size ->
+                    Box(modifier = Modifier.size(size).clip(CircleShape)) {
+                        val url = state.showcase.getOrNull(i)?.urlImmagineFonte
+                        if (url != null) {
+                            AsyncImage(
+                                model = url,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().graphicsLayer(scaleX = PHOTO_ZOOM, scaleY = PHOTO_ZOOM),
+                            )
+                        }
                     }
                 }
-                // Ultima riga incompleta: mantiene le monete della stessa dimensione.
-                repeat(SHOWCASE_COLUMNS - rowCoins.size) { Spacer(Modifier.weight(1f)) }
-            }
+            },
+            title = "Commemorative",
+            titleColor = onFill,
+            titleTrailing = {},
+            stats = {
+                val range = if (state.firstYear != null && state.lastYear != null) "${state.firstYear}–${state.lastYear}" else "—"
+                StatsRow(onFill, "${state.progress.total}", "${state.countries}", range)
+            },
+            footer = {
+                CollectionProgressBar(
+                    progress = state.progress,
+                    color = onFill,
+                    // Track e etichetta più leggibili (tema scuro: tile salvia con testo scuro): track al
+                    // 45% invece di 30%, etichetta 12 sp SemiBold invece di 11 sp Normal.
+                    trackColor = onFill.copy(alpha = 0.45f),
+                    labelColor = onFill,
+                    labelStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    animation = progressAnimation,
+                )
+            },
+        )
+    }
+}
+
+/** Tagli mostrati (disegnati, non foto) nella fascia di Regular Issues, in ordine crescente. */
+private class DrawnCoin(val label: String, val outer: Color, val inner: Color?)
+
+private val RegularCoins = listOf(
+    DrawnCoin("1c", Color(0xFFC08A6B), null), // rame
+    DrawnCoin("10c", Color(0xFFD3B56C), null), // oro nordico
+    DrawnCoin("1€", Color(0xFFD9DBD9), Color(0xFFD3B56C)), // bimetallica: anello argento, centro oro
+    DrawnCoin("2€", Color(0xFFD3B56C), Color(0xFFD9DBD9)), // bimetallica: anello oro, centro argento
+)
+
+/**
+ * Moneta disegnata (segnaposto delle serie divisionali finché non ci sono foto): colori dei metalli
+ * veri ma attenuati (alpha), con bordo rilevato e taglio in mezzo.
+ */
+@Composable
+private fun RegularCoin(coin: DrawnCoin, size: Dp) {
+    val ink = Color(0xFF3B4A42)
+    Box(
+        modifier = Modifier
+            .size(size)
+            .alpha(0.62f)
+            .clip(CircleShape)
+            .background(coin.outer)
+            .border(size * 0.03f, ink.copy(alpha = 0.35f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Cerchio interno sottile: bordo rilevato delle monete monometalliche, centro delle bimetalliche.
+        Box(
+            modifier = Modifier
+                .size(size * 0.66f)
+                .clip(CircleShape)
+                .background(coin.inner ?: coin.outer)
+                .border(size * 0.02f, ink.copy(alpha = 0.25f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                coin.label,
+                color = ink,
+                fontWeight = FontWeight.Bold,
+                fontSize = with(LocalDensity.current) { (size * 0.24f).toSp() },
+            )
         }
     }
 }
 
-private const val SHOWCASE_COLUMNS = 3
-
-/** Ingrandimento delle monete del mosaico dentro il cerchio (vedi [Showcase]). */
-private const val SHOWCASE_ZOOM = 1.05f
-
 @Composable
-private fun CirculationTile(modifier: Modifier = Modifier) {
+private fun RegularIssuesCard(modifier: Modifier = Modifier) {
     // Tratteggio: nel tema scuro il 50% del colore del testo su fondo quasi nero risultava troppo
     // debole; al 75% si vede bene. Nel tema chiaro resta al 50%.
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val outline = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (isDark) 0.75f else 0.5f)
-    Column(
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val outline = muted.copy(alpha = if (isDark) 0.75f else 0.5f)
+    Box(
         modifier = modifier
+            .clip(CardShape)
+            .background(muted.copy(alpha = 0.10f))
             .drawBehind {
                 drawRoundRect(
                     color = outline,
-                    cornerRadius = CornerRadius(20.dp.toPx()),
+                    cornerRadius = CornerRadius(22.dp.toPx()),
                     style = Stroke(
                         width = 2.dp.toPx(),
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(16.dp.toPx(), 10.dp.toPx())),
                     ),
                 )
-            }
-            .padding(20.dp),
-        verticalArrangement = Arrangement.Bottom,
+            },
     ) {
-        Text("Circulation", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            text = "Coming soon",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        CardContent(
+            // Monete disegnate e desaturate (finché non ci sono foto): un disco per taglio, con l'etichetta.
+            band = { bandModifier ->
+                CoinBand(veil = muted.copy(alpha = 0.07f), modifier = bandModifier) { i, size ->
+                    RegularCoin(RegularCoins[i], size)
+                }
+            },
+            title = "Regular Issues",
+            titleColor = muted,
+            // Pillola a contorno e a basso contrasto: non compete con la scheda attiva.
+            titleTrailing = {
+                Text(
+                    "Coming soon",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = muted,
+                    modifier = Modifier
+                        .border(1.dp, outline, RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                )
+            },
+            // Stessi campi di Commemorative, senza dati finché la pipeline non produce il dataset.
+            stats = { StatsRow(muted, "—", "—", "—") },
+            // Specchio della barra di Commemorative (stessa altezza di testo e traccia), vuoto e senza dati.
+            footer = {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        val label = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("— / — collected", style = label, color = muted)
+                        Text("—", style = label, color = muted)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(15.dp)
+                            .clip(RoundedCornerShape(7.5.dp))
+                            .background(muted.copy(alpha = 0.22f)),
+                    )
+                }
+            },
         )
     }
 }

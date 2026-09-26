@@ -17,7 +17,7 @@ data class HomeUiState(
     val countries: Int = 0,
     val firstYear: Int? = null,
     val lastYear: Int? = null,
-    /** Nove monete con immagine, di paesi diversi, per il mosaico della card. */
+    /** Quattro monete con immagine, di paesi diversi, per la fascia della scheda. */
     val showcase: List<Coin> = emptyList(),
 )
 
@@ -41,7 +41,7 @@ class HomeViewModel(private val repository: CoinRepository) : ViewModel() {
             showcase = coins
                 .filter { !it.immaginePlaceholder && it.urlImmagineFonte != null }
                 .distinctBy { it.paese }
-                .take(9),
+                .take(4),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
