@@ -107,9 +107,9 @@ fun CoinListScreen(
             CoinListSearchBar(
                 viewModel = viewModel,
                 placeholder = when (filter) {
-                    CoinFilter.All -> "Search by year or theme…"
-                    is CoinFilter.Year -> "Search by theme…"
-                    is CoinFilter.Country -> "Search by year or theme…"
+                    CoinFilter.All -> "Theme, country, year…"
+                    is CoinFilter.Year -> "Theme or country…"
+                    is CoinFilter.Country -> "Theme or year…"
                 },
                 hazeState = hazeState,
             )
@@ -175,7 +175,7 @@ fun CoinListContent(
     ) {
         item {
             Text(
-                text = "${state.coins.size} coins" + if (filtering) " found" else "",
+                text = "${state.coins.size} ${if (state.coins.size == 1) "coin" else "coins"}" + if (filtering) " found" else "",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),

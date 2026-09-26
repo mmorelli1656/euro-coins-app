@@ -118,6 +118,9 @@ class CoinListViewModel(
         )
     }
 
+    /** Query attuale, letta subito (uiState arriva con qualche fotogramma di ritardo). */
+    val currentQuery: String get() = query.value
+
     fun onQueryChange(newQuery: String) {
         query.value = newQuery
     }

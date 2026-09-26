@@ -131,6 +131,10 @@ class BrowseViewModel(
                 },
         )
 
+    /** Query attuali delle due griglie, lette subito (uiState arriva con qualche fotogramma di ritardo). */
+    val yearsQueryNow: String get() = prefs.value.yearsQuery
+    val countriesQueryNow: String get() = prefs.value.countriesQuery
+
     fun onModeChange(newMode: BrowseMode) {
         mode.value = newMode
     }

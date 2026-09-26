@@ -58,7 +58,7 @@ fun BoxScope.CoinListSearchBar(
     var showFilters by remember { mutableStateOf(false) }
 
     FloatingSearchBar(
-        query = state.query,
+        query = viewModel.currentQuery,
         onQueryChange = viewModel::onQueryChange,
         placeholder = placeholder,
         filterActive = state.options.isActive,

@@ -33,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material3.Button
 import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +78,11 @@ fun BrowseScreen(
     val state by viewModel.uiState.collectAsState()
     val hazeState = remember { HazeState() }
     var showFilters by remember { mutableStateOf(false) }
+    // Dal vicolo cieco di una griglia (nessuna card corrisponde): apre la scheda All con il testo già scritto.
+    val searchAllCoins = { q: String ->
+        allCoinsViewModel.onQueryChange(q)
+        viewModel.onModeChange(BrowseMode.ALL)
+    }
 
     Scaffold(
         topBar = {
@@ -100,7 +108,8 @@ fun BrowseScreen(
                 )
 
                 when (state.mode) {
-                    BrowseMode.YEARS -> CardGrid(
+                    BrowseMode.YEARS -> Box {
+                        CardGrid(
                         loaded = state.loaded,
                         resetScrollKey = state.prefs.yearsAscending,
                         hazeState = hazeState,
@@ -115,7 +124,17 @@ fun BrowseScreen(
                             }
                         }
                     }
-                    BrowseMode.COUNTRIES -> CardGrid(
+                        if (state.loaded && state.years.isEmpty() && state.prefs.yearsQuery.isNotBlank()) {
+                            NoMatchState(
+                                what = "years",
+                                hint = "Years can be filtered by number only.",
+                                query = state.prefs.yearsQuery.trim(),
+                                onSearchAll = { searchAllCoins(state.prefs.yearsQuery.trim()) },
+                            )
+                        }
+                    }
+                    BrowseMode.COUNTRIES -> Box {
+                        CardGrid(
                         loaded = state.loaded,
                         resetScrollKey = state.prefs.countriesAscending,
                         hazeState = hazeState,
@@ -132,6 +151,15 @@ fun BrowseScreen(
                             }
                         }
                     }
+                        if (state.loaded && state.countries.isEmpty() && state.prefs.countriesQuery.isNotBlank()) {
+                            NoMatchState(
+                                what = "countries",
+                                hint = "Countries can be filtered by name only.",
+                                query = state.prefs.countriesQuery.trim(),
+                                onSearchAll = { searchAllCoins(state.prefs.countriesQuery.trim()) },
+                            )
+                        }
+                    }
                     BrowseMode.ALL -> CoinListContent(
                         viewModel = allCoinsViewModel,
                         onCoinClick = onCoinClick,
@@ -143,18 +171,18 @@ fun BrowseScreen(
             // La scheda "All" ha la sua barra (query e filtri del suo ViewModel).
             when (state.mode) {
                 BrowseMode.YEARS -> FloatingSearchBar(
-                    query = state.prefs.yearsQuery,
+                    query = viewModel.yearsQueryNow,
                     onQueryChange = viewModel::setYearsQuery,
-                    placeholder = "Search by year…",
+                    placeholder = "Filter by year…",
                     filterActive = state.prefs.yearsFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
                 BrowseMode.COUNTRIES -> FloatingSearchBar(
-                    query = state.prefs.countriesQuery,
+                    query = viewModel.countriesQueryNow,
                     onQueryChange = viewModel::setCountriesQuery,
-                    placeholder = "Search countries…",
+                    placeholder = "Filter by country…",
                     filterActive = state.prefs.countriesFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
@@ -162,7 +190,7 @@ fun BrowseScreen(
                 )
                 BrowseMode.ALL -> CoinListSearchBar(
                     viewModel = allCoinsViewModel,
-                    placeholder = "Search by year or theme…",
+                    placeholder = "Theme, country, year…",
                     hazeState = hazeState,
                 )
             }
@@ -314,4 +342,23 @@ private fun CardFooter(progress: Progress) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     CollectionProgressBar(progress = progress, modifier = Modifier.padding(top = 10.dp))
+}
+
+/**
+ * Nessuna card corrisponde alla ricerca di una griglia: spiega cosa si può filtrare lì e porta
+ * alla scheda All (dove si cerca per tema, paese e anno) con il testo già scritto.
+ */
+@Composable
+private fun NoMatchState(what: String, hint: String, query: String, onSearchAll: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("No $what match “$query”", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(hint, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+        Button(onClick = onSearchAll, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Search all coins for “$query”", maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
 }

@@ -31,6 +31,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +103,14 @@ fun FloatingSearchBar(
     val borderColor = if (isDark) onSurface.copy(alpha = 0.15f) else onSurface.copy(alpha = 0.5f)
     val borderWidth = if (isDark) 1.dp else 2.dp
     val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
+    // Testo e cursore restano QUI: il valore che torna da `query` passa da un StateFlow e arriva
+    // con uno o più fotogrammi di ritardo, e un BasicTextField(String) che riceve un valore
+    // vecchio riporta il testo e il cursore indietro (cursore dopo la terza lettera, caratteri persi).
+    // `query` vale solo come valore iniziale: ogni barra ha il suo punto nella composizione
+    // (Years, Countries, All, elenco), e la cancellazione passa da qui.
+    var field by remember { mutableStateOf(TextFieldValue(query, TextRange(query.length))) }
+    val keyboard = LocalSoftwareKeyboardController.current
 
     // Sollevamento sopra barra di navigazione o tastiera. Usa direttamente gli
     // insets: il sistema li anima insieme alla tastiera, quindi la barra parte
@@ -125,9 +143,20 @@ fun FloatingSearchBar(
                 .border(BorderStroke(borderWidth, borderColor), CircleShape),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Tutta la metà sinistra (lente, margini, altezza intera della pillola) porta il focus al campo:
+            // il BasicTextField è alto quanto una riga di testo, e toccare fuori da quella striscia
+            // (sulla lente, sopra o sotto) non apriva la tastiera.
             Row(
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) {
+                        focusRequester.requestFocus()
+                        keyboard?.show()
+                    }
                     .padding(start = 18.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -137,7 +166,7 @@ fun FloatingSearchBar(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Box(modifier = Modifier.weight(1f).padding(start = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    if (query.isEmpty()) {
+                    if (field.text.isEmpty()) {
                         Text(
                             placeholder,
                             style = MaterialTheme.typography.bodyLarge,
@@ -147,22 +176,28 @@ fun FloatingSearchBar(
                         )
                     }
                     BasicTextField(
-                        value = query,
-                        onValueChange = onQueryChange,
+                        value = field,
+                        onValueChange = {
+                            field = it
+                            if (it.text != query) onQueryChange(it.text)
+                        },
                         singleLine = true,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
                     )
                 }
-                if (query.isNotEmpty()) {
+                if (field.text.isNotEmpty()) {
                     Box(
                         modifier = Modifier
                             .size(32.dp)
                             .clip(CircleShape)
-                            .clickable { onQueryChange("") },
+                            .clickable {
+                                field = TextFieldValue("")
+                                onQueryChange("")
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
