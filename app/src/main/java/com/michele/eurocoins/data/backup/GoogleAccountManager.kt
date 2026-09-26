@@ -64,7 +64,7 @@ class GoogleAccountManager(context: Context) {
         } catch (_: GetCredentialCancellationException) {
             return null
         } catch (e: GetCredentialException) {
-            throw BackupException("Google sign-in failed: ${e.message ?: e.type}", e)
+            throw BackupException("Google sign-in failed. Please try again.", e)
         }
         if (credential !is CustomCredential ||
             credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
@@ -93,7 +93,7 @@ class GoogleAccountManager(context: Context) {
         val result = suspendCancellableCoroutine { cont ->
             Identity.getAuthorizationClient(activity).authorize(request)
                 .addOnSuccessListener { cont.resume(it) }
-                .addOnFailureListener { cont.resumeWithException(BackupException("Google Drive authorization failed: ${it.message}", it)) }
+                .addOnFailureListener { cont.resumeWithException(BackupException("Google Drive authorization failed. Please check your connection and try again.", it)) }
         }
         if (result.hasResolution()) {
             val pending = result.pendingIntent ?: throw BackupException("Google Drive authorization needs consent but gave no way to ask.")

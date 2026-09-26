@@ -4,6 +4,7 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,8 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -78,24 +81,40 @@ fun BackupSection(viewModel: BackupViewModel) {
             account == null -> SignedOutContent(busy = state.busy, onSignIn = { viewModel.signIn(activity) })
             else -> SettingsCard {
                 AccountRow(account, signOutEnabled = !state.busy, onSignOut = { viewModel.signOut(activity) })
-                StatusBox(lastBackup = state.lastBackup, busy = state.busy)
+                StatusBox(
+                    lastBackup = state.lastBackup,
+                    busy = state.busy,
+                    checking = state.busy && !state.backupChecked && state.lastBackup == null,
+                )
+                state.message?.let { InlineNotice(it, isError = state.messageIsError()) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(
                         onClick = { viewModel.backup(activity) },
                         enabled = !state.busy,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        ),
                         modifier = Modifier.weight(2f),
                     ) { Text("Back up now") }
                     OutlinedButton(
                         onClick = { confirmRestore = true },
                         enabled = !state.busy && hasBackup,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (!state.busy && hasBackup) MaterialTheme.colorScheme.outline
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        ),
                         modifier = Modifier.weight(1f),
                     ) { Text("Restore") }
                 }
             }
         }
-        state.message?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
-        }
+        // Con l'account l'esito sta dentro la card (InlineNotice); qui solo per gli stati senza card d'account.
+        if (account == null) state.message?.let { InlineNotice(it, isError = state.messageIsError()) }
     }
 
     state.overwritePrompt?.let { prompt ->
@@ -204,8 +223,27 @@ private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOu
 
 /** Stato del backup: icona, titolo, data; durante un'operazione mostra la barra di avanzamento. */
 @Composable
-private fun StatusBox(lastBackup: String?, busy: Boolean) {
+private fun StatusBox(lastBackup: String?, busy: Boolean, checking: Boolean) {
     val saved = lastBackup != null
+    if (checking) {
+        // Controllo iniziale su Drive: messaggio neutro e piccolo indicatore, niente titolo "Not backed up yet" che poi cambia.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
+            Column {
+                Text("Checking backup status…", style = MaterialTheme.typography.titleMedium)
+                Text("Looking for a backup on Google Drive.", style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        return
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,6 +271,32 @@ private fun StatusBox(lastBackup: String?, busy: Boolean) {
     }
 }
 
+private fun BackupUiState.messageIsError() =
+    message?.let { !(it.startsWith("Backed up") || it.startsWith("Restored") || it.startsWith("Signed out")) } ?: false
+
+/** Avviso integrato nella card: errori in tinta d'errore con icona, esiti positivi neutri. */
+@Composable
+private fun InlineNotice(text: String, isError: Boolean) {
+    val tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(tint.copy(alpha = 0.10f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = if (isError) Icons.Filled.CloudOff else Icons.Filled.CloudDone,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+    }
+}
+
 /** Card con bordo sottile, nello stile "superficie + outline" del tema; contenuto allineato a sinistra. */
 @Composable
 fun SettingsCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
@@ -242,7 +306,7 @@ fun SettingsCard(modifier: Modifier = Modifier, content: @Composable () -> Unit)
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) { content() }
@@ -257,7 +321,7 @@ private fun CenteredCard(content: @Composable () -> Unit) {
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .padding(horizontal = 16.dp, vertical = 22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),

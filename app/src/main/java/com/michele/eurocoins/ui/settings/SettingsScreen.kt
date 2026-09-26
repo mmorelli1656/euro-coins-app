@@ -262,7 +262,7 @@ private fun ProBanner(onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(0.5.dp, MaterialTheme.colorScheme.outline, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
             .clickable(onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,

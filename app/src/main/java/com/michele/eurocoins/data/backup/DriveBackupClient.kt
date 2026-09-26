@@ -78,16 +78,16 @@ class DriveBackupClient {
             }
             val code = connection.responseCode
             if (code in 200..299) return connection.inputStream.use { it.readBytes() }
-            val detail = connection.errorStream?.use { it.readBytes().decodeToString() }.orEmpty().take(300)
+            // Il dettaglio grezzo della risposta non va all'utente: messaggi d'uso, niente JSON/HTTP.
             throw BackupException(
                 when (code) {
                     401 -> "Google Drive session expired. Try again."
-                    403 -> "Google Drive refused access ($detail)"
-                    else -> "Google Drive error $code: $detail"
+                    403 -> "Google Drive refused access. Check the permissions granted to this app."
+                    else -> "Google Drive is unavailable right now. Please try again later."
                 },
             )
         } catch (e: IOException) {
-            throw BackupException("Network error: ${e.message}", e)
+            throw BackupException("Network unavailable. Please check your connection.", e)
         } finally {
             connection.disconnect()
         }

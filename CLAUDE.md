@@ -300,6 +300,14 @@ collezione su Drive.
   nuovo la collezione locale è vuota e cancellerebbe il backup. Il controllo
   sta nel ViewModel perché serve il token Drive, e il consenso potrebbe non
   esserci ancora.
+- **Errori e stato di caricamento**: mai testo tecnico all'utente (niente
+  `e.message`, DNS o JSON di Drive): `DriveBackupClient`/`GoogleAccountManager`/
+  `BackupViewModel` producono messaggi d'uso ("Network unavailable. Please check your
+  connection."). L'esito è un banner `InlineNotice` DENTRO la card dell'account (errore
+  in rosso, successo in verdigris), non testo libero sotto le card: appariva e spariva
+  causando layout shift. Durante il primo controllo su Drive lo `StatusBox` mostra
+  spinner + "Checking backup status…" invece di "Not backed up yet". "Back up now" e
+  "Restore" disabilitati hanno colori/bordo espliciti per restare leggibili.
 - **Restore disabilitato solo se Drive è stato interrogato** e non ha un
   backup (`BackupUiState.backupChecked`). Senza consenso Drive (telefono
   nuovo, appena fatto l'accesso) la data resta null anche se il backup esiste:
@@ -592,8 +600,8 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   "segui il telefono"). L'ordine è System, Light, Dark; "System" e non "Auto" perché è la dicitura di Android e "Auto" farebbe pensare a un cambio a orari.
 - **Palette del tema chiaro: grigio-verde, non crema.** Il beige/crema faceva
   sembrare tutto piatto e con poco contrasto tra card e fondo (rapporto ~1.13).
-  Ora fondo `D0D7CE`, card `FFFFFF` (bianco puro, come le foto BCE), outline
-  `A9B3A8`, inchiostro `1F2620` (rapporto fondo/card ~1.47). L'outline è anche
+  Ora fondo `BEC8BB` (era `D0D7CE`, scurito per staccare le card), card `FFFFFF` (bianco puro, come le foto BCE), outline
+  `8A968A` (era `A9B3A8`), inchiostro `1F2620` (rapporto fondo/card ~1.7). L'outline è anche
   traccia delle barre di avanzamento. Un **lilla** (`LilacLight`, `E2D9F3`) resta
   come piccolo accento su segmento attivo del selettore, chip selezionati e cerchi
   delle monete senza foto (`secondaryContainer`). Il tema scuro non è stato toccato.

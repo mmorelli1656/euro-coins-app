@@ -143,7 +143,11 @@ class BackupViewModel(
             } catch (e: BackupException) {
                 _state.update { it.copy(message = e.message) }
             } catch (e: Exception) {
-                _state.update { it.copy(message = "Unexpected error: ${e.message}") }
+                // Eccezioni non previste (rete assente nel login, ecc.): mai il testo tecnico all'utente.
+                val offline = generateSequence<Throwable>(e) { it.cause }.any { it is java.io.IOException }
+                _state.update {
+                    it.copy(message = if (offline) "Network unavailable. Please check your connection." else "Something went wrong. Please try again.")
+                }
             } finally {
                 _state.update { it.copy(busy = false) }
             }
