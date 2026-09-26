@@ -46,8 +46,10 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -147,30 +149,25 @@ private fun CoinBand(veil: Color, modifier: Modifier = Modifier, coin: @Composab
     }
 }
 
-/** Una statistica centrata sulla propria colonna: numero grande sopra, etichetta sotto. */
+/**
+ * Riga unica di dati sotto il titolo: "584 coins · 24 countries · 2004–2025", numeri in grassetto e
+ * etichette normali. Una riga sola: niente colonne da centrare e più altezza per la fascia di monete.
+ */
 @Composable
-private fun Stat(value: String, label: String, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            value,
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 22.sp),
-            color = color,
-            maxLines = 1,
-            softWrap = false,
-            textAlign = TextAlign.Center,
-        )
-        Text(label, style = MaterialTheme.typography.labelMedium, color = color, maxLines = 1, textAlign = TextAlign.Center)
-    }
-}
-
-/** Le tre colonne di statistiche: stesse larghezze in entrambe le schede (la terza, per l'intervallo di anni, è più larga). */
-@Composable
-private fun StatsRow(color: Color, coins: String, countries: String, years: String) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Stat(coins, "coins", color, Modifier.weight(1f))
-        Stat(countries, "countries", color, Modifier.weight(1f))
-        Stat(years, "years", color, Modifier.weight(1.3f))
-    }
+private fun StatsLine(color: Color, coins: String, countries: String, years: String) {
+    val bold = SpanStyle(fontWeight = FontWeight.Bold)
+    Text(
+        text = buildAnnotatedString {
+            withStyle(bold) { append(coins) }
+            append(" coins · ")
+            withStyle(bold) { append(countries) }
+            append(" countries · ")
+            withStyle(bold) { append(years) }
+        },
+        style = MaterialTheme.typography.bodyMedium,
+        color = color,
+        maxLines = 1,
+    )
 }
 
 /** Struttura condivisa: fascia di monete (occupa lo spazio che avanza), titolo, statistiche, footer. */
@@ -189,16 +186,18 @@ private fun CardContent(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = titleColor,
-                    modifier = Modifier.weight(1f),
-                )
-                titleTrailing()
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = titleColor,
+                        modifier = Modifier.weight(1f),
+                    )
+                    titleTrailing()
+                }
+                stats()
             }
-            stats()
             Box(modifier = Modifier.fillMaxWidth().heightIn(min = 34.dp), contentAlignment = Alignment.CenterStart) { footer() }
         }
     }
@@ -239,7 +238,7 @@ private fun CommemorativeCard(
             titleTrailing = {},
             stats = {
                 val range = if (state.firstYear != null && state.lastYear != null) "${state.firstYear}–${state.lastYear}" else "—"
-                StatsRow(onFill, "${state.progress.total}", "${state.countries}", range)
+                StatsLine(onFill, "${state.progress.total}", "${state.countries}", range)
             },
             footer = {
                 CollectionProgressBar(
@@ -345,7 +344,7 @@ private fun RegularIssuesCard(modifier: Modifier = Modifier) {
                 )
             },
             // Stessi campi di Commemorative, senza dati finché la pipeline non produce il dataset.
-            stats = { StatsRow(muted, "—", "—", "—") },
+            stats = { StatsLine(muted, "—", "—", "—") },
             // Specchio della barra di Commemorative (stessa altezza di testo e traccia), vuoto e senza dati.
             footer = {
                 Column {
