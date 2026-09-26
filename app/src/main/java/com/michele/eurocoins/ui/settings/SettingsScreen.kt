@@ -39,6 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.ui.components.DialogTitle
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -166,7 +168,7 @@ fun SettingsScreen(
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { confirmReset = false },
-            title = { Text("Reset collection?") },
+            title = { DialogTitle("Reset collection?") },
             text = {
                 Text(
                     "$ownedCount ${if (ownedCount == 1) "coin" else "coins"} will be removed from this device. " +
@@ -190,7 +192,7 @@ fun SettingsScreen(
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { showProInfo = false },
-            title = { Text("Euro Coins Pro") },
+            title = { DialogTitle("Euro Coins Pro") },
             text = { Text("Pro will remove ads and support the development of the app. It's coming soon.") },
             confirmButton = { TextButton(onClick = { showProInfo = false }) { Text("OK") } },
         )
@@ -204,7 +206,7 @@ private fun SectionHeader(
 ) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp),
         // Neutro: il colore primario è riservato agli elementi interattivi, i titoli non devono sembrarlo.
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(start = 4.dp, top = if (first) 4.dp else 24.dp, bottom = 8.dp),

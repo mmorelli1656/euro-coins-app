@@ -661,6 +661,17 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   griglie (il significato della barra cambierebbe mentre si scrive). Il testo iniziale
   della barra si legge dai getter sincroni `currentQuery`/`yearsQueryNow`/
   `countriesQueryNow`, non da `uiState` (in ritardo di qualche fotogramma).
+- **Rifiniture dopo il giro in tema chiaro e scuro**: (a) `CoinHeroFallback` (dettaglio senza
+  foto): l'icona ha `fillMaxWidth(0.4f).aspectRatio(1f)` in QUESTO ordine, prima era invertito
+  e il `€` riempiva tutta la card spingendo fuori il messaggio "Image not yet published by the
+  source" (invisibile in entrambi i temi); (b) titoli di sezione delle Impostazioni 20 sp Bold,
+  sopra i titoli delle voci (17 sp), che prima erano quasi uguali; (c) titoli dei dialog con
+  `DialogTitle` (`components/DialogTitle.kt`, 20 sp Bold) invece del default Material da 24 sp a
+  peso normale; (d) pillola "COMMON ISSUE" a 9 sp (era 8): a 10-11 sp toccava o copriva l'anno
+  "2022" della card, non c'è spazio in quell'angolo. Aperti e non sistemati: bordo della barra di
+  ricerca quasi invisibile nello scuro (1 dp al 15%), bordi rosati delle righe del pannello di
+  modifica nel chiaro, spazio vuoto sotto "Edit collection", bandiere con bianco (Cipro, Estonia)
+  che si confondono con la card bianca, 4 raggi di bordo diversi.
 - **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
   (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
   di rimuovere quasi tutta la serif: la serif su numeri e titoli grandi non è un

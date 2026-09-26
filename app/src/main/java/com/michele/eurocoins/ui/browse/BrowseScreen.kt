@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.Button
@@ -326,11 +327,11 @@ private fun BrowseCard(
 private fun CommonIssueBadge() {
     Text(
         text = "COMMON ISSUE",
-        style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp, letterSpacing = 0.2.sp),
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Medium),
         color = MaterialTheme.colorScheme.onSecondaryContainer,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(20.dp))
-            .padding(horizontal = 7.dp, vertical = 2.dp),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 

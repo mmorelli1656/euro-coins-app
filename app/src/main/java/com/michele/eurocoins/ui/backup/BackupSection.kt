@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.michele.eurocoins.ui.components.DialogTitle
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -122,7 +123,7 @@ fun BackupSection(viewModel: BackupViewModel) {
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = viewModel::dismissOverwrite,
-            title = { Text("Overwrite existing backup?") },
+            title = { DialogTitle("Overwrite existing backup?") },
             text = {
                 Text(
                     "A backup" + (prompt.date?.let { " from $it" } ?: "") + " already exists on Google Drive. " +
@@ -143,7 +144,7 @@ fun BackupSection(viewModel: BackupViewModel) {
         AlertDialog(
             containerColor = MaterialTheme.colorScheme.surface,
             onDismissRequest = { confirmRestore = false },
-            title = { Text("Replace your collection?") },
+            title = { DialogTitle("Replace your collection?") },
             text = {
                 Text(
                     "Your current collection on this phone will be replaced by the backup saved on Google Drive" +
