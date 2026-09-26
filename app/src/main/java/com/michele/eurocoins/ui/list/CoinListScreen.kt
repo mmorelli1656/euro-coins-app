@@ -31,7 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.outlined.Euro
+import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material.icons.filled.Public
 
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -344,7 +344,6 @@ private fun CollectionBox(owned: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun CoinThumbnail(coin: Coin) {
-    val hasImage = coin.hasImage()
     Box(
         modifier = Modifier
             .size(ThumbnailSize)
@@ -353,35 +352,27 @@ private fun CoinThumbnail(coin: Coin) {
             .background(MaterialTheme.colorScheme.secondaryContainer),
         contentAlignment = Alignment.Center,
     ) {
-        if (hasImage) {
+        // Icona dell'euro SEMPRE sotto: è ciò che si vede quando la foto non c'è (non ancora pubblicata
+        // dalla fonte), sta arrivando, o non si carica (rete assente o link morto, anche con cache
+        // svuotata). Una foto caricata la copre. Un'unica icona per tutti i casi, invece di vuoti o
+        // di un'icona diversa per il caricamento fallito: la distinzione "non pubblicata / non
+        // caricata" resta nel dettaglio, dove c'è il testo (vedi scripts/validate_image_links.py
+        // nella pipeline dati).
+        Icon(
+            imageVector = Icons.Filled.EuroSymbol,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.size(26.dp),
+        )
+        if (coin.hasImage()) {
             SubcomposeAsyncImage(
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             ) {
-                // Distinto dal ramo "else" qui sotto: quello è "la fonte non
-                // ha ancora pubblicato l'immagine" (dato), questo è "il link
-                // c'era ma il caricamento è fallito ora" (rete/link morto) —
-                // vedi scripts/validate_image_links.py nella pipeline dati.
-                if (painter.state.value is AsyncImagePainter.State.Error) {
-                    Icon(
-                        imageVector = Icons.Filled.BrokenImage,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(22.dp),
-                    )
-                } else {
-                    SubcomposeAsyncImageContent()
-                }
+                if (painter.state.value is AsyncImagePainter.State.Success) SubcomposeAsyncImageContent()
             }
-        } else {
-            Icon(
-                imageVector = Icons.Outlined.Euro,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(26.dp),
-            )
         }
     }
 }

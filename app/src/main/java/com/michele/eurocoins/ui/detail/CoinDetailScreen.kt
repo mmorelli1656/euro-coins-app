@@ -33,12 +33,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
@@ -200,22 +199,23 @@ private fun CoinHero(coin: Coin) {
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Distinto da "immagine non ancora pubblicata" qui sotto:
-                    // qui il link c'era ma il caricamento è fallito ora
-                    // (rete/link morto) — vedi
-                    // scripts/validate_image_links.py nella pipeline dati.
-                    if (painter.state.value is AsyncImagePainter.State.Error) {
-                        CoinHeroFallback(
-                            icon = Icons.Filled.BrokenImage,
+                    // Stessa icona dell'euro in tutti i casi senza foto (elenco compreso): "non ancora
+                    // pubblicata" (dato) e "non caricata ora" (rete assente/link morto, vedi
+                    // scripts/validate_image_links.py nella pipeline dati) si distinguono dal testo.
+                    // Mentre la foto arriva, o se il caricamento resta in sospeso senza rete, l'icona
+                    // senza testo evita un riquadro vuoto.
+                    when (painter.state.value) {
+                        is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                        is AsyncImagePainter.State.Error -> CoinHeroFallback(
+                            icon = Icons.Filled.EuroSymbol,
                             message = "Couldn't load this image",
                         )
-                    } else {
-                        SubcomposeAsyncImageContent()
+                        else -> CoinHeroFallback(icon = Icons.Filled.EuroSymbol, message = null)
                     }
                 }
             } else {
                 CoinHeroFallback(
-                    icon = Icons.Filled.MonetizationOn,
+                    icon = Icons.Filled.EuroSymbol,
                     message = "Image not yet published by the source",
                 )
             }
@@ -233,7 +233,7 @@ private fun CoinHero(coin: Coin) {
 }
 
 @Composable
-private fun CoinHeroFallback(icon: ImageVector, message: String) {
+private fun CoinHeroFallback(icon: ImageVector, message: String?) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(
             imageVector = icon,
@@ -241,13 +241,15 @@ private fun CoinHeroFallback(icon: ImageVector, message: String) {
             tint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.aspectRatio(1f).fillMaxWidth(0.25f),
         )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.labelLarge,
-            color = InkLight,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
-        )
+        if (message != null) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.labelLarge,
+                color = InkLight,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
+            )
+        }
     }
 }
 
