@@ -23,6 +23,10 @@ data class Coin(
     val zeccaEmittente: String,
     val zeccaRaw: String,
     val zeccaFisicaRaw: String?,
+    /** Incisore del disegno commemorativo (chi ha inciso il conio); vedi [displayEngraver]. */
+    val incisoreRetroRaw: String?,
+    /** Disegnatore del disegno commemorativo (chi ha ideato il soggetto), ripiego se manca [incisoreRetroRaw]. */
+    val disegnatoreRetroRaw: String?,
     val noteStoriche: String?,
     val urlImmagineFonte: String?,
     val licenzaImmagine: String,

@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,7 +88,10 @@ import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
+import com.michele.eurocoins.data.displayDesigner
+import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
+import com.michele.eurocoins.data.displayMint
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.theme.BackgroundDark
@@ -395,12 +399,73 @@ private fun NotesCard(note: String, scrollState: ScrollState, viewport: () -> Re
     }
 }
 
+/**
+ * Una sola card per le informazioni tecniche: MINTAGES sopra, un filetto leggero, DETAILS
+ * (zecca fisica e incisore) sotto — non due card separate (risparmia bordo/padding e riusa lo
+ * stesso posto in cui MINTAGES ha già un blocco opzionale, l'avviso sul contingente autorizzato).
+ */
 @Composable
 private fun MintageCard(coin: Coin) {
     DetailCard {
         SectionLabel("MINTAGES")
         Spacer(Modifier.height(10.dp))
         MintageSection(coin)
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 14.dp),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+        )
+        SectionLabel("DETAILS")
+        Spacer(Modifier.height(10.dp))
+        DetailsSection(coin)
+    }
+}
+
+/**
+ * Zecca fisica, incisore e disegnatore — mai nascosti (stesso criterio di MINTAGES: "—" se il
+ * dato manca, non si distingue da "il dato non esiste"). Engraver e Designer sono ruoli distinti,
+ * non l'uno il ripiego dell'altro — 25 monete su 584 li hanno entrambi valorizzati con persone
+ * diverse, vedi [displayEngraver]. **Non una griglia a 3 colonne pari** (scartata dopo un
+ * mockup): la zecca è spesso un nome istituzionale lungo (es. "State Mint of Stuttgart / State
+ * Mints of Baden-Württemberg" per la Lettonia, che usa zecche tedesche in subappalto) e si
+ * schiacciava in un terzo di card. **Mint su una riga intera** (va a capo leggibile su tutta la
+ * larghezza), **Engraver/Designer affiancati sotto** in 2 colonne (nomi di persona, quasi sempre
+ * corti): una sola riga in più rispetto alla griglia a 3, non il triplo come la variante a righe
+ * impilate scartata per lo stesso motivo (allungava troppo la card).
+ */
+@Composable
+private fun DetailsSection(coin: Coin) {
+    ValueLabel(
+        value = coin.displayMint() ?: NO_VALUE,
+        label = "Mint",
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Spacer(Modifier.height(14.dp))
+    Row(modifier = Modifier.fillMaxWidth()) {
+        ValueLabel(value = coin.displayEngraver() ?: NO_VALUE, label = "Engraver", modifier = Modifier.weight(1f))
+        ValueLabel(value = coin.displayDesigner() ?: NO_VALUE, label = "Designer", modifier = Modifier.weight(1f))
+    }
+}
+
+/** Valore in evidenza sopra, etichetta piccola sotto, entrambi centrati — usato da MINTAGES e DETAILS. */
+@Composable
+private fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = sansTitleMedium(),
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
