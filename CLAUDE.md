@@ -92,6 +92,7 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CoinRepository.kt     # seeding da asset + esposizione Flow
 │   ├── CountryNames.kt       # Coin.displayCountry() — nome paese in UI
 │   ├── CoinTitle.kt          # Coin.displayTema() — titolo in UI (ordinali "550Th" → "550th")
+│   ├── CoinCredits.kt        # Coin.displayMint()/displayEngraver()/displayDesigner()
 │   ├── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
 │   ├── CollectionProgress.kt # Progress (x / y possedute)
 │   ├── CoinKey.kt            # Coin.stableKey — chiave stabile per la collezione
@@ -222,11 +223,12 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 4, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 5, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
-  colonne nullable, niente `DEFAULT`). Ogni migrazione aggiunta va accodata,
+  colonne nullable, niente `DEFAULT`), `MIGRATION_4_5`
+  (`coins.incisoreRetroRaw`/`disegnatoreRetroRaw`, stesso pattern nullable). Ogni migrazione aggiunta va accodata,
   mai riscritta sopra una già rilasciata (anche in sviluppo: una volta
   installata su un telefono di prova, quel numero di versione è "usato"). Il
   valore delle nuove colonne conta poco: `ensureSeeded()` ripopola comunque
@@ -434,6 +436,18 @@ lingua da servire.
   maggioranza della tiratura reale), **non mappato in `CoinJson`/`Coin`**:
   scelta deliberata per ora, non è una quarta "qualità" pari alle altre tre
   e mostrarlo richiede una decisione di UI a sé — vedi § Backlog.
+- **Zecca fisica, incisore e disegnatore** (`zeccaFisicaRaw`/`incisoreRetroRaw`/
+  `disegnatoreRetroRaw`, fonte Numista `GET /types/{id}`, mai dalla BCE — le sue pagine
+  non hanno mai campi strutturati `Designer`/`Engraver`/`Mint`): copertura 96% zecca
+  fisica, 59% incisore, 31% disegnatore, 86% almeno uno dei due sul disegno commemorativo.
+  **Incisore e disegnatore sono ruoli distinti, non un ripiego l'uno dell'altro**: 25
+  monete su 584 hanno entrambi valorizzati con persone diverse (es. Lettonia 2014-2017:
+  incisore sempre "Jānis Strupulis", disegnatore diverso ogni anno) — mostrarne solo uno
+  perderebbe l'informazione sull'altro. Il lato comune europeo (`incisoreFronteRaw`/
+  `disegnatoreFronteRaw`, quasi sempre "Luc Luycx") non è mappato in `CoinJson`/`Coin`:
+  non distingue le monete tra loro. Dettaglio completo (inversione terminologica
+  obverse/reverse di Numista rispetto alla convenzione IPZS di questo progetto, caso
+  Malta 2022) in `NOTES.md` nella pipeline dati.
 - 4 monete hanno `immaginePlaceholder = true` (BCE non ha ancora
   pubblicato l'immagine reale): l'app lo gestisce mostrando un'icona al
   posto dell'immagine, non un errore.
@@ -717,6 +731,30 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     esistono, "—" quando mancano (mai una riga nascosta: non si sa se "manca il dato"
     o "la moneta non ha mai avuto quella finitura"). Niente quarta riga "Other" per
     ora — vedi § dataset e § Backlog.
+  - **DETAILS** (zecca fisica, incisore, disegnatore): stessa card di MINTAGES, sotto
+    un `HorizontalDivider` leggero (`outline` al 40%) — non una card a parte (risparmia
+    bordo/padding, e MINTAGES aveva già un blocco opzionale sotto i numeri, l'avviso sul
+    contingente autorizzato). **Non una griglia a 3 colonne pari** come Standard/BU/Proof
+    sopra (scartata dopo un mockup): con un solo campo presente si sbilanciava, e i nomi
+    di zecche istituzionali lunghe (es. Lettonia, coniata da una zecca tedesca in
+    subappalto: "State Mint of Stuttgart / State Mints of Baden-Württemberg") si
+    schiacciavano in un terzo di card. Scartata anche la variante a righe impilate
+    (etichetta sopra, valore sotto, larghezza intera per tutti e tre): risolveva la
+    leggibilità ma triplicava l'altezza della card e rompeva la coerenza visiva con la
+    griglia di MINTAGES appena sopra. **Scelta finale, ibrida**: Mint su una riga intera
+    (`ValueLabel`, l'unico campo davvero lungo) + Engraver/Designer affiancati in 2
+    colonne sotto (nomi di persona, quasi sempre corti) — una sola riga in più rispetto
+    alla griglia a 3, non il triplo. Engraver e Designer sono ruoli DISTINTI (chi ha
+    inciso il conio contro chi ha ideato il soggetto), mai l'uno il ripiego dell'altro —
+    vedi § dataset. Zecche multiple unite dalla pipeline con "; " collassate a un
+    conteggio oltre le 3 uniche (`Coin.displayMint()` in `CoinCredits.kt`): la Germania
+    conia ogni moneta in tutte e 5 le zecche regionali (mintmark A/D/F/G/J), lo stesso
+    elenco fisso di 5 nomi lunghi si ripete identico su 33 monete e mostrarlo per intero
+    eccedeva sempre le righe della card — oltre le 3 zecche uniche mostra "N mints" ("5
+    mints" per la Germania); con 2-3 zecche (Lussemburgo, Malta, Estonia, Irlanda:
+    nessuna ha una zecca propria) restano elencate per intero. Il lato comune europeo
+    (incisore/disegnatore quasi sempre "Luc Luycx") resta fuori: valore quasi nullo
+    ripetuto su 584 monete.
   - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
     centrato e "Add to collection" pieno (48 dp, l'unica azione piena); posseduta =
     card bianca con **bordo verdigris da 2 dp** (`colorScheme.primary`, come badge OWNED e spunte: verde = "posseduta"; era viola `PurpleField*`, cambiato su richiesta lasciando lilla le pillole delle finiture), badge `✓ OWNED` verde
@@ -838,7 +876,9 @@ Nell'**app**:
   "uso editoriale": chiarire prima il permesso con la BCE (serve prima di
   pubblicare l'app) e farle produrre dalla pipeline dati.
 - **Gate da ricontrollare prima di pubblicare l'app (o rendere pubblico il
-  repo pipeline)**: le tirature Numista (`tiratura_numista_*`) sono state
+  repo pipeline)**: le tirature Numista (`tiratura_numista_*`) — e ora anche
+  zecca fisica/incisore/disegnatore (`zeccaFisicaRaw`/`incisoreRetroRaw`/
+  `disegnatoreRetroRaw`, stessa fonte `GET /types/{id}`) — sono state
   raccolte con l'API ufficiale sotto l'eccezione "Personal Project" del suo
   ToS (Sezione 8.4) — eccezione che riguarda **solo** la conservazione dei
   dati, non la Sezione 11 ("Prohibited uses"), che vieta comunque
