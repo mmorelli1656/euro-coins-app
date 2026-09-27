@@ -3,10 +3,12 @@
 ## Scopo del progetto
 
 App Android per sfogliare il catalogo delle monete da 2€ commemorative
-dell'Eurozona (2004-oggi). Consuma il dataset prodotto dalla pipeline dati
-in un repo separato — **[euro-coins-data-pipeline](../euro-coins-data-pipeline)**
-— e non fa scraping né validazione dati di persona: quella responsabilità
-resta interamente nella pipeline.
+dell'Eurozona (2004-oggi) e, da settembre 2026, anche le serie divisionali
+(1 cent - 2 euro) per paese — "Regular Issues" nella Home. Consuma i
+dataset prodotti dalla pipeline dati in un repo separato —
+**[euro-coins-data-pipeline](../euro-coins-data-pipeline)** — e non fa
+scraping né validazione dati di persona: quella responsabilità resta
+interamente nella pipeline.
 
 ## Come i dati arrivano nell'app
 
@@ -58,6 +60,24 @@ resta interamente nella pipeline.
    con cache su disco automatica di Coil dopo il primo caricamento. Scelta
    deliberata (vedi conversazione che ha avviato questo repo): APK leggero
    a scapito di richiedere rete la prima volta che si vede un'immagine.
+5. **Stesso schema per le serie divisionali**: la pipeline produce
+   `data/processed/ec_national_sides.jsonl` (schema pydantic
+   `SezioneSerieDivisionale`/`ImmagineTaglio`, vedi `src/models.py` in quel
+   repo — una riga per "serie" nazionale delle monete 1c-2€, non per
+   moneta), esportato allo stesso modo in
+   `app/src/main/assets/regular_issues.json`:
+
+   ```powershell
+   $records = Get-Content "..\euro-coins-data-pipeline\data\processed\ec_national_sides.jsonl" -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json }
+   $json = $records | ConvertTo-Json -Compress -Depth 8
+   [System.IO.File]::WriteAllText("app\src\main\assets\regular_issues.json", $json, [System.Text.UTF8Encoding]::new($false))
+   ```
+
+   `-Depth 8` e non 5 come per `coins.json`: qui i record hanno un campo
+   annidato (`immagini`, fino a 8 oggetti per serie), che `coins.json` non
+   ha. Stesso meccanismo di seeding (`RegularIssueRepository.ensureSeeded()`,
+   hash SHA-256 dell'asset, SharedPreferences separate `regular_issues_dataset`)
+   e stessa scelta sulle immagini (hotlink, non bundlate).
 
 ## Stack tecnico
 
@@ -100,19 +120,25 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CollectionItem.kt     # @Entity: moneta posseduta in una qualità
 │   ├── CollectionDao.kt
 │   ├── Microstates.kt        # MICROSTATE_PAESI + Coin.isMicrostate (filtro "Hide microstates")
+│   ├── RegularIssue.kt       # @Entity RegularIssueSeries + RegularIssueImage (TypeConverter JSON)
+│   ├── RegularIssueJson.kt   # forma di assets/regular_issues.json + mapping a RegularIssueSeries
+│   ├── RegularIssueDao.kt
+│   ├── RegularIssueRepository.kt   # seeding da asset + esposizione Flow, dataset separato da CoinRepository
+│   ├── RegularIssueCountryNames.kt # RegularIssueSeries.displayCountry() — mappa esaustiva (no zeccaRaw inglese qui)
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
     ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
-    ├── home/                 # ingresso: due tile (commemorative / circolanti)
+    ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
+    ├── regular/               # Regular Issues: griglia paesi + serie del paese (solo consultazione)
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
     ├── backup/               # BackupSection (sezione account/backup di Settings), BackupViewModel
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
-    └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> backup
+    └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> regular issues; home -> backup
 ```
 
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
@@ -131,8 +157,7 @@ altre, scartato dopo un mockup. Nell'elenco (sia "All" sia per paese), le
 monete di un'emissione comune hanno una piccola icona a globo accanto a
 "Paese · Anno", tinta come quel testo (`primary`)
 per leggersi come parte dell'etichetta invece che un accento nuovo. **Barra
-flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: card ad **altezza FISSA 72 dp** (`.height(72.dp)`: non varia con la lunghezza del titolo; miniatura 52 dp (era 46 dp in area 52: rimessa a 52 su richiesta), MA il cerchio lilla del segnaposto è 50 dp (`PlaceholderSize`): le foto BCE hanno un margine bianco attorno alla moneta, e a pari riquadro il lilla pieno sembrava più grande (misurato sullo screenshot: 169 px contro 162-165, dopo 163), sottotitolo 13 sp Bold in `primary`, titolo `bodyMedium` SemiBold max 2 righe con ellissi, il testo intero sta nel dettaglio; scelta dopo mockup A+Y, scartate 88 dp a 3 righe e sottotitolo in pillola lilla); il tocco sulla miniatura apre il dettaglio come il resto della riga. Titolo e paese passano da `displayTema()`/`displayCountry()`; testi con 12 dp a destra (prima della casella). Senza foto o foto che non si carica (anche offline con cache svuotata): la stessa icona `€`; MENTRE la foto arriva solo il cerchio lilla, senza icona (il `€` a ogni riapertura sembrava un riscaricamento; vedi § Decisioni di prodotto, "Stato di `SubcomposeAsyncImage`"). L'icona è `Icons.Filled.EuroSymbol` (il glifo pieno: l'outline sottile `Outlined.Euro` "sembrava strano"; scartate anche la 2€ disegnata e una moneta con € dentro) su cerchio lilla, non più SOTTO la foto ma solo dove serve: niente icone diverse per "non pubblicata" e "non caricata". `CoinImageDialog` (foto grande, "Close"/"Details") esiste ancora ma è scollegato: per riattivarlo decommentare il blocco `zoomed` in `CoinListContent` e passare `onImageClick` a `CoinRow`. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Dettagli della barra non ovvi: **testo e cursore vivono nella barra** (`TextFieldValue` locale, `query` vale solo come valore iniziale): il valore che tornava da un StateFlow del ViewModel arrivava con qualche fotogramma di ritardo e un `BasicTextField(String)` che riceve un valore vecchio riporta indietro testo e cursore (cursore dopo la terza lettera, caratteri persi, blocco in Years); tutta la metà sinistra (lente, margini, altezza intera) è cliccabile e porta il focus al campo (`FocusRequester` + `keyboard.show()`), perché il `BasicTextField` è alto quanto una riga di testo e toccare sopra, sotto o sulla lente non apriva la tastiera; alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.84 scuro, 0.78 chiaro; era 0.94/0.88, ridotto a vista) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo. La tile "Circulation" della home è
-tratteggiata e senza azione finché la pipeline non produce quel dataset.
+flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: card ad **altezza FISSA 72 dp** (`.height(72.dp)`: non varia con la lunghezza del titolo; miniatura 52 dp (era 46 dp in area 52: rimessa a 52 su richiesta), MA il cerchio lilla del segnaposto è 50 dp (`PlaceholderSize`): le foto BCE hanno un margine bianco attorno alla moneta, e a pari riquadro il lilla pieno sembrava più grande (misurato sullo screenshot: 169 px contro 162-165, dopo 163), sottotitolo 13 sp Bold in `primary`, titolo `bodyMedium` SemiBold max 2 righe con ellissi, il testo intero sta nel dettaglio; scelta dopo mockup A+Y, scartate 88 dp a 3 righe e sottotitolo in pillola lilla); il tocco sulla miniatura apre il dettaglio come il resto della riga. Titolo e paese passano da `displayTema()`/`displayCountry()`; testi con 12 dp a destra (prima della casella). Senza foto o foto che non si carica (anche offline con cache svuotata): la stessa icona `€`; MENTRE la foto arriva solo il cerchio lilla, senza icona (il `€` a ogni riapertura sembrava un riscaricamento; vedi § Decisioni di prodotto, "Stato di `SubcomposeAsyncImage`"). L'icona è `Icons.Filled.EuroSymbol` (il glifo pieno: l'outline sottile `Outlined.Euro` "sembrava strano"; scartate anche la 2€ disegnata e una moneta con € dentro) su cerchio lilla, non più SOTTO la foto ma solo dove serve: niente icone diverse per "non pubblicata" e "non caricata". `CoinImageDialog` (foto grande, "Close"/"Details") esiste ancora ma è scollegato: per riattivarlo decommentare il blocco `zoomed` in `CoinListContent` e passare `onImageClick` a `CoinRow`. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Regular Issues (§ omonima più sotto) riusa questo stesso trattamento di caricamento/fallback per le immagini dei tagli, non questo elenco: ha una sua schermata. Dettagli della barra non ovvi: **testo e cursore vivono nella barra** (`TextFieldValue` locale, `query` vale solo come valore iniziale): il valore che tornava da un StateFlow del ViewModel arrivava con qualche fotogramma di ritardo e un `BasicTextField(String)` che riceve un valore vecchio riporta indietro testo e cursore (cursore dopo la terza lettera, caratteri persi, blocco in Years); tutta la metà sinistra (lente, margini, altezza intera) è cliccabile e porta il focus al campo (`FocusRequester` + `keyboard.show()`), perché il `BasicTextField` è alto quanto una riga di testo e toccare sopra, sotto o sulla lente non apriva la tastiera; alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.84 scuro, 0.78 chiaro; era 0.94/0.88, ridotto a vista) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
 hanno spazi/accenti.
@@ -153,13 +178,15 @@ ritagliati** dalle foto BCE, scelte da `pickShowcase` (a rotazione giornaliera, 
 risultare poco centrata, accettato). Nessun contatore globale. **Commemorative**
 (attiva, cliccabile per intero, angoli 22 dp, fondo `primary`): riga dati con gli anni come
 **intervallo** e barra "x / y collected" con onda — numeri dal database. **Regular Issues**
-(ex Circulation): fondo `onSurfaceVariant` al 10% con contorno tratteggiato
-(`drawBehind`; `OutlinedCard` non sa tratteggiare), fascia di 4 monete DISEGNATE e desaturate (1c, 10c, 1€, 2€),
-pillola "Coming soon" a destra del titolo, stessa riga dati di Commemorative con "—",
-barra "— / — collected" vuota (specchio di quella di Commemorative; niente sottotitolo); senza
-azione. La home è anche dove parte il
-seeding del database (`HomeViewModel` chiama `ensureSeeded()`; il Mutex nel
-repository evita il doppio inserimento se più ViewModel lo chiamano). In alto
+(attiva dal dataset `ec_national_sides`, § omonima più sotto; stesso trattamento pieno di
+Commemorative, non più tratteggiata/"Coming soon"): fascia di 4 monete DISEGNATE e desaturate
+(1c, 10c, 1€, 2€ — non foto reali, vedi § Regular Issues), riga dati "**N** series · **M**
+countries" (due soli valori, non tre come Commemorative: nessun intervallo di anni affidabile
+per le serie, vedi § dataset), sottotitolo statico "1c – 2€ national designs" al posto della
+barra "collected" (nessuna collezione utente per questa sezione). La home è anche dove parte il
+seeding di ENTRAMBI i database (`HomeViewModel` chiama `repository.ensureSeeded()` e
+`regularIssueRepository.ensureSeeded()`; il Mutex in ciascun repository evita il doppio
+inserimento se più ViewModel lo chiamano). In alto
 a destra un'icona ingranaggio apre le Impostazioni (unico accesso: la pillola del tema e l'icona profilo non ci sono più).
 
 ## Collezione utente
@@ -223,12 +250,14 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 5, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 6, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
   colonne nullable, niente `DEFAULT`), `MIGRATION_4_5`
-  (`coins.incisoreRetroRaw`/`disegnatoreRetroRaw`, stesso pattern nullable). Ogni migrazione aggiunta va accodata,
+  (`coins.incisoreRetroRaw`/`disegnatoreRetroRaw`, stesso pattern nullable),
+  `MIGRATION_5_6` (`CREATE TABLE regular_issue_series`, § Regular Issues —
+  tabella nuova, non un `ALTER` su `coins`). Ogni migrazione aggiunta va accodata,
   mai riscritta sopra una già rilasciata (anche in sviluppo: una volta
   installata su un telefono di prova, quel numero di versione è "usato"). Il
   valore delle nuove colonne conta poco: `ensureSeeded()` ripopola comunque
@@ -348,6 +377,69 @@ collezione su Drive.
   la schermata lo segnala e il login resta disabilitato.
 - Codice in `data/backup/` (`BackupFile`, `GoogleAccountManager`,
   `DriveBackupClient`, `BackupService`) e `ui/backup/`.
+
+## Regular Issues
+
+Catalogo delle serie divisionali (1 cent - 2 euro, il disegno nazionale di
+ogni taglio) per paese, arrivato dopo le commemorative (dataset
+`ec_national_sides` della pipeline, § "Come i dati arrivano nell'app").
+Prima versione deliberatamente **minima**: solo consultazione, riusando
+dove possibile quanto già costruito per le commemorative, non un secondo
+catalogo completo.
+
+- **Dataset diverso da `coins.json`**: una riga per **serie** (il "blocco"
+  nazionale di 8 tagli con uno stesso disegno), non per moneta — alcuni
+  paesi ne hanno più di una (cambio di ritratto/stemma: Belgio 3, Monaco 3,
+  Città del Vaticano 6). `paese`/`zeccaEmittente` sono lo stesso valore
+  stabile già usato da `Coin.paese`: `CountryFlags.kt`
+  (`flagEmojiForCountry`, generalizzata da `Coin.flagEmoji()` per servire
+  entrambi i dataset) e `Microstates.kt` si applicano diretti. `zeccaRaw`
+  invece qui è lo slug minuscolo della pagina sorgente EC (es. "andorra"),
+  non un nome inglese come nelle commemorative: **non è riusabile** da
+  `Coin.displayCountry()`, che userebbe quello slug come ripiego. Per
+  questo `RegularIssueCountryNames.kt` ha una mappa **esaustiva** (25
+  paesi, incluso `Bulgaria`, appena entrata nell'euro) invece di un
+  override parziale come `CANONICAL_COUNTRY_NAMES`.
+- **`RegularIssueSeries`** (Room, tabella `regular_issue_series`, DB
+  versione 6, `MIGRATION_5_6`): `immagini` (fino a 8 `RegularIssueImage`,
+  uno per taglio) e `anniCitati` sono liste, serializzate a stringa JSON
+  con un `TypeConverter` (`RegularIssueConverters`) — niente tabella
+  separata, sono sempre lette/scritte insieme alla serie. `anniCitati` non
+  è affidabile come "anno di inizio serie" (verificato caso per caso solo
+  nella pipeline per Belgio; per gli altri paesi resta una lista grezza):
+  non è usata per ordinare o mostrare intervalli di anni in questa UI.
+- **`RegularIssueRepository`**, non un'estensione di `CoinRepository`:
+  dataset e ciclo di vita separati (stesso pattern hash SHA-256 + mutex di
+  `CoinRepository.ensureSeeded()`, asset `regular_issues.json`,
+  SharedPreferences proprie `regular_issues_dataset`). Seeding avviato da
+  `HomeViewModel` insieme a quello delle commemorative.
+- **Navigazione**: `HomeScreen` → `RegularIssuesScreen` (griglia paesi,
+  bandiera + nome + "N series", riuso visivo di `BrowseCard`/`CardGrid` di
+  `BrowseScreen.kt` duplicato localmente, non condiviso — stesso approccio
+  di `CommemorativeCard`/`RegularIssuesCard` in `HomeScreen.kt`) →
+  `RegularIssueCountryScreen` (route `regular-issues/{paese}`, `Uri.encode`
+  come per le commemorative). **Nessuna ricerca/filtro/ordinamento**: 25
+  paesi entrano in una griglia senza doverli cercare.
+- **`RegularIssueCountryScreen`**: una card per serie del paese, ordine
+  `ordineCronologico` (già garantito da `RegularIssueDao.observeAll`),
+  intestazione "Series N" + `intestazioneRaw` se presente (es. "Series 1 ·
+  2002"), `descrizione` **per intero** (nessun troncamento/"Show more" in
+  questa prima versione — a differenza di HISTORICAL NOTES nel dettaglio
+  commemorative), riga scorrevole orizzontale con le immagini dei tagli
+  presenti (etichetta sotto, es. "50 cent"). Stesso trattamento di
+  caricamento/fallback delle commemorative: `SubcomposeAsyncImage` +
+  `painter.state.collectAsState()` (MAI `.value`, vedi § Decisioni di
+  prodotto) + icona `Icons.Filled.EuroSymbol` su cerchio lilla se l'URL
+  manca o il caricamento fallisce. Quando `immagini` è vuota (Città del
+  Vaticano, serie 2026 non ancora fotografata dalla fonte) la riga non
+  viene mostrata affatto — non è un caso di "immagine che non carica", è
+  l'assenza della lista stessa, verificato in emulatore/telefono.
+- **Fuori scope di questa prima versione** (vedi anche § Backlog):
+  nessuna collezione utente (casella "posseduta") per le monete circolanti,
+  nessuna rotazione di foto reali nella fascia Home (restano le 4 monete
+  disegnate `RegularCoins`, come il vecchio stato "Coming soon"), nessuna
+  gestione di `possibileIncongruenza` in UI (oggi sempre `false` nel
+  dataset).
 
 ## Lingua
 
@@ -865,7 +957,11 @@ Nella **pipeline dati** (repo separato, va fatto lì):
   noto, risolto — vedi § dataset).
 
 Nell'**app**:
-- Catalogo "Circulation" (serie divisionali) quando la pipeline lo produce.
+- **Regular Issues, fuori scope della prima versione** (§ omonima): collezione
+  utente sulle serie divisionali (nessuna casella "posseduta" oggi); ricerca/
+  filtro/ordinamento nella griglia Countries; rotazione di foto reali nella
+  fascia Home al posto delle monete disegnate; gestione di
+  `possibileIncongruenza` in UI.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
