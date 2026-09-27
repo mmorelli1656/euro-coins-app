@@ -43,8 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.graphicsLayer
@@ -52,9 +50,7 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -72,16 +68,18 @@ import com.michele.eurocoins.ui.components.ProgressAnimation
 import com.michele.eurocoins.ui.components.rememberProgressAnimation
 
 /**
- * Schermata d'ingresso: due schede di pari peso che si dividono l'altezza. Oggi solo le
- * commemorative sono navigabili (l'unico dataset che la pipeline produce);
- * "Regular Issues" è tratteggiata e senza azione finché quella fonte non
- * esiste — vedi CLAUDE.md § Scopo del progetto nel repo della pipeline dati.
+ * Schermata d'ingresso: due schede di pari peso che si dividono l'altezza,
+ * entrambe navigabili — Commemorative verso il catalogo delle 2€
+ * commemorative, Regular Issues verso le serie divisionali (1c-2€) per
+ * paese (dataset `ec_national_sides` della pipeline, arrivato dopo le
+ * commemorative: vedi CLAUDE.md § Scopo del progetto).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onCommemorativeClick: () -> Unit,
+    onRegularIssuesClick: () -> Unit,
     onSettingsClick: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -152,7 +150,12 @@ fun HomeScreen(
                     minHeight = cardHeight,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                RegularIssuesCard(minHeight = cardHeight, modifier = Modifier.fillMaxWidth())
+                RegularIssuesCard(
+                    state = state,
+                    onClick = onRegularIssuesClick,
+                    minHeight = cardHeight,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -215,6 +218,27 @@ private fun StatsLine(color: Color, coins: String, countries: String, years: Str
             withStyle(bold) { append(years) }
         },
         // 15 sp: a 16 sp la riga (~290 dp) supera la larghezza utile della scheda sui telefoni stretti.
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+        color = color,
+        maxLines = 2,
+    )
+}
+
+/**
+ * Riga statistiche di Regular Issues: solo due valori (non tre come [StatsLine]), perché non
+ * esiste un intervallo di anni affidabile per le serie divisionali (vedi CLAUDE.md § dataset,
+ * `anni_citati` non è utilizzabile come "anno di inizio").
+ */
+@Composable
+private fun RegularIssuesStatsLine(color: Color, series: String, countries: String) {
+    val bold = SpanStyle(fontWeight = FontWeight.Bold)
+    Text(
+        text = buildAnnotatedString {
+            withStyle(bold) { append(series) }
+            append(" series · ")
+            withStyle(bold) { append(countries) }
+            append(" countries")
+        },
         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
         color = color,
         maxLines = 2,
@@ -361,68 +385,36 @@ private fun RegularCoin(coin: DrawnCoin, size: Dp) {
 }
 
 @Composable
-private fun RegularIssuesCard(minHeight: Dp, modifier: Modifier = Modifier) {
-    // Tratteggio: nel tema scuro il 50% del colore del testo su fondo quasi nero risultava troppo
-    // debole; al 75% si vede bene. Nel tema chiaro resta al 50%.
-    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    val outline = muted.copy(alpha = if (isDark) 0.75f else 0.5f)
+private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight: Dp, modifier: Modifier = Modifier) {
+    // Stesso trattamento pieno di CommemorativeCard: le due schede attive hanno pari peso, non
+    // più una attiva e una "coming soon" tratteggiata.
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val onFill = if (dark) InkDark else MaterialTheme.colorScheme.onPrimary
     Box(
         modifier = modifier
             .clip(CardShape)
-            .background(muted.copy(alpha = 0.10f))
-            .drawBehind {
-                drawRoundRect(
-                    color = outline,
-                    cornerRadius = CornerRadius(22.dp.toPx()),
-                    style = Stroke(
-                        width = 2.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(16.dp.toPx(), 10.dp.toPx())),
-                    ),
-                )
-            },
+            .background(if (dark) TileDark else MaterialTheme.colorScheme.primary)
+            .clickable(onClick = onClick),
     ) {
         CardContent(
-            // Monete disegnate e desaturate (finché non ci sono foto): un disco per taglio, con l'etichetta.
+            // Monete disegnate (segnaposto finché non c'è una rotazione di foto reali per questo dataset, vedi CLAUDE.md).
             band = { bandModifier ->
-                CoinBand(veil = muted.copy(alpha = 0.03f), modifier = bandModifier) { i, size ->
+                CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
                     RegularCoin(RegularCoins[i], size)
                 }
             },
             title = "Regular Issues",
-            titleColor = muted,
-            // Pillola a contorno e a basso contrasto: non compete con la scheda attiva.
-            titleTrailing = {
-                Text(
-                    "Coming soon",
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = muted,
-                    modifier = Modifier
-                        .border(1.dp, outline, RoundedCornerShape(50))
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
-                )
-            },
-            // Stessi campi di Commemorative, senza dati finché la pipeline non produce il dataset.
-            stats = { StatsLine(muted, "—", "—", "—") },
-            // Specchio della barra di Commemorative (stessa altezza di testo e traccia), vuoto e senza dati.
+            titleColor = onFill,
+            titleTrailing = {},
+            // Due soli valori: non esiste un intervallo di anni affidabile per le serie (vedi CLAUDE.md § dataset).
+            stats = { RegularIssuesStatsLine(onFill, "${state.regularIssueSeriesCount}", "${state.regularIssueCountries}") },
+            // Nessuna collezione utente per questa sezione: un sottotitolo statico al posto della barra "collected".
             footer = {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        val label = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                        Text("— / — collected", style = label, color = muted)
-                        Text("—", style = label, color = muted)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(15.dp)
-                            .clip(RoundedCornerShape(7.5.dp))
-                            .background(muted.copy(alpha = 0.22f)),
-                    )
-                }
+                Text(
+                    "1c – 2€ national designs",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    color = onFill,
+                )
             },
             minHeight = minHeight,
         )

@@ -52,6 +52,7 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     EuroCoinsNavHost(
                         repository = app.repository,
+                        regularIssueRepository = app.regularIssueRepository,
                         backupService = app.backupService,
                         accountManager = app.accountManager,
                         themePreference = app.themePreference,

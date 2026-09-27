@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
+import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.progress
 import com.michele.eurocoins.ui.settings.UserSettings
 import java.time.LocalDate
@@ -25,10 +26,14 @@ data class HomeUiState(
     val nextShowcase: List<Coin> = emptyList(),
     /** URL dell'ultimo set mostrato per intero (ripiego per foto che non si caricano). */
     val lastShowcaseUrls: List<String> = emptyList(),
+    /** Statistiche della scheda Regular Issues: numero di serie e di paesi coperti. */
+    val regularIssueSeriesCount: Int = 0,
+    val regularIssueCountries: Int = 0,
 )
 
 class HomeViewModel(
     private val repository: CoinRepository,
+    private val regularIssueRepository: RegularIssueRepository,
     private val settings: UserSettings,
 ) : ViewModel() {
 
@@ -50,7 +55,12 @@ class HomeViewModel(
 
     fun saveLastShowcase(urls: List<String>) = settings.setLastShowcase(urls)
 
-    val uiState: StateFlow<HomeUiState> = combine(repository.coins, repository.ownedKeys, settings.rotateHomeCoins) { coins, ownedKeys, rotate ->
+    val uiState: StateFlow<HomeUiState> = combine(
+        repository.coins,
+        repository.ownedKeys,
+        settings.rotateHomeCoins,
+        regularIssueRepository.series,
+    ) { coins, ownedKeys, rotate, regularIssueSeries ->
         val today = LocalDate.now().toEpochDay()
         val showcase = pickShowcase(coins, if (rotate) today else null)
         val nextShowcase = if (rotate) pickShowcase(coins, today + 1) else emptyList()
@@ -65,12 +75,15 @@ class HomeViewModel(
             showcase = showcase,
             nextShowcase = nextShowcase,
             lastShowcaseUrls = lastShowcaseUrls,
+            regularIssueSeriesCount = regularIssueSeries.size,
+            regularIssueCountries = regularIssueSeries.map { it.paese }.distinct().size,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(lastShowcaseUrls = lastShowcaseUrls))
 
-    // La home è la prima schermata: è qui che il database viene popolato al
+    // La home è la prima schermata: è qui che i database vengono popolati al
     // primo avvio (ensureSeeded è protetto da mutex e idempotente).
     init {
         viewModelScope.launch { repository.ensureSeeded() }
+        viewModelScope.launch { regularIssueRepository.ensureSeeded() }
     }
 }

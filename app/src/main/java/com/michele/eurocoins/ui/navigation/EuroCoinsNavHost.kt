@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.GoogleAccountManager
 import com.michele.eurocoins.ui.settings.SettingsScreen
@@ -31,6 +32,10 @@ import com.michele.eurocoins.ui.home.HomeViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
+import com.michele.eurocoins.ui.regular.RegularIssueCountryScreen
+import com.michele.eurocoins.ui.regular.RegularIssueCountryViewModel
+import com.michele.eurocoins.ui.regular.RegularIssuesScreen
+import com.michele.eurocoins.ui.regular.RegularIssuesViewModel
 import com.michele.eurocoins.ui.theme.ThemePreference
 
 private const val ROUTE_HOME = "home"
@@ -38,9 +43,12 @@ private const val ROUTE_BROWSE = "browse"
 private const val ROUTE_SETTINGS = "settings"
 private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
+private const val ROUTE_REGULAR_ISSUES = "regular-issues"
+private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
 private const val ARG_COIN_ID = "coinId"
+private const val ARG_PAESE = "paese"
 
 private const val KIND_YEAR = "year"
 private const val KIND_YEAR_COMMON = "year-common"
@@ -49,6 +57,7 @@ private const val KIND_COUNTRY = "country"
 @Composable
 fun EuroCoinsNavHost(
     repository: CoinRepository,
+    regularIssueRepository: RegularIssueRepository,
     backupService: BackupService,
     accountManager: GoogleAccountManager,
     themePreference: ThemePreference,
@@ -76,11 +85,12 @@ fun EuroCoinsNavHost(
     ) {
         composable(ROUTE_HOME) {
             val viewModel: HomeViewModel = viewModel(
-                factory = viewModelFactory { initializer { HomeViewModel(repository, userSettings) } },
+                factory = viewModelFactory { initializer { HomeViewModel(repository, regularIssueRepository, userSettings) } },
             )
             HomeScreen(
                 viewModel = viewModel,
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
+                onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
             )
         }
@@ -152,6 +162,31 @@ fun EuroCoinsNavHost(
                 factory = viewModelFactory { initializer { CoinDetailViewModel(repository, coinId) } },
             )
             CoinDetailScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(ROUTE_REGULAR_ISSUES) {
+            val viewModel: RegularIssuesViewModel = viewModel(
+                factory = viewModelFactory { initializer { RegularIssuesViewModel(regularIssueRepository) } },
+            )
+            RegularIssuesScreen(
+                viewModel = viewModel,
+                // Uri.encode: stesso motivo delle commemorative, "Città del Vaticano" e "Paesi Bassi" hanno spazi/accenti.
+                onCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = ROUTE_REGULAR_ISSUE_COUNTRY,
+            arguments = listOf(navArgument(ARG_PAESE) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val paese = backStackEntry.arguments?.getString(ARG_PAESE) ?: return@composable
+            val viewModel: RegularIssueCountryViewModel = viewModel(
+                key = "regular-issue-country-$paese",
+                factory = viewModelFactory { initializer { RegularIssueCountryViewModel(regularIssueRepository, paese) } },
+            )
+            RegularIssueCountryScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )

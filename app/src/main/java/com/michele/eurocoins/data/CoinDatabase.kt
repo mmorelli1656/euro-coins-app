@@ -4,14 +4,21 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Coin::class, CollectionItem::class], version = 5, exportSchema = false)
+@Database(
+    entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class],
+    version = 6,
+    exportSchema = false,
+)
+@TypeConverters(RegularIssueConverters::class)
 abstract class CoinDatabase : RoomDatabase() {
 
     abstract fun coinDao(): CoinDao
     abstract fun collectionDao(): CollectionDao
+    abstract fun regularIssueDao(): RegularIssueDao
 
     companion object {
         /**
@@ -59,6 +66,20 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        /** 5 -> 6: aggiunge la tabella delle serie divisionali (1 cent - 2 euro), popolata da `RegularIssueRepository.ensureSeeded()`. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `regular_issue_series` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `paese` TEXT NOT NULL, " +
+                        "`zeccaEmittente` TEXT NOT NULL, `zeccaRaw` TEXT NOT NULL, " +
+                        "`ordineCronologico` INTEGER NOT NULL, `numeroSerieIpotesi` INTEGER NOT NULL, " +
+                        "`intestazioneRaw` TEXT, `descrizione` TEXT NOT NULL, `anniCitati` TEXT NOT NULL, " +
+                        "`immagini` TEXT NOT NULL, `possibileIncongruenza` INTEGER NOT NULL, `fonteDati` TEXT NOT NULL)",
+                )
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -67,7 +88,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
             }
     }
 }

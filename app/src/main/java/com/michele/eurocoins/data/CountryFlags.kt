@@ -3,12 +3,14 @@ package com.michele.eurocoins.data
 /**
  * Codice ISO 3166-1 alpha-2 per ciascun paese, chiave su `paese` (lo stesso
  * campo stabile usato da [displayCountry] in CountryNames.kt — non su
- * `zeccaRaw`, che varia). Copre tutti i 24 valori chiusi dell'enum
- * `ZeccaEmittente` della pipeline: se un domani ne arriva un 25° non
- * mappato qui, [Coin.flagEmoji] ricade su una bandiera "sconosciuta"
- * invece di lanciare un'eccezione.
+ * `zeccaRaw`, che varia). Copre i 25 valori dell'enum `ZeccaEmittente` della
+ * pipeline (i 24 storici più `Bulgaria`, aggiunta con le serie divisionali —
+ * vedi RegularIssue.kt): se un domani ne arriva un altro non mappato qui,
+ * [flagEmojiForCountry] ricade su una bandiera "sconosciuta" invece di
+ * lanciare un'eccezione.
  */
 private val ISO_COUNTRY_CODES: Map<String, String> = mapOf(
+    "Bulgaria" to "BG",
     "Austria" to "AT",
     "Belgio" to "BE",
     "Cipro" to "CY",
@@ -45,4 +47,7 @@ private fun regionalIndicatorSymbol(letter: Char): String =
 private fun flagEmojiForIsoCode(isoCode: String): String =
     isoCode.map(::regionalIndicatorSymbol).joinToString(separator = "")
 
-fun Coin.flagEmoji(): String = ISO_COUNTRY_CODES[paese]?.let(::flagEmojiForIsoCode) ?: UNKNOWN_FLAG
+/** Bandiera per un valore `paese` grezzo: condivisa tra `Coin` e `RegularIssueSeries`, che usano lo stesso set di valori. */
+fun flagEmojiForCountry(paese: String): String = ISO_COUNTRY_CODES[paese]?.let(::flagEmojiForIsoCode) ?: UNKNOWN_FLAG
+
+fun Coin.flagEmoji(): String = flagEmojiForCountry(paese)
