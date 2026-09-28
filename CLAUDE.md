@@ -421,6 +421,42 @@ catalogo completo.
   è affidabile come "anno di inizio serie" (verificato caso per caso solo
   nella pipeline per Belgio; per gli altri paesi resta una lista grezza):
   non è usata per ordinare o mostrare intervalli di anni in questa UI.
+  **Lezione imparata nel giro che ha aggiunto `RegularIssueImage.fonteDati`
+  (sotto)**: un campo NUOVO su una classe salvata come blob JSON in Room
+  (qui, non su una tabella con colonne SQL vere) deve avere un default,
+  non solo essere nullable — kotlinx.serialization lancia
+  `MissingFieldException` e l'app va in crash all'avvio leggendo righe già
+  salvate col JSON vecchio, PRIMA che `ensureSeeded()` faccia in tempo a
+  ripopolarle col nuovo asset (la corsa tra "prima lettura" e "reseed" si
+  perde quasi sempre). Vale per qualunque campo futuro su `RegularIssueImage`
+  o `anniCitati`: qui le migrazioni Room esplicite (sopra) non proteggono,
+  perché la colonna SQL resta `TEXT` e non cambia — il contratto è tutto
+  nella classe Kotlin.
+- **Immagini quasi tutte dalla BCE, non dalla fonte EC**: la fonte EC
+  serviva miniature disomogenee (62-400 px a seconda del file, 100×100 per
+  4 tagli su 8 — verificato confrontando le 8 monete italiane). Un secondo
+  arricchimento (`enrich_divisional_images_from_ecb.py` nella pipeline)
+  sostituisce quelle URL con le pagine BCE per taglio (`coins/2euro`,
+  `coins/1euro`, ...), uniformi a 540×540: **295 immagini su 303 sono ora
+  `ecb`, le 8 del Lussemburgo restano `bcl`** (il Granduca Guglielmo non è
+  ancora sulla BCE). Per questo `RegularIssueImage` ha un proprio
+  `fonteDati` (default `""`, vedi lezione sopra), distinto da quello della
+  serie: testo (`RegularIssueSeries.fonteDati`, sempre dalla fonte EC) e
+  immagini di una stessa sezione possono avere provenienza diversa. Il
+  passaggio ha aggiunto anche due tagli mai pubblicati dalla fonte EC
+  (Andorra 1 euro, Monaco 50 cent 2025) — da qui "coins" nella scheda Home
+  è salito da 292 a 303 (sotto). **`RegularIssueImageTrim`
+  (`ui/regular/RegularIssueImageTrim.kt`, `coil3.transform.Transformation`)
+  resta comunque**, applicata sia alla fascia Home sia al dettaglio del
+  paese: anche con la BCE il margine attorno alla moneta non è sempre a
+  filo (misurato fino al 12% per lato su alcuni file EC ancora in uso, un
+  caso BCE noto a 220×223 invece di 540×540 per Monaco 50 cent — vedi
+  NOTES.md della pipeline). Senza il ritaglio, `ContentScale.Crop` riempie
+  comunque il riquadro ma CON quel margine incluso: la moneta risultava più
+  piccola del cerchio, con un alone del colore di sfondo intorno e
+  dimensioni non uniformi tra le 4 posizioni della fascia — bug reale,
+  trovato isolandolo con uno sfondo rosso temporaneo sulla sola foto (non
+  sul contenitore) per vedere se il gap veniva dal layout o dal contenuto.
 - **`RegularIssueRepository`**, non un'estensione di `CoinRepository`:
   dataset e ciclo di vita separati (stesso pattern hash SHA-256 + mutex di
   `CoinRepository.ensureSeeded()`, asset `regular_issues.json`,
@@ -450,10 +486,10 @@ catalogo completo.
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
   intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
-  `RegularIssueImage` su tutte le serie (292 oggi), non le 4 monete della fascia — è il numero
+  `RegularIssueImage` su tutte le serie (303 oggi), non le 4 monete della fascia — è il numero
   più vicino a "quante monete diverse contiene il catalogo" che questo dataset permetta di
-  contare. Fascia con foto reali e rotazione giornaliera come Commemorative (§ Impostazioni
-  "Rotate home coins"); sotto, la stessa barra "liquido" di Commemorative
+  contare. Fascia con foto reali (BCE, sopra) e rotazione giornaliera come Commemorative (§
+  Impostazioni "Rotate home coins"); sotto, la stessa barra "liquido" di Commemorative
   (`CollectionProgressBar` con `animation`), ma **ferma a 0** (`rememberProgressAnimation(owned =
   0, ...)`): non c'è ancora una collezione utente da contare, la barra è "vera" nell'aspetto per
   coerenza visiva, non nel dato.
