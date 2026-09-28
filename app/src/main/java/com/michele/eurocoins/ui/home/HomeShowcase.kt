@@ -31,33 +31,58 @@ fun pickShowcase(coins: List<Coin>, daySeed: Long?): List<Coin> {
 }
 
 /**
- * Le 4 posizioni della fascia di Regular Issues rappresentano una fascia di taglio crescente, non
- * un paese come in Commemorative (qui l'entità è una serie con fino a 8 tagli fotografati, non una
- * singola moneta): a sinistra un centesimo basso, poi uno alto, poi 1€, poi 2€ a destra — lo stesso
- * ordine con cui erano disegnate le monete segnaposto prima di questa rotazione.
+ * Le 4 posizioni della fascia di Regular Issues rappresentano una fascia di taglio, non un paese
+ * come in Commemorative (qui l'entità è una serie con fino a 8 tagli fotografati, non una singola
+ * moneta): centesimi bassi, poi 1€ e 2€ al centro (le posizioni più grandi del layout, vedi
+ * `BandRatios` in HomeScreen.kt — le monete bimetalliche "di pregio" meritano lo spazio maggiore),
+ * poi centesimi alti a destra. Non strettamente in ordine di valore crescente: è una fascia
+ * decorativa, non deve insegnare l'ordine dei tagli, e i due bordi in metallo caldo (rame/oro
+ * nordico) fanno da cornice simmetrica alle due bimetalliche lucide al centro.
  */
 private val DENOMINATION_TIERS: List<Set<String>> = listOf(
     setOf("1 cent", "2 cent", "5 cent"),
-    setOf("10 cent", "20 cent", "50 cent"),
     setOf("1 euro"),
     setOf("2 euro"),
+    setOf("10 cent", "20 cent", "50 cent"),
+)
+
+/**
+ * Set fisso (rotazione spenta), nello stesso ordine di [DENOMINATION_TIERS]: monete note e
+ * fotografate bene dalla BCE, un paese diverso per fascia (non microstati, sempre presenti anche
+ * con "Hide microstates" attivo). Senza questa scelta esplicita il primo trovato in ordine
+ * alfabetico di paese vinceva sempre — Andorra, per tutte e 4 le posizioni. L'Italia (Uomo
+ * Vitruviano) e la Spagna (Cervantes) sono state scartate dopo un controllo alla fonte: a
+ * differenza delle altre, quelle due foto BCE sono leggermente sfocate anche a piena risoluzione
+ * (non un problema di ridimensionamento).
+ */
+private val CURATED_DEFAULTS: List<Pair<String, String>> = listOf(
+    "Finlandia" to "1 cent",
+    "Germania" to "1 euro",
+    "Grecia" to "2 euro",
+    "Paesi Bassi" to "20 cent",
 )
 
 /**
  * Sceglie una foto per ciascuna fascia di taglio di [DENOMINATION_TIERS], in ordine: non "una per
  * paese" come [pickShowcase] (il taglio conta più del paese, qui), quindi lo stesso paese può
- * comparire in più posizioni. [daySeed] null = la prima foto trovata per fascia (set fisso); con
- * un valore, una scelta deterministica sul giorno. Null in una posizione se nessuna serie ha una
- * foto per quella fascia (non dovrebbe succedere sul dataset attuale, ma non è garantito).
+ * comparire in più posizioni. [daySeed] null = la scelta curata di [CURATED_DEFAULTS] (ripiego sulla
+ * prima foto trovata se quel paese non ha quel taglio, non dovrebbe succedere sul dataset attuale);
+ * con un valore, una scelta deterministica sul giorno. Null in una posizione se nessuna serie ha una
+ * foto per quella fascia.
  */
 fun pickRegularIssueShowcaseUrls(series: List<RegularIssueSeries>, daySeed: Long?): List<String?> {
     val random = daySeed?.let(::Random)
-    return DENOMINATION_TIERS.map { tier ->
+    return DENOMINATION_TIERS.mapIndexed { index, tier ->
         val pool = series.flatMap { s -> s.immagini.filter { it.taglio in tier }.mapNotNull { it.urlImmagineFonte } }
         when {
             pool.isEmpty() -> null
-            random == null -> pool.first()
-            else -> pool[random.nextInt(pool.size)]
+            random != null -> pool[random.nextInt(pool.size)]
+            else -> curatedUrl(series, CURATED_DEFAULTS[index]) ?: pool.first()
         }
     }
+}
+
+private fun curatedUrl(series: List<RegularIssueSeries>, pick: Pair<String, String>): String? {
+    val (paese, taglio) = pick
+    return series.firstOrNull { it.paese == paese }?.immagini?.firstOrNull { it.taglio == taglio }?.urlImmagineFonte
 }
