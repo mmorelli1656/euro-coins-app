@@ -179,11 +179,16 @@ risultare poco centrata, accettato). Nessun contatore globale. **Commemorative**
 (attiva, cliccabile per intero, angoli 22 dp, fondo `primary`): riga dati con gli anni come
 **intervallo** e barra "x / y collected" con onda — numeri dal database. **Regular Issues**
 (attiva dal dataset `ec_national_sides`, § omonima più sotto; stesso trattamento pieno di
-Commemorative, non più tratteggiata/"Coming soon"): fascia di 4 monete DISEGNATE e desaturate
-(1c, 10c, 1€, 2€ — non foto reali, vedi § Regular Issues), riga dati "**N** series · **M**
-countries" (due soli valori, non tre come Commemorative: nessun intervallo di anni affidabile
-per le serie, vedi § dataset), sottotitolo statico "1c – 2€ national designs" al posto della
-barra "collected" (nessuna collezione utente per questa sezione). La home è anche dove parte il
+Commemorative, non più tratteggiata/"Coming soon"): fascia di 4 **foto reali** di tagli diversi,
+di paesi diversi, con la STESSA rotazione giornaliera di Commemorative e la stessa impostazione
+("Rotate home coins" — vedi sotto), moneta disegnata (`RegularCoin`/`RegularCoins`, non più
+`FallbackCoins`: tematicamente sono proprio le monete circolanti) come ripiego se la foto manca o
+non carica; riga dati "**N** coins · **M** countries · **P** series" (in quest'ordine: "coins" qui
+sono i disegni di taglio noti, non le 4 monete della fascia — coerente con "584 coins" di
+Commemorative, il totale del catalogo; terzo valore "series", non un intervallo di anni: nessuno
+è affidabile per le serie, vedi § dataset), e sotto la STESSA barra "liquido" di Commemorative,
+ma ferma a "0 / N collected" perché non esiste ancora una collezione utente per questa sezione
+(vedi § Regular Issues per il dettaglio). La home è anche dove parte il
 seeding di ENTRAMBI i database (`HomeViewModel` chiama `repository.ensureSeeded()` e
 `regularIssueRepository.ensureSeeded()`; il Mutex in ciascun repository evita il doppio
 inserimento se più ViewModel lo chiamano). In alto
@@ -310,9 +315,17 @@ regge un pulsante pieno):
   microstates perché parte da `repository.coins`. Spento: set fisso (i primi 4 paesi). La Home
   precarica in Coil le foto del set di DOMANI (`nextShowcase`): domani è già pronta, anche
   offline se oggi l'app è stata aperta online. **Foto che non si carica: catena per moneta** (`ShowcaseCoin`): foto di oggi → foto dello stesso slot dell'ultimo set mostrato per intero (`UserSettings.lastShowcase`, salvato quando le 4 sono arrivate; sta già nella cache su disco di Coil, quindi regge anche offline) → moneta DISEGNATA (2€ bimetallica, `FallbackCoins`) se non c'è altro. NON ci sono foto BCE nell'APK come set predefinito: licenza "uso editoriale", da chiarire prima di pubblicare (§ Backlog). **NESSUNA animazione di entrata** (scelta dell'utente: la dissolvenza per moneta di Coil dava comparse scaglionate; una dissolvenza coordinata dopo aver atteso tutte le foto risultava "lenta"; le monete devono esserci all'apertura, come prima della rotazione). Per esserci al primo fotogramma la Home non aspetta il database: `UserSettings` salva gli URL del set di OGGI e di DOMANI (`saveShowcaseUrls`, chiavi `showcase_day_<giorno>`) e `HomeViewModel` li usa subito all'avvio (ripiego: l'ultimo set mostrato); quando arriva il database il set calcolato coincide e non si nota nulla. Le foto sono già nella cache su disco perché la Home le precarica il giorno prima. (Prima non gestito: foto che non si carica il
-  giorno stesso.) **Quando ci saranno le Regular Issues l'impostazione
-  dovrà valere anche per la loro fascia**: chiamare `pickShowcase` con le loro monete. Test:
-  `HomeShowcaseTest`.
+  giorno stesso.) **Vale anche per la fascia di Regular Issues** (stessa impostazione, stesso
+  `ShowcaseCoin`): `pickShowcase` è stato scomposto in un nucleo generico `pickByCountry`
+  (paese → elemento, stessa logica "una scelta per paese, deterministica sul giorno") più due
+  funzioni sottili in cima, `pickShowcase` (commemorative, invariata) e
+  `pickRegularIssueShowcaseUrls` (appiattisce `RegularIssueSeries.immagini` di tutte le serie in
+  coppie paese/URL, perché lì non esiste un'entità "moneta" singola come `Coin`). Per Regular
+  Issues NON c'è (ancora) la catena di ripiego "ultimo set mostrato"/precaricamento di domani —
+  solo foto di oggi o, se manca/non carica, la moneta disegnata (`RegularCoin`/`RegularCoins`, le
+  4 già usate come segnaposto prima di questa rotazione): estensione minima, da allineare a
+  Commemorative se servirà reggere l'offline anche lì. Test: `HomeShowcaseTest` (solo
+  `pickShowcase`, invariato dal refactoring — nessun test aggiunto per `pickRegularIssueShowcaseUrls`).
 - **Reset collection**: dialog di conferma con il numero di monete; svuota
   solo `collection_items` (`CoinRepository.resetCollection`). Il backup su
   Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
@@ -434,12 +447,20 @@ catalogo completo.
   Vaticano, serie 2026 non ancora fotografata dalla fonte) la riga non
   viene mostrata affatto — non è un caso di "immagine che non carica", è
   l'assenza della lista stessa, verificato in emulatore/telefono.
+- **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
+  `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
+  intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
+  `RegularIssueImage` su tutte le serie (292 oggi), non le 4 monete della fascia — è il numero
+  più vicino a "quante monete diverse contiene il catalogo" che questo dataset permetta di
+  contare. Fascia con foto reali e rotazione giornaliera come Commemorative (§ Impostazioni
+  "Rotate home coins"); sotto, la stessa barra "liquido" di Commemorative
+  (`CollectionProgressBar` con `animation`), ma **ferma a 0** (`rememberProgressAnimation(owned =
+  0, ...)`): non c'è ancora una collezione utente da contare, la barra è "vera" nell'aspetto per
+  coerenza visiva, non nel dato.
 - **Fuori scope di questa prima versione** (vedi anche § Backlog):
-  nessuna collezione utente (casella "posseduta") per le monete circolanti,
-  nessuna rotazione di foto reali nella fascia Home (restano le 4 monete
-  disegnate `RegularCoins`, come il vecchio stato "Coming soon"), nessuna
-  gestione di `possibileIncongruenza` in UI (oggi sempre `false` nel
-  dataset).
+  nessuna collezione utente (casella "posseduta") per le monete circolanti, quindi la barra
+  "collected" della Home resta ferma a 0 (sopra); nessuna gestione di `possibileIncongruenza` in
+  UI (oggi sempre `false` nel dataset).
 
 ## Lingua
 
@@ -958,9 +979,11 @@ Nella **pipeline dati** (repo separato, va fatto lì):
 
 Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima): collezione
-  utente sulle serie divisionali (nessuna casella "posseduta" oggi); ricerca/
-  filtro/ordinamento nella griglia Countries; rotazione di foto reali nella
-  fascia Home al posto delle monete disegnate; gestione di
+  utente sulle serie divisionali (nessuna casella "posseduta" oggi, quindi la
+  barra "collected" della Home resta ferma a 0); ricerca/filtro/ordinamento
+  nella griglia Countries; catena di ripiego "ultimo set mostrato" e
+  precaricamento di domani per la fascia Home (oggi solo foto di oggi o
+  moneta disegnata, a differenza di Commemorative); gestione di
   `possibileIncongruenza` in UI.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
