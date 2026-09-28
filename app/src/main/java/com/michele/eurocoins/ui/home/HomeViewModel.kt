@@ -26,9 +26,12 @@ data class HomeUiState(
     val nextShowcase: List<Coin> = emptyList(),
     /** URL dell'ultimo set mostrato per intero (ripiego per foto che non si caricano). */
     val lastShowcaseUrls: List<String> = emptyList(),
-    /** Statistiche della scheda Regular Issues: numero di serie e di paesi coperti. */
-    val regularIssueSeriesCount: Int = 0,
+    /** Statistiche della scheda Regular Issues: disegni di taglio noti, paesi e serie coperte. */
+    val regularIssueCoinsCount: Int = 0,
     val regularIssueCountries: Int = 0,
+    val regularIssueSeriesCount: Int = 0,
+    /** Quattro foto di tagli, di paesi diversi, per la fascia della scheda Regular Issues. */
+    val regularIssueShowcase: List<String> = emptyList(),
 )
 
 class HomeViewModel(
@@ -75,8 +78,10 @@ class HomeViewModel(
             showcase = showcase,
             nextShowcase = nextShowcase,
             lastShowcaseUrls = lastShowcaseUrls,
-            regularIssueSeriesCount = regularIssueSeries.size,
+            regularIssueCoinsCount = regularIssueSeries.sumOf { it.immagini.size },
             regularIssueCountries = regularIssueSeries.map { it.paese }.distinct().size,
+            regularIssueSeriesCount = regularIssueSeries.size,
+            regularIssueShowcase = pickRegularIssueShowcaseUrls(regularIssueSeries, if (rotate) today else null),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(lastShowcaseUrls = lastShowcaseUrls))
 

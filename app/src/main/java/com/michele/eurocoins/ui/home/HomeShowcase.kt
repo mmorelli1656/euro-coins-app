@@ -1,29 +1,41 @@
 package com.michele.eurocoins.ui.home
 
 import com.michele.eurocoins.data.Coin
+import com.michele.eurocoins.data.RegularIssueSeries
 import kotlin.random.Random
 
 /** Quante monete mostra la fascia della scheda. */
 const val SHOWCASE_SIZE = 4
 
 /**
- * Sceglie le [SHOWCASE_SIZE] monete della fascia della Home: con foto reale, di paesi diversi.
- *
- * [daySeed] null = set fisso (i primi paesi in ordine di catalogo: è ciò che si vede con la
- * rotazione spenta). Con un valore (il giorno, `LocalDate.toEpochDay()`) il set è casuale ma
- * DETERMINISTICO: lo stesso giorno dà sempre le stesse monete, senza salvare nulla, e le foto
- * restano nella cache di Coil per tutto il giorno. Il criterio "una moneta per paese" vale
- * anche per le future Regular Issues: quando esisteranno basterà chiamare questa funzione con
- * le loro monete, sotto la stessa impostazione.
+ * Nucleo condiviso della scelta: da una lista di (paese, elemento) sceglie [size] elementi di
+ * paesi diversi. [daySeed] null = set fisso (il primo elemento per ogni paese, nell'ordine
+ * d'arrivo: è ciò che si vede con la rotazione spenta). Con un valore (il giorno,
+ * `LocalDate.toEpochDay()`) il set è casuale ma DETERMINISTICO: lo stesso giorno dà sempre lo
+ * stesso risultato, senza salvare nulla.
+ */
+private fun <T> pickByCountry(items: List<Pair<String, T>>, daySeed: Long?, size: Int): List<T> {
+    val byCountry = items.groupBy(keySelector = { it.first }, valueTransform = { it.second })
+    if (daySeed == null) return byCountry.values.mapNotNull { it.firstOrNull() }.take(size)
+    val random = Random(daySeed)
+    return byCountry.values.shuffled(random).take(size).map { it[random.nextInt(it.size)] }
+}
+
+/**
+ * Sceglie le [SHOWCASE_SIZE] monete commemorative della fascia della Home: con foto reale, di
+ * paesi diversi. Le foto restano nella cache di Coil per tutto il giorno di rotazione.
  */
 fun pickShowcase(coins: List<Coin>, daySeed: Long?): List<Coin> {
     val withPhoto = coins.filter { !it.immaginePlaceholder && it.urlImmagineFonte != null }
-    if (daySeed == null) return withPhoto.distinctBy { it.paese }.take(SHOWCASE_SIZE)
-    val random = Random(daySeed)
-    return withPhoto
-        .groupBy { it.paese }
-        .values
-        .shuffled(random)
-        .take(SHOWCASE_SIZE)
-        .map { it[random.nextInt(it.size)] }
+    return pickByCountry(withPhoto.map { it.paese to it }, daySeed, SHOWCASE_SIZE)
+}
+
+/**
+ * Stesso criterio per la fascia di Regular Issues: qui non c'è un'entità "moneta" ma una serie
+ * con fino a 8 immagini di taglio, quindi si sceglie direttamente l'URL (una foto per paese, tra
+ * tutte le sue serie e i suoi tagli fotografati).
+ */
+fun pickRegularIssueShowcaseUrls(series: List<RegularIssueSeries>, daySeed: Long?): List<String> {
+    val urls = series.flatMap { s -> s.immagini.mapNotNull { it.urlImmagineFonte }.map { s.paese to it } }
+    return pickByCountry(urls, daySeed, SHOWCASE_SIZE)
 }

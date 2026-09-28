@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.R
+import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.ProgressAnimation
 import com.michele.eurocoins.ui.components.rememberProgressAnimation
@@ -225,19 +226,23 @@ private fun StatsLine(color: Color, coins: String, countries: String, years: Str
 }
 
 /**
- * Riga statistiche di Regular Issues: solo due valori (non tre come [StatsLine]), perché non
- * esiste un intervallo di anni affidabile per le serie divisionali (vedi CLAUDE.md § dataset,
- * `anni_citati` non è utilizzabile come "anno di inizio").
+ * Riga statistiche di Regular Issues: "N coins · M countries · P series", stesso stile di
+ * [StatsLine] ma con etichette diverse sul terzo valore (lì è un intervallo di anni, che qui non
+ * esiste in modo affidabile — vedi CLAUDE.md § dataset, `anni_citati` non è utilizzabile come
+ * "anno di inizio"). "Coins" qui conta i disegni di taglio noti (`RegularIssueImage`), non le
+ * monete della fascia: coerente con "584 coins" di Commemorative, che è il totale del catalogo.
  */
 @Composable
-private fun RegularIssuesStatsLine(color: Color, series: String, countries: String) {
+private fun RegularIssuesStatsLine(color: Color, coins: String, countries: String, series: String) {
     val bold = SpanStyle(fontWeight = FontWeight.Bold)
     Text(
         text = buildAnnotatedString {
-            withStyle(bold) { append(series) }
-            append(" series · ")
+            withStyle(bold) { append(coins) }
+            append(" coins · ")
             withStyle(bold) { append(countries) }
-            append(" countries")
+            append(" countries · ")
+            withStyle(bold) { append(series) }
+            append(" series")
         },
         style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
         color = color,
@@ -309,9 +314,9 @@ private fun CommemorativeCard(
                         urls = listOfNotNull(state.showcase.getOrNull(i)?.urlImmagineFonte, state.lastShowcaseUrls.getOrNull(i)).distinct(),
                         dataReady = state.progress.total > 0,
                         size = size,
-                        index = i,
                         tint = onFill.copy(alpha = 0.10f),
                         onLoaded = { url -> onSlotLoaded(i, url) },
+                        fallback = { RegularCoin(FallbackCoins[i % FallbackCoins.size], size) },
                     )
                 }
             },
@@ -390,6 +395,9 @@ private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight
     // più una attiva e una "coming soon" tratteggiata.
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val onFill = if (dark) InkDark else MaterialTheme.colorScheme.onPrimary
+    // Nessuna collezione utente per questa sezione: la barra è "vera" nell'aspetto (stessa di
+    // Commemorative) ma ferma a 0 finché non esiste una collezione da contare — vedi CLAUDE.md.
+    val progressAnimation = rememberProgressAnimation(owned = 0, ready = true, playIntro = false, lastShown = 0, onShown = {})
     Box(
         modifier = modifier
             .clip(CardShape)
@@ -397,23 +405,34 @@ private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight
             .clickable(onClick = onClick),
     ) {
         CardContent(
-            // Monete disegnate (segnaposto finché non c'è una rotazione di foto reali per questo dataset, vedi CLAUDE.md).
+            // Stessa fascia di Commemorative: foto reali con rotazione giornaliera (Impostazioni
+            // "Rotate home coins"), moneta disegnata come ripiego se manca la foto.
             band = { bandModifier ->
                 CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
-                    RegularCoin(RegularCoins[i], size)
+                    ShowcaseCoin(
+                        urls = listOfNotNull(state.regularIssueShowcase.getOrNull(i)),
+                        dataReady = state.regularIssueCoinsCount > 0,
+                        size = size,
+                        tint = onFill.copy(alpha = 0.10f),
+                        onLoaded = {},
+                        fallback = { RegularCoin(RegularCoins[i], size) },
+                    )
                 }
             },
             title = "Regular Issues",
             titleColor = onFill,
             titleTrailing = {},
-            // Due soli valori: non esiste un intervallo di anni affidabile per le serie (vedi CLAUDE.md § dataset).
-            stats = { RegularIssuesStatsLine(onFill, "${state.regularIssueSeriesCount}", "${state.regularIssueCountries}") },
-            // Nessuna collezione utente per questa sezione: un sottotitolo statico al posto della barra "collected".
+            stats = {
+                RegularIssuesStatsLine(onFill, "${state.regularIssueCoinsCount}", "${state.regularIssueCountries}", "${state.regularIssueSeriesCount}")
+            },
             footer = {
-                Text(
-                    "1c – 2€ national designs",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                CollectionProgressBar(
+                    progress = Progress(owned = 0, total = state.regularIssueCoinsCount),
                     color = onFill,
+                    trackColor = onFill.copy(alpha = 0.45f),
+                    labelColor = onFill,
+                    labelStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp),
+                    animation = progressAnimation,
                 )
             },
             minHeight = minHeight,
@@ -430,7 +449,7 @@ private val FallbackCoins = listOf(
 /**
  * Una moneta della fascia con catena di ripiego: prova gli [urls] in ordine (foto di oggi, poi quella
  * dell'ultimo set mostrato: sta già nella cache su disco di Coil; è anche l'unico usato finché il database non ha risposto, così le monete ci sono già al primo fotogramma); se falliscono tutti, o non ce ne
- * sono (meno di 4 monete con foto), mostra una moneta disegnata invece di un buco. Finché i dati non
+ * sono (meno di 4 monete con foto), mostra [fallback] invece di un buco. Finché i dati non
  * sono pronti ([dataReady] falso) o una foto sta arrivando, resta un tondo tenue in [tint].
  */
 @Composable
@@ -438,9 +457,9 @@ private fun ShowcaseCoin(
     urls: List<String>,
     dataReady: Boolean,
     size: Dp,
-    index: Int,
     tint: Color,
     onLoaded: (String) -> Unit,
+    fallback: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
     var attempt by remember(urls) { mutableIntStateOf(0) }
@@ -448,7 +467,7 @@ private fun ShowcaseCoin(
     // Il tondo tenue sta sotto solo per il caso in cui la foto tardi; niente animazioni di entrata.
     Box(modifier = Modifier.size(size).clip(CircleShape).background(tint)) {
         if (url == null && dataReady) {
-            RegularCoin(FallbackCoins[index % FallbackCoins.size], size)
+            fallback()
         } else if (url != null) {
             AsyncImage(
                 model = ImageRequest.Builder(context).data(url).build(),
