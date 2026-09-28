@@ -489,7 +489,15 @@ catalogo completo.
   `RegularIssueImage` su tutte le serie (303 oggi), non le 4 monete della fascia — è il numero
   più vicino a "quante monete diverse contiene il catalogo" che questo dataset permetta di
   contare. Fascia con foto reali (BCE, sopra) e rotazione giornaliera come Commemorative (§
-  Impostazioni "Rotate home coins"); sotto, la stessa barra "liquido" di Commemorative
+  Impostazioni "Rotate home coins"). **Ordine dei 4 tagli**: `1-5 cent · 1€ · 2€ · 10-50 cent`
+  (`DENOMINATION_TIERS` in `HomeShowcase.kt`), non crescente — le due bimetalliche (1€/2€, "di
+  pregio") stanno nelle due posizioni centrali più grandi di `BandRatios`, i centesimi monometallici
+  (rame/oro nordico, colori caldi) fanno da cornice ai lati; scelta dell'utente dopo aver notato che
+  l'ordine crescente sprecava la 2€ nel bordo piccolo. **Set fisso** (rotazione spenta,
+  `CURATED_DEFAULTS`): non "il primo trovato in ordine alfabetico" (dava sempre Andorra) ma 4 paesi
+  scelti a mano — Finlandia, Germania, Grecia, Paesi Bassi — con foto BCE verificate nitide a piena
+  risoluzione; Italia (Uomo Vitruviano) e Spagna (Cervantes) scartate perché le foto BCE stesse sono
+  leggermente sfocate, non un problema di ridimensionamento dell'app. Sotto, la stessa barra "liquido" di Commemorative
   (`CollectionProgressBar` con `animation`), ma **ferma a 0** (`rememberProgressAnimation(owned =
   0, ...)`): non c'è ancora una collezione utente da contare, la barra è "vera" nell'aspetto per
   coerenza visiva, non nel dato.
