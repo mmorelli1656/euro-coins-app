@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -440,9 +442,39 @@ private fun DetailsSection(coin: Coin) {
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.height(14.dp))
-    Row(modifier = Modifier.fillMaxWidth()) {
-        ValueLabel(value = coin.displayEngraver() ?: NO_VALUE, label = "Engraver", modifier = Modifier.weight(1f))
-        ValueLabel(value = coin.displayDesigner() ?: NO_VALUE, label = "Designer", modifier = Modifier.weight(1f))
+    // altezza comune alle due colonne (IntrinsicSize.Min = quella della colonna più alta, di
+    // solito quella con un nome su 2 righe): senza, "Engraver"/"Designer" finivano a quote
+    // diverse quando uno dei due mancava (un trattino su una riga contro un nome su due) e il
+    // trattino restava incollato in alto invece che centrato accanto al nome presente.
+    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
+        listOf(
+            "Engraver" to (coin.displayEngraver() ?: NO_VALUE),
+            "Designer" to (coin.displayDesigner() ?: NO_VALUE),
+        ).forEach { (label, value) ->
+            Column(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = value,
+                        style = sansTitleMedium(),
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
     }
 }
 
