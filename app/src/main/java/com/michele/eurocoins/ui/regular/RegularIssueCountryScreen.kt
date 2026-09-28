@@ -36,10 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.ImageRequest
+import coil3.request.transformations
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.ui.theme.appBarColors
@@ -130,8 +133,14 @@ private fun DenominationThumbnail(image: RegularIssueImage) {
             if (image.urlImmagineFonte == null) {
                 DenominationPlaceholder()
             } else {
+                val context = LocalContext.current
                 SubcomposeAsyncImage(
-                    model = image.urlImmagineFonte,
+                    // RegularIssueImageTrim: il margine attorno alla moneta non è uniforme da file a
+                    // file (vedi quella classe) — senza, la moneta appare più piccola del cerchio.
+                    model = ImageRequest.Builder(context)
+                        .data(image.urlImmagineFonte)
+                        .transformations(RegularIssueImageTrim)
+                        .build(),
                     contentDescription = image.taglio,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),

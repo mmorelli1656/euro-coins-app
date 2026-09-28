@@ -32,6 +32,8 @@ data class RegularIssueImageJson(
     @SerialName("url_immagine_fonte") val urlImmagineFonte: String? = null,
     @SerialName("licenza_immagine") val licenzaImmagine: String,
     @SerialName("attribuzione_immagine_raw") val attribuzioneImmagineRaw: String? = null,
+    /** Fonte di QUESTA immagine ("ecb", "bcl", ...): può differire da quella del testo della serie — vedi RegularIssueSeries.fonteDati. */
+    @SerialName("fonte_dati") val fonteDati: String = "",
 )
 
 fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
@@ -50,6 +52,7 @@ fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
             urlImmagineFonte = it.urlImmagineFonte,
             licenzaImmagine = it.licenzaImmagine,
             attribuzioneImmagineRaw = it.attribuzioneImmagineRaw,
+            fonteDati = it.fonteDati,
         )
     },
     possibileIncongruenza = possibileIncongruenza,

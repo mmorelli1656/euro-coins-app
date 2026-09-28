@@ -30,8 +30,8 @@ data class HomeUiState(
     val regularIssueCoinsCount: Int = 0,
     val regularIssueCountries: Int = 0,
     val regularIssueSeriesCount: Int = 0,
-    /** Quattro foto di tagli, di paesi diversi, per la fascia della scheda Regular Issues. */
-    val regularIssueShowcase: List<String> = emptyList(),
+    /** Una foto per fascia di taglio crescente (§ dataset), null dove manca, per la fascia della scheda Regular Issues. */
+    val regularIssueShowcase: List<String?> = emptyList(),
 )
 
 class HomeViewModel(

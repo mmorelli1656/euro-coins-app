@@ -50,6 +50,8 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
+import coil3.request.transformations
+import coil3.transform.Transformation
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -64,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Progress
+import com.michele.eurocoins.ui.regular.RegularIssueImageTrim
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.ProgressAnimation
 import com.michele.eurocoins.ui.components.rememberProgressAnimation
@@ -187,7 +190,10 @@ private val BandRatios = listOf(0.85f, 1f, 1f, 0.85f)
 /**
  * Fascia di monete a bordo scheda, sopra un velo leggero. Prende tutta l'altezza che avanza
  * (la scheda ha altezza fissa, testi a parte): le monete crescono con la fascia, ma senza
- * uscire in larghezza. Ogni moneta è composta da [coin].
+ * uscire in larghezza. Ogni moneta è composta da [coin]. STESSA dimensione per Commemorative e
+ * Regular Issues (scelta dell'utente, per pari peso tra le due schede): le foto EC di Regular
+ * Issues sono 100×100 px contro le 270×270 di quelle BCE, quindi qui più sfocate — accettato,
+ * vedi CLAUDE.md.
  */
 @Composable
 private fun CoinBand(veil: Color, modifier: Modifier = Modifier, coin: @Composable (index: Int, size: Dp) -> Unit) {
@@ -405,8 +411,11 @@ private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight
             .clickable(onClick = onClick),
     ) {
         CardContent(
-            // Stessa fascia di Commemorative: foto reali con rotazione giornaliera (Impostazioni
-            // "Rotate home coins"), moneta disegnata come ripiego se manca la foto.
+            // Stessa fascia di Commemorative, stessa dimensione (vedi CoinBand): foto reali con
+            // rotazione giornaliera (Impostazioni "Rotate home coins"), moneta disegnata come
+            // ripiego se manca la foto. RegularIssueImageTrim ritaglia il margine (non uniforme
+            // da file a file) attorno alla moneta prima del crop del contenitore — vedi quella
+            // classe per il perché.
             band = { bandModifier ->
                 CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
                     ShowcaseCoin(
@@ -416,6 +425,7 @@ private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight
                         tint = onFill.copy(alpha = 0.10f),
                         onLoaded = {},
                         fallback = { RegularCoin(RegularCoins[i], size) },
+                        transformations = listOf(RegularIssueImageTrim),
                     )
                 }
             },
@@ -460,6 +470,7 @@ private fun ShowcaseCoin(
     tint: Color,
     onLoaded: (String) -> Unit,
     fallback: @Composable () -> Unit,
+    transformations: List<Transformation> = emptyList(),
 ) {
     val context = LocalContext.current
     var attempt by remember(urls) { mutableIntStateOf(0) }
@@ -470,7 +481,7 @@ private fun ShowcaseCoin(
             fallback()
         } else if (url != null) {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(url).build(),
+                model = ImageRequest.Builder(context).data(url).transformations(transformations).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 onSuccess = { onLoaded(url) },
