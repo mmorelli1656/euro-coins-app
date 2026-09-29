@@ -101,7 +101,7 @@ fun RegularIssueCountryScreen(
                 item { SeriesChipRow(state.seriesList, state.selectedIndex, viewModel::onSelectSeries) }
             }
             state.selectedSeries?.let { series ->
-                item { SeriesHeader(series) }
+                item { SeriesHeader(series, state.selectedIndex + 1) }
             }
             items(state.denominations, key = { it.image.taglio }) { denom ->
                 DenominationRow(denom = denom, onEditCollection = { editing = denom })
@@ -115,6 +115,7 @@ fun RegularIssueCountryScreen(
         RegularCollectionSheet(
             countryName = state.countryName,
             series = selectedSeries,
+            seriesNumber = state.selectedIndex + 1,
             denomination = current.image,
             currentItems = current.items,
             onSave = { entries ->
@@ -138,22 +139,18 @@ private fun SeriesChipRow(seriesList: List<RegularIssueSeries>, selectedIndex: I
         seriesList.forEachIndexed { i, series ->
             FilterChip(
                 selected = i == selectedIndex,
-                // seriesHeading() e non solo "Series N": lo stesso numero di serie può comparire
-                // più di una volta per lo stesso paese (es. Belgio: 2002 e 2008 sono entrambe
-                // "Series 1" nel dataset, un ritocco minore non classificato come nuova serie) e
-                // senza l'anno i chip sarebbero indistinguibili.
                 onClick = { onSelect(i) },
-                label = { Text(seriesHeading(series)) },
+                label = { Text(seriesHeading(series, i + 1)) },
             )
         }
     }
 }
 
 @Composable
-private fun SeriesHeader(series: RegularIssueSeries) {
+private fun SeriesHeader(series: RegularIssueSeries, number: Int) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Text(
-            seriesHeading(series),
+            seriesHeading(series, number),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.primary,
         )
@@ -174,9 +171,15 @@ private fun SeriesHeader(series: RegularIssueSeries) {
     }
 }
 
-/** "Series 1 · 2002" quando c'è un'intestazione, altrimenti solo "Series N". */
-private fun seriesHeading(series: RegularIssueSeries): String {
-    val base = "Series ${series.numeroSerieIpotesi}"
+/**
+ * "Series 1 · 2002" quando c'è un'intestazione, altrimenti solo "Series N". [number] è la
+ * posizione (1-based) della serie nella lista del paese, NON `series.numeroSerieIpotesi`: quel
+ * campo raggruppa varianti minori sotto lo stesso numero (es. Belgio: 2002 e 2008 sono entrambe
+ * "1" nel dataset, un ritocco minore non classificato come nuova serie) e con più di 2 serie per
+ * paese può ripetersi — trovato provando i chip sul telefono, due dicevano entrambi "Series 1".
+ */
+private fun seriesHeading(series: RegularIssueSeries, number: Int): String {
+    val base = "Series $number"
     return series.intestazioneRaw?.let { "$base · $it" } ?: base
 }
 

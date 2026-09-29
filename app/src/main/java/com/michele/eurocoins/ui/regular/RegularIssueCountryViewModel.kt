@@ -77,7 +77,7 @@ class RegularIssueCountryViewModel(
         val selected = forCountry.getOrNull(safeIndex)
         val denominations = selected?.let { series ->
             val key = series.stableKey
-            series.immagini.map { image ->
+            series.immagini.sortedBy { denominationOrder(it.taglio) }.map { image ->
                 val items = collection.filter { it.seriesKey == key && it.taglio == image.taglio }
                 DenominationUiState(
                     image = image,
@@ -103,3 +103,13 @@ class RegularIssueCountryViewModel(
         viewModelScope.launch { repository.saveCollection(series.stableKey, taglio, series.paese, entries) }
     }
 }
+
+/**
+ * Ordine crescente dei tagli (1 cent - 2 euro): `RegularIssueSeries.immagini` non è garantita in
+ * quest'ordine — i tagli aggiunti dall'arricchimento BCE (es. Andorra 1 euro, mai pubblicato dalla
+ * fonte EC) finiscono in coda alla lista originale, non inseriti al posto giusto. Un taglio non
+ * riconosciuto finisce in fondo invece di far fallire l'ordinamento.
+ */
+private val DENOMINATION_ORDER = listOf("1 cent", "2 cent", "5 cent", "10 cent", "20 cent", "50 cent", "1 euro", "2 euro")
+
+private fun denominationOrder(taglio: String): Int = DENOMINATION_ORDER.indexOf(taglio).let { if (it < 0) Int.MAX_VALUE else it }

@@ -113,6 +113,8 @@ private class YearEntry(val id: Long, year: String, price: String) {
 fun RegularCollectionSheet(
     countryName: String,
     series: RegularIssueSeries,
+    /** Posizione (1-based) della serie nella lista del paese: vedi `seriesHeading` in `RegularIssueCountryScreen.kt`. */
+    seriesNumber: Int,
     denomination: RegularIssueImage,
     currentItems: List<RegularCollectionItem>,
     onSave: (List<RegularCollectionEntry>) -> Unit,
@@ -168,7 +170,7 @@ fun RegularCollectionSheet(
                 modifier = Modifier.padding(top = 2.dp),
             )
             Text(
-                text = "$countryName · ${seriesHeadingForSheet(series)}",
+                text = "$countryName · ${seriesHeadingForSheet(series, seriesNumber)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -380,8 +382,12 @@ private fun YearField(value: String, onValueChange: (String) -> Unit) {
 /** Solo cifre, al massimo 4 (un anno a 4 cifre): nessun separatore, a differenza del prezzo. */
 private fun sanitizeYear(input: String): String = input.filter(Char::isDigit).take(4)
 
-/** "Series N" + intestazione, come `seriesHeading` privata in `RegularIssueCountryScreen.kt`. */
-private fun seriesHeadingForSheet(series: RegularIssueSeries): String {
-    val base = "Series ${series.numeroSerieIpotesi}"
+/**
+ * "Series N" + intestazione, come `seriesHeading` in `RegularIssueCountryScreen.kt`: [number] è
+ * la posizione (1-based) nella lista del paese, non `series.numeroSerieIpotesi` (può ripetersi,
+ * vedi quella funzione).
+ */
+private fun seriesHeadingForSheet(series: RegularIssueSeries, number: Int): String {
+    val base = "Series $number"
     return series.intestazioneRaw?.let { "$base · $it" } ?: base
 }
