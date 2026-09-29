@@ -125,16 +125,20 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularIssueDao.kt
 │   ├── RegularIssueRepository.kt   # seeding da asset + esposizione Flow, dataset separato da CoinRepository
 │   ├── RegularIssueCountryNames.kt # RegularIssueSeries.displayCountry() — mappa esaustiva (no zeccaRaw inglese qui)
+│   ├── RegularIssueKey.kt    # RegularIssueSeries.stableKey — chiave stabile per la collezione (paese + ordineCronologico)
+│   ├── RegularCollectionItem.kt # @Entity: taglio posseduto in un'annata+qualità + RegularCollectionEntry (bozza pannello)
+│   ├── RegularCollectionDao.kt
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
     ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
+    │                         # RegularCollectionSheet (qualità + annate multiple per le Regular Issues),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
-    ├── regular/               # Regular Issues: griglia paesi + serie del paese (solo consultazione)
+    ├── regular/               # Regular Issues: griglia paesi + serie del paese + collezione per taglio
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
     ├── backup/               # BackupSection (sezione account/backup di Settings), BackupViewModel
     ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
@@ -187,8 +191,8 @@ non carica; riga dati "**N** coins · **M** countries · **P** series" (in quest
 sono i disegni di taglio noti, non le 4 monete della fascia — coerente con "584 coins" di
 Commemorative, il totale del catalogo; terzo valore "series", non un intervallo di anni: nessuno
 è affidabile per le serie, vedi § dataset), e sotto la STESSA barra "liquido" di Commemorative,
-ma ferma a "0 / N collected" perché non esiste ancora una collezione utente per questa sezione
-(vedi § Regular Issues per il dettaglio). La home è anche dove parte il
+ora reale come quella di Commemorative: conta i tagli distinti posseduti in almeno un'annata
+su N (`HomeViewModel.regularIssueOwnedCount`, vedi § Regular Issues per il dettaglio). La home è anche dove parte il
 seeding di ENTRAMBI i database (`HomeViewModel` chiama `repository.ensureSeeded()` e
 `regularIssueRepository.ensureSeeded()`; il Mutex in ciascun repository evita il doppio
 inserimento se più ViewModel lo chiamano). In alto
@@ -255,14 +259,16 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 6, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 7, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
   colonne nullable, niente `DEFAULT`), `MIGRATION_4_5`
   (`coins.incisoreRetroRaw`/`disegnatoreRetroRaw`, stesso pattern nullable),
   `MIGRATION_5_6` (`CREATE TABLE regular_issue_series`, § Regular Issues —
-  tabella nuova, non un `ALTER` su `coins`). Ogni migrazione aggiunta va accodata,
+  tabella nuova, non un `ALTER` su `coins`), `MIGRATION_6_7`
+  (`CREATE TABLE regular_collection_items`, § Regular Issues — collezione
+  utente sulle monete circolanti, stesso motivo). Ogni migrazione aggiunta va accodata,
   mai riscritta sopra una già rilasciata (anche in sviluppo: una volta
   installata su un telefono di prova, quel numero di versione è "usato"). Il
   valore delle nuove colonne conta poco: `ensureSeeded()` ripopola comunque
@@ -469,19 +475,32 @@ catalogo completo.
   `RegularIssueCountryScreen` (route `regular-issues/{paese}`, `Uri.encode`
   come per le commemorative). **Nessuna ricerca/filtro/ordinamento**: 25
   paesi entrano in una griglia senza doverli cercare.
-- **`RegularIssueCountryScreen`**: una card per serie del paese, ordine
-  `ordineCronologico` (già garantito da `RegularIssueDao.observeAll`),
+- **`RegularIssueCountryScreen`**: con più di una serie per il paese (Belgio
+  3, Monaco 3, Città del Vaticano 6...) un **selettore a chip** in cima
+  (`FilterChip`, riuso dello stesso componente di `FilterSheet`) sceglie
+  quale mostrare — con una sola serie il selettore non compare. Sotto,
   intestazione "Series N" + `intestazioneRaw` se presente (es. "Series 1 ·
-  2002"), `descrizione` **per intero** (nessun troncamento/"Show more" in
+  2002") e `descrizione` **per intero** (nessun troncamento/"Show more" in
   questa prima versione — a differenza di HISTORICAL NOTES nel dettaglio
-  commemorative), riga scorrevole orizzontale con le immagini dei tagli
-  presenti (etichetta sotto, es. "50 cent"). Stesso trattamento di
-  caricamento/fallback delle commemorative: `SubcomposeAsyncImage` +
-  `painter.state.collectAsState()` (MAI `.value`, vedi § Decisioni di
-  prodotto) + icona `Icons.Filled.EuroSymbol` su cerchio lilla se l'URL
-  manca o il caricamento fallisce. Quando `immagini` è vuota (Città del
-  Vaticano, serie 2026 non ancora fotografata dalla fonte) la riga non
-  viene mostrata affatto — non è un caso di "immagine che non carica", è
+  commemorative, ma stesso testo giustificato con sillabazione,
+  `TextAlign.Justify` + `LineBreak.Paragraph` + `Hyphens.Auto`, per lo
+  stesso motivo: senza, il bordo destro era irregolare). **L'etichetta del
+  chip è `seriesHeading()` (con l'anno), non solo "Series N"**: nel dataset
+  lo stesso numero di serie può comparire più di una volta per lo stesso
+  paese (Belgio: 2002 e 2008 sono entrambe "Series 1", un ritocco minore
+  non classificato come nuova serie) — trovato provando i chip sul telefono,
+  due dicevano entrambi "Series 1" e non si distinguevano.
+  Sotto la descrizione, **una card per taglio** (non più una riga
+  orizzontale scorrevole dentro un'unica card di serie — cambiato su
+  richiesta, riusa la struttura di `CoinRow` in `CoinListScreen.kt`: card ad
+  altezza fissa 72 dp, miniatura 52 dp/segnaposto lilla 50 dp, testo,
+  casella a destra), stesso trattamento di caricamento/fallback delle
+  commemorative: `SubcomposeAsyncImage` + `painter.state.collectAsState()`
+  (MAI `.value`, vedi § Decisioni di prodotto) + icona
+  `Icons.Filled.EuroSymbol` su cerchio lilla se l'URL manca o il
+  caricamento fallisce. Quando `immagini` è vuota (Città del Vaticano,
+  serie 2026 non ancora fotografata dalla fonte) la lista di card non viene
+  mostrata affatto — non è un caso di "immagine che non carica", è
   l'assenza della lista stessa, verificato in emulatore/telefono.
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
@@ -498,13 +517,63 @@ catalogo completo.
   scelti a mano — Finlandia, Germania, Grecia, Paesi Bassi — con foto BCE verificate nitide a piena
   risoluzione; Italia (Uomo Vitruviano) e Spagna (Cervantes) scartate perché le foto BCE stesse sono
   leggermente sfocate, non un problema di ridimensionamento dell'app. Sotto, la stessa barra "liquido" di Commemorative
-  (`CollectionProgressBar` con `animation`), ma **ferma a 0** (`rememberProgressAnimation(owned =
-  0, ...)`): non c'è ancora una collezione utente da contare, la barra è "vera" nell'aspetto per
-  coerenza visiva, non nel dato.
+  (`CollectionProgressBar` con `animation`, animazione separata nel `HomeViewModel` — `lastShownRegularOwned`,
+  stesso pattern di `lastShownOwned` per Commemorative), **ora reale**: conta `regularIssueOwnedCount` (§
+  Collezione su Regular Issues) su `regularIssueCoinsCount`.
 - **Fuori scope di questa prima versione** (vedi anche § Backlog):
-  nessuna collezione utente (casella "posseduta") per le monete circolanti, quindi la barra
-  "collected" della Home resta ferma a 0 (sopra); nessuna gestione di `possibileIncongruenza` in
-  UI (oggi sempre `false` nel dataset).
+  ricerca/filtro/ordinamento nella griglia Countries; catena di ripiego "ultimo set mostrato" e
+  precaricamento di domani per la fascia Home (oggi solo foto di oggi o moneta disegnata, a
+  differenza di Commemorative); gestione di `possibileIncongruenza` in UI (oggi sempre `false`
+  nel dataset).
+
+### Collezione su Regular Issues
+
+A differenza delle commemorative, dove `Coin.stableKey` (fonte + anno + paese + tema) identifica
+la moneta esatta perché l'anno è nel dataset, qui il dataset descrive solo il **disegno** di un
+taglio per una serie — non esiste un anno: lo stesso disegno viene coniato per anni, spesso
+decenni. "Moneta posseduta" qui è quindi (serie, taglio, **anno inserito dall'utente**[, qualità]),
+e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 euro, sia 2018 sia
+2020) — non è un riuso di `CollectionItem`/`CollectionSheet`, serve un modello diverso.
+
+- **`RegularIssueSeries.stableKey`** (`RegularIssueKey.kt`): `paese` + `ordineCronologico`, stesso
+  motivo di `Coin.stableKey` (`RegularIssueSeries.id` si rigenera a ogni reseed). `ordineCronologico`
+  e non `numeroSerieIpotesi` perché quest'ultimo NON è univoco per paese (vedi sopra, Belgio).
+- **Tabella separata `regular_collection_items`** (`RegularCollectionItem`, chiave primaria
+  composita `seriesKey`+`taglio`+`anno`+`quality`, DB versione 7, `MIGRATION_6_7`): permette più
+  annate E più qualità sullo stesso taglio, mai duplicati sull'identico (anno, qualità). `paese` è
+  una copia di quando la voce è stata salvata, stesso scopo "riconoscere un orfano" di
+  `CollectionItem.anno/paese/tema`. `RegularIssueRepository.saveCollection(seriesKey, taglio,
+  paese, entries)` sostituisce in blocco le voci **di quel taglio** (`RegularCollectionDao
+  .replaceForDenomination`, transazione), conserva `addedAt` delle voci esistenti — stesso pattern
+  di `CoinRepository.saveCollection`/`CollectionDao.replaceForCoin`.
+- **Un taglio conta come "posseduto"** (casella piena nella card, `HomeViewModel
+  .regularIssueOwnedCount`) se ha almeno un'annata in una qualsiasi qualità — **conta i tagli
+  distinti, non le annate**: coerente con `regularIssueCoinsCount` ("N coins" in Home), che è già
+  un conteggio di disegni di taglio, non di monete fisiche. Un utente con 2 annate dello stesso
+  taglio fa avanzare la barra di 1, non di 2.
+- **Punto di ingresso**: una casella a destra di ogni card taglio in `RegularIssueCountryScreen`
+  (`CollectionBox`, duplicata da `CoinListScreen.kt` — stesso approccio di `BrowseCard`, non
+  condivisa), stessa spunta verdigris di Commemorative. Sopra il titolo del taglio, una riga di
+  stato riusa la posizione di "Paese · Anno" di `CoinRow`: "Not owned" (neutro) o "N years owned"
+  (`primary` Bold) — dà un'informazione utile invece di ripetere il paese, già nella barra in alto.
+- **`RegularCollectionSheet`** (`ui/components/RegularCollectionSheet.kt`, non `CollectionSheet`
+  riusato tale e quale — la forma dei dati è diversa, ma stesso linguaggio visivo, `PriceField` e
+  `sanitizePrice` esportati da `CollectionSheet.kt` e riusati qui): tre card Standard/BU/Proof come
+  Commemorative, ma spuntare una qualità non mostra un solo campo prezzo — mostra una **lista di
+  annate** (`YearEntry`, identità stabile con un id incrementale per le chiavi di Compose): riga
+  anno (pillola 4 cifre, `sanitizeYear` — solo cifre, nessun separatore) + pillola prezzo (stessa
+  di Commemorative) + rimuovi, e "+ Add year" sotto l'ultima. Qualità non spuntata = card compatta,
+  nessuna annata visibile (dati non persi, solo nascosti finché non si tocca di nuovo la spunta —
+  come il prezzo di `CollectionSheet`). Alla prima apertura (nessuna voce esistente) Standard è
+  già spuntata con una riga vuota, come nelle commemorative. **Le righe con anno vuoto o
+  incompleto (meno di 4 cifre) vengono ignorate al salvataggio**, invece di bloccare "Save" con un
+  errore — un modo leggero di scartare bozze non finite di scrivere, scelto per non introdurre
+  validazione bloccante in un pannello che finora non ne aveva mai avuta.
+- **Non ancora fatto** (vedi anche § Backlog): nessuna deduplicazione visibile se l'utente scrive
+  lo stesso anno due volte nella stessa qualità (l'ultima riga sovrascrive silenziosamente
+  l'altra al salvataggio, per via della chiave primaria); prezzo non testato per anno diverso
+  dello stesso taglio/qualità in scenari con più di 2-3 annate (il pannello può diventare alto,
+  non ancora verificato uno scroll interno oltre `windowInsetsPadding`).
 
 ## Lingua
 
@@ -1022,13 +1091,17 @@ Nella **pipeline dati** (repo separato, va fatto lì):
   noto, risolto — vedi § dataset).
 
 Nell'**app**:
-- **Regular Issues, fuori scope della prima versione** (§ omonima): collezione
-  utente sulle serie divisionali (nessuna casella "posseduta" oggi, quindi la
-  barra "collected" della Home resta ferma a 0); ricerca/filtro/ordinamento
-  nella griglia Countries; catena di ripiego "ultimo set mostrato" e
-  precaricamento di domani per la fascia Home (oggi solo foto di oggi o
-  moneta disegnata, a differenza di Commemorative); gestione di
-  `possibileIncongruenza` in UI.
+- **Regular Issues, fuori scope della prima versione** (§ omonima):
+  ricerca/filtro/ordinamento nella griglia Countries; catena di ripiego
+  "ultimo set mostrato" e precaricamento di domani per la fascia Home (oggi
+  solo foto di oggi o moneta disegnata, a differenza di Commemorative);
+  gestione di `possibileIncongruenza` in UI.
+- **Collezione su Regular Issues** (§ omonima): deduplicazione se l'utente
+  scrive lo stesso anno due volte nella stessa qualità (oggi l'ultima riga
+  sovrascrive silenziosamente); scroll interno del pannello non verificato
+  con molte annate insieme; export/backup su Drive non estesi a
+  `regular_collection_items` (oggi solo `collection_items` delle
+  commemorative, vedi § Backup su Google Drive).
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
