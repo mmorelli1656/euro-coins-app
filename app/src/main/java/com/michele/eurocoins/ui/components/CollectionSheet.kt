@@ -263,9 +263,12 @@ private fun FinishCard(
  *   condivide altezza di riga e linea di base. Il segnaposto "0.00" resta
  *   solo se il campo è vuoto e, insieme alla misura del testo, garantisce la larghezza
  *   minima di 4 caratteri.
+ *
+ * Esportato (non più `private`): riusato da `RegularCollectionSheet` per il prezzo di ogni
+ * annata delle monete circolanti, stessa pillola.
  */
 @Composable
-private fun PriceField(
+fun PriceField(
     value: String,
     onValueChange: (String) -> Unit,
     enabled: Boolean,
@@ -355,8 +358,10 @@ private const val PriceSample = "0000.00"
 /**
  * Limita il prezzo a 9999.99: solo cifre e un separatore (`.` o `,`, mostrato sempre come `.`), al massimo
  * 4 cifre intere e 2 decimali. Così la pillola ha sempre la stessa larghezza.
+ *
+ * Esportata (non più `private`): riusata da `RegularCollectionSheet`.
  */
-private fun sanitizePrice(input: String): String {
+fun sanitizePrice(input: String): String {
     val separator = input.indexOfFirst { it == '.' || it == ',' }
     val integer = input.substring(0, if (separator >= 0) separator else input.length)
         .filter(Char::isDigit).take(4)

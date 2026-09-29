@@ -19,7 +19,7 @@ class EuroCoinsApplication : Application() {
 
     val regularIssueRepository: RegularIssueRepository by lazy {
         val db = CoinDatabase.getInstance(this)
-        RegularIssueRepository(this, db.regularIssueDao(), userSettings.hideMicrostates)
+        RegularIssueRepository(this, db.regularIssueDao(), db.regularCollectionDao(), userSettings.hideMicrostates)
     }
 
     val accountManager: GoogleAccountManager by lazy { GoogleAccountManager(this) }

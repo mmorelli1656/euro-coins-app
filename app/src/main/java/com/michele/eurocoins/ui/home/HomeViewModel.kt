@@ -7,6 +7,7 @@ import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.progress
+import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.settings.UserSettings
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
@@ -30,6 +31,8 @@ data class HomeUiState(
     val regularIssueCoinsCount: Int = 0,
     val regularIssueCountries: Int = 0,
     val regularIssueSeriesCount: Int = 0,
+    /** Tagli distinti posseduti in almeno un'annata (su [regularIssueCoinsCount]), per la barra "collected". */
+    val regularIssueOwnedCount: Int = 0,
     /** Una foto per fascia di taglio crescente (§ dataset), null dove manca, per la fascia della scheda Regular Issues. */
     val regularIssueShowcase: List<String?> = emptyList(),
 )
@@ -49,6 +52,8 @@ class HomeViewModel(
      */
     var lastShownOwned: Int? = null
 
+    /** Stesso discorso di [lastShownOwned], per la barra "collected" della scheda Regular Issues. */
+    var lastShownRegularOwned: Int? = null
 
     // Letto una volta: durante la sessione il ripiego non cambia (il nuovo set salvato serve dalla prossima apertura).
     // Foto note subito, senza il database: il set di oggi se già calcolato (ieri l'ha precaricato, oppure
@@ -63,12 +68,19 @@ class HomeViewModel(
         repository.ownedKeys,
         settings.rotateHomeCoins,
         regularIssueRepository.series,
-    ) { coins, ownedKeys, rotate, regularIssueSeries ->
+        regularIssueRepository.collectionItems,
+    ) { coins, ownedKeys, rotate, regularIssueSeries, regularCollection ->
         val today = LocalDate.now().toEpochDay()
         val showcase = pickShowcase(coins, if (rotate) today else null)
         val nextShowcase = if (rotate) pickShowcase(coins, today + 1) else emptyList()
         if (rotate && showcase.isNotEmpty()) {
             settings.saveShowcaseUrls(mapOf(today to showcase.mapNotNull { it.urlImmagineFonte }, today + 1 to nextShowcase.mapNotNull { it.urlImmagineFonte }))
+        }
+        // Tagli distinti posseduti (qualsiasi annata/qualità): coerente con `regularIssueCoinsCount`,
+        // che conta i disegni di taglio del catalogo, non le monete fisiche — vedi CLAUDE.md.
+        val ownedDenominations = regularCollection.map { it.seriesKey to it.taglio }.toSet()
+        val regularIssueOwned = regularIssueSeries.sumOf { series ->
+            series.immagini.count { (series.stableKey to it.taglio) in ownedDenominations }
         }
         HomeUiState(
             progress = coins.progress(ownedKeys),
@@ -81,6 +93,7 @@ class HomeViewModel(
             regularIssueCoinsCount = regularIssueSeries.sumOf { it.immagini.size },
             regularIssueCountries = regularIssueSeries.map { it.paese }.distinct().size,
             regularIssueSeriesCount = regularIssueSeries.size,
+            regularIssueOwnedCount = regularIssueOwned,
             regularIssueShowcase = pickRegularIssueShowcaseUrls(regularIssueSeries, if (rotate) today else null),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(lastShowcaseUrls = lastShowcaseUrls))

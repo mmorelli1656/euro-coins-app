@@ -9,8 +9,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class],
-    version = 6,
+    entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class, RegularCollectionItem::class],
+    version = 7,
     exportSchema = false,
 )
 @TypeConverters(RegularIssueConverters::class)
@@ -19,6 +19,7 @@ abstract class CoinDatabase : RoomDatabase() {
     abstract fun coinDao(): CoinDao
     abstract fun collectionDao(): CollectionDao
     abstract fun regularIssueDao(): RegularIssueDao
+    abstract fun regularCollectionDao(): RegularCollectionDao
 
     companion object {
         /**
@@ -80,6 +81,22 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * 6 -> 7: aggiunge la tabella della collezione utente sulle monete circolanti (Regular
+         * Issues) — un taglio di una serie, in un'annata e una qualità inserite dall'utente (non
+         * nel dataset, a differenza di `collection_items`: vedi [RegularCollectionItem]).
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `regular_collection_items` (" +
+                        "`seriesKey` TEXT NOT NULL, `taglio` TEXT NOT NULL, `anno` INTEGER NOT NULL, " +
+                        "`quality` TEXT NOT NULL, `priceCents` INTEGER, `paese` TEXT NOT NULL, " +
+                        "`addedAt` INTEGER NOT NULL, PRIMARY KEY(`seriesKey`, `taglio`, `anno`, `quality`))",
+                )
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -88,7 +105,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { instance = it }
             }
     }
 }

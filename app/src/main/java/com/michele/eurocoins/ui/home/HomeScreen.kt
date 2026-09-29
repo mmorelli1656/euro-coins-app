@@ -101,6 +101,16 @@ fun HomeScreen(
         lastShown = viewModel.lastShownOwned,
         onShown = { viewModel.lastShownOwned = it },
     )
+    // Stessa animazione, per la barra "collected" di Regular Issues: non più ferma a 0, ora
+    // conta i tagli distinti posseduti (vedi HomeViewModel.regularIssueOwnedCount).
+    val playRegularIntro = remember { viewModel.lastShownRegularOwned == null }
+    val regularProgressAnimation = rememberProgressAnimation(
+        owned = state.regularIssueOwnedCount,
+        ready = state.regularIssueCoinsCount > 0,
+        playIntro = playRegularIntro,
+        lastShown = viewModel.lastShownRegularOwned,
+        onShown = { viewModel.lastShownRegularOwned = it },
+    )
 
     // Precarica le foto del set di domani (con la rotazione accesa): domani la Home è già pronta, anche
     // senza rete se oggi l'app è stata aperta online. Coil le tiene nella cache su disco.
@@ -156,6 +166,7 @@ fun HomeScreen(
                 )
                 RegularIssuesCard(
                     state = state,
+                    progressAnimation = regularProgressAnimation,
                     onClick = onRegularIssuesClick,
                     minHeight = cardHeight,
                     modifier = Modifier.fillMaxWidth(),
@@ -396,14 +407,17 @@ private fun RegularCoin(coin: DrawnCoin, size: Dp) {
 }
 
 @Composable
-private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight: Dp, modifier: Modifier = Modifier) {
+private fun RegularIssuesCard(
+    state: HomeUiState,
+    progressAnimation: ProgressAnimation,
+    onClick: () -> Unit,
+    minHeight: Dp,
+    modifier: Modifier = Modifier,
+) {
     // Stesso trattamento pieno di CommemorativeCard: le due schede attive hanno pari peso, non
     // più una attiva e una "coming soon" tratteggiata.
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val onFill = if (dark) InkDark else MaterialTheme.colorScheme.onPrimary
-    // Nessuna collezione utente per questa sezione: la barra è "vera" nell'aspetto (stessa di
-    // Commemorative) ma ferma a 0 finché non esiste una collezione da contare — vedi CLAUDE.md.
-    val progressAnimation = rememberProgressAnimation(owned = 0, ready = true, playIntro = false, lastShown = 0, onShown = {})
     Box(
         modifier = modifier
             .clip(CardShape)
@@ -437,7 +451,7 @@ private fun RegularIssuesCard(state: HomeUiState, onClick: () -> Unit, minHeight
             },
             footer = {
                 CollectionProgressBar(
-                    progress = Progress(owned = 0, total = state.regularIssueCoinsCount),
+                    progress = Progress(owned = state.regularIssueOwnedCount, total = state.regularIssueCoinsCount),
                     color = onFill,
                     trackColor = onFill.copy(alpha = 0.45f),
                     labelColor = onFill,

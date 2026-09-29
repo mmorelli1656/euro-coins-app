@@ -27,6 +27,7 @@ import java.security.MessageDigest
 class RegularIssueRepository(
     private val context: Context,
     private val dao: RegularIssueDao,
+    private val collectionDao: RegularCollectionDao,
     hideMicrostates: Flow<Boolean>,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -38,6 +39,39 @@ class RegularIssueRepository(
 
     /** Ultimo dataset già letto, o null se Room non ha ancora risposto: come `CoinRepository.coinsNow`. */
     val seriesNow: List<RegularIssueSeries>? get() = series.replayCache.firstOrNull()
+
+    /** Tutte le voci di collezione dell'utente sulle monete circolanti (una per taglio+anno+qualità). */
+    val collectionItems: SharedFlow<List<RegularCollectionItem>> = collectionDao.observeAll()
+        .shareIn(scope, SharingStarted.Eagerly, replay = 1)
+
+    /** Stesso discorso di [seriesNow] per la collezione. */
+    val collectionNow: List<RegularCollectionItem>? get() = collectionItems.replayCache.firstOrNull()
+
+    /**
+     * Salva in blocco le annate/qualità possedute di un taglio ([entries]): quelle non presenti
+     * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti (stessa (anno,
+     * qualità)). Stesso pattern di `CoinRepository.saveCollection`, ma qui la chiave include
+     * anche l'anno perché più annate dello stesso taglio possono coesistere.
+     */
+    suspend fun saveCollection(seriesKey: String, taglio: String, paese: String, entries: List<RegularCollectionEntry>) {
+        val existing = collectionDao.itemsFor(seriesKey, taglio).associateBy { it.anno to it.quality }
+        val now = System.currentTimeMillis()
+        collectionDao.replaceForDenomination(
+            seriesKey,
+            taglio,
+            entries.map { entry ->
+                RegularCollectionItem(
+                    seriesKey = seriesKey,
+                    taglio = taglio,
+                    anno = entry.anno,
+                    quality = entry.quality,
+                    priceCents = entry.priceCents,
+                    paese = paese,
+                    addedAt = existing[entry.anno to entry.quality]?.addedAt ?: now,
+                )
+            },
+        )
+    }
 
     private val seedMutex = Mutex()
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
