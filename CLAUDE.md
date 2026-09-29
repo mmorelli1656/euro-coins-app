@@ -484,17 +484,29 @@ catalogo completo.
   questa prima versione — a differenza di HISTORICAL NOTES nel dettaglio
   commemorative, ma stesso testo giustificato con sillabazione,
   `TextAlign.Justify` + `LineBreak.Paragraph` + `Hyphens.Auto`, per lo
-  stesso motivo: senza, il bordo destro era irregolare). **L'etichetta del
-  chip è `seriesHeading()` (con l'anno), non solo "Series N"**: nel dataset
-  lo stesso numero di serie può comparire più di una volta per lo stesso
-  paese (Belgio: 2002 e 2008 sono entrambe "Series 1", un ritocco minore
-  non classificato come nuova serie) — trovato provando i chip sul telefono,
-  due dicevano entrambi "Series 1" e non si distinguevano.
+  stesso motivo: senza, il bordo destro era irregolare). **Il numero "Series
+  N" del chip e dell'intestazione è la posizione (1-based) della serie
+  nella lista del paese** (`seriesHeading(series, number)`, `number` passato
+  dal chiamante), NON `RegularIssueSeries.numeroSerieIpotesi`: quel campo
+  raggruppa varianti minori sotto lo stesso numero (Belgio: 2002 e 2008 sono
+  entrambe "1" nel dataset, un ritocco minore non classificato come nuova
+  serie) e con più di 2 serie per paese può ripetersi — bug reale, trovato
+  sul telefono (due chip del Belgio dicevano entrambi "Series 1", anche
+  con l'anno già aggiunto per disambiguare). Lo stesso `number` è passato a
+  `RegularCollectionSheet` per il sottotitolo del pannello, così resta
+  coerente.
   Sotto la descrizione, **una card per taglio** (non più una riga
   orizzontale scorrevole dentro un'unica card di serie — cambiato su
   richiesta, riusa la struttura di `CoinRow` in `CoinListScreen.kt`: card ad
   altezza fissa 72 dp, miniatura 52 dp/segnaposto lilla 50 dp, testo,
-  casella a destra), stesso trattamento di caricamento/fallback delle
+  casella a destra), **ordinate per valore** (`RegularIssueCountryViewModel`,
+  elenco canonico 1 cent → 2 euro): `RegularIssueSeries.immagini` non è
+  garantita in quest'ordine — i tagli aggiunti dal secondo arricchimento BCE
+  (es. Andorra 1 euro, mai pubblicato dalla fonte EC, vedi sotto) restano in
+  coda alla lista originale invece di essere inseriti al posto giusto — bug
+  reale, trovato sul telefono (1 euro dell'Andorra in fondo alla lista). Un
+  taglio non riconosciuto finisce in fondo invece di far fallire
+  l'ordinamento. Stesso trattamento di caricamento/fallback delle
   commemorative: `SubcomposeAsyncImage` + `painter.state.collectAsState()`
   (MAI `.value`, vedi § Decisioni di prodotto) + icona
   `Icons.Filled.EuroSymbol` su cerchio lilla se l'URL manca o il
