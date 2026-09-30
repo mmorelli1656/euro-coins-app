@@ -730,6 +730,16 @@ lingua da servire.
 - **Commit**: messaggi lunghi che spiegano il *perché* e le alternative scartate,
   con il trailer `Co-Authored-By`. Progetto personale: si pubblica direttamente
   su `main`.
+- **Pareri su UI/UX**: quando si chiede un parere su una scelta grafica o di
+  interazione (forme, colori, gerarchie, layout), dare sempre una raccomandazione
+  tecnica esplicita e motivata, come un consulente UI/UX — non limitarsi a
+  elencare pro e contro in modo neutro. Riferirsi quando pertinente alla
+  grammatica visiva già stabilita in questo file (es. § Raggi dei bordi a tre
+  livelli: pillola = controllo azionabile o etichetta/badge, rettangolo con
+  angoli morbidi = contenuto/card). Il parere precede il mockup, non lo
+  sostituisce: prima l'opinione motivata, poi comunque il confronto visivo
+  prima di toccare il codice (vedi i mockup sparsi nel file, es. § Barra "x / y
+  collected" della home, "Nota sul processo").
 - **Più sessioni Claude lavorano su questo repo insieme** (una per funzione:
   collezione, ricerca/filtri, backup). Regole per non sovrascriversi, imparate
   a caro prezzo (`CollectionDao` toccato da due chat contemporaneamente):
