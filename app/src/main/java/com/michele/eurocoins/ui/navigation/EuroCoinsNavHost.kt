@@ -32,6 +32,8 @@ import com.michele.eurocoins.ui.home.HomeViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
+import com.michele.eurocoins.ui.regular.RegularDenominationDetailScreen
+import com.michele.eurocoins.ui.regular.RegularDenominationDetailViewModel
 import com.michele.eurocoins.ui.regular.RegularIssueCountryScreen
 import com.michele.eurocoins.ui.regular.RegularIssueCountryViewModel
 import com.michele.eurocoins.ui.regular.RegularIssuesScreen
@@ -45,10 +47,13 @@ private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
 private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
+private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
 private const val ARG_COIN_ID = "coinId"
 private const val ARG_PAESE = "paese"
+private const val ARG_ORDINE = "ordine"
+private const val ARG_TAGLIO = "taglio"
 
 private const val KIND_YEAR = "year"
 private const val KIND_YEAR_COMMON = "year-common"
@@ -187,6 +192,33 @@ fun EuroCoinsNavHost(
                 factory = viewModelFactory { initializer { RegularIssueCountryViewModel(regularIssueRepository, paese) } },
             )
             RegularIssueCountryScreen(
+                viewModel = viewModel,
+                onDenominationClick = { series, taglio ->
+                    navController.navigate(
+                        "regular-issues/${Uri.encode(paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
+                    )
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = ROUTE_REGULAR_DENOMINATION,
+            arguments = listOf(
+                navArgument(ARG_PAESE) { type = NavType.StringType },
+                navArgument(ARG_ORDINE) { type = NavType.IntType },
+                navArgument(ARG_TAGLIO) { type = NavType.StringType },
+            ),
+        ) { backStackEntry ->
+            val paese = backStackEntry.arguments?.getString(ARG_PAESE) ?: return@composable
+            val ordine = backStackEntry.arguments?.getInt(ARG_ORDINE) ?: return@composable
+            val taglio = backStackEntry.arguments?.getString(ARG_TAGLIO) ?: return@composable
+            val viewModel: RegularDenominationDetailViewModel = viewModel(
+                key = "regular-denomination-$paese-$ordine-$taglio",
+                factory = viewModelFactory {
+                    initializer { RegularDenominationDetailViewModel(regularIssueRepository, paese, ordine, taglio) }
+                },
+            )
+            RegularDenominationDetailScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() },
             )

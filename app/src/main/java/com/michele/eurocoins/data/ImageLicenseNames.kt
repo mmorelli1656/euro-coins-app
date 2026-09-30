@@ -17,4 +17,9 @@ private val IMAGE_LICENSE_NAMES = mapOf(
     "Sconosciuta - da verificare" to "Unknown, to be verified",
 )
 
-fun Coin.displayImageLicense(): String = IMAGE_LICENSE_NAMES[licenzaImmagine] ?: licenzaImmagine
+fun Coin.displayImageLicense(): String = displayImageLicense(licenzaImmagine)
+
+/** Stessa mappa delle commemorative: `RegularIssueImage.licenzaImmagine` usa gli stessi valori italiani della pipeline. */
+fun RegularIssueImage.displayImageLicense(): String = displayImageLicense(licenzaImmagine)
+
+private fun displayImageLicense(raw: String): String = IMAGE_LICENSE_NAMES[raw] ?: raw

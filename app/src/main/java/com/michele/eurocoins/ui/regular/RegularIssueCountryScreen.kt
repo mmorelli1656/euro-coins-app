@@ -75,6 +75,7 @@ private val PlaceholderSize = 50.dp
 @Composable
 fun RegularIssueCountryScreen(
     viewModel: RegularIssueCountryViewModel,
+    onDenominationClick: (RegularIssueSeries, String) -> Unit,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -104,7 +105,11 @@ fun RegularIssueCountryScreen(
                 item { SeriesHeader(series, state.selectedIndex + 1) }
             }
             items(state.denominations, key = { it.image.taglio }) { denom ->
-                DenominationRow(denom = denom, onEditCollection = { editing = denom })
+                DenominationRow(
+                    denom = denom,
+                    onClick = { state.selectedSeries?.let { onDenominationClick(it, denom.image.taglio) } },
+                    onEditCollection = { editing = denom },
+                )
             }
         }
     }
@@ -183,9 +188,13 @@ private fun seriesHeading(series: RegularIssueSeries, number: Int): String {
     return series.intestazioneRaw?.let { "$base · $it" } ?: base
 }
 
-/** Una card per taglio, altezza fissa 72 dp: stessa struttura di `CoinRow` in `CoinListScreen.kt`. */
+/**
+ * Una card per taglio, altezza fissa 72 dp: stessa struttura di `CoinRow` in `CoinListScreen.kt`.
+ * Il tocco sulla riga apre il dettaglio del taglio ([onClick]), come nell'elenco Commemorative;
+ * la casella a destra resta un bersaglio separato per la collezione ([onEditCollection]).
+ */
 @Composable
-private fun DenominationRow(denom: DenominationUiState, onEditCollection: () -> Unit) {
+private fun DenominationRow(denom: DenominationUiState, onClick: () -> Unit, onEditCollection: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = Modifier
@@ -195,6 +204,7 @@ private fun DenominationRow(denom: DenominationUiState, onEditCollection: () -> 
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .clickable(onClick = onClick)
             .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

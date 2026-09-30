@@ -256,9 +256,13 @@ private fun CoinHeroFallback(icon: ImageVector, message: String?) {
     }
 }
 
-/** Superficie delle card del dettaglio: colore del tema, bordo da 1 dp, angoli 16 dp. */
+/**
+ * Superficie delle card del dettaglio: colore del tema, bordo da 1 dp, angoli 16 dp.
+ * Esportata (non più `private`): riusata da `RegularDenominationDetailScreen`, stesso linguaggio
+ * visivo per il dettaglio dei tagli di Regular Issues.
+ */
 @Composable
-private fun DetailCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun DetailCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = modifier
@@ -271,9 +275,9 @@ private fun DetailCard(modifier: Modifier = Modifier, content: @Composable Colum
     )
 }
 
-/** Etichetta maiuscola comune a tutte le card del dettaglio. */
+/** Etichetta maiuscola comune a tutte le card del dettaglio. Esportata, vedi [DetailCard]. */
 @Composable
-private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelLarge,
@@ -289,7 +293,7 @@ private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
  * schermate), qui lo si sostituisce localmente senza toccare il tema.
  */
 @Composable
-private fun sansTitleMedium(): TextStyle =
+fun sansTitleMedium(): TextStyle =
     MaterialTheme.typography.titleMedium.copy(fontFamily = FontFamily.Default)
 /** Misure del testo delle note, scritte durante il layout (non sono stato osservabile). */
 private class NotesMetrics {
@@ -417,7 +421,7 @@ private fun MintageCard(coin: Coin) {
         )
         SectionLabel("DETAILS")
         Spacer(Modifier.height(10.dp))
-        DetailsSection(coin)
+        DetailsSection(coin.displayMint() ?: NO_VALUE, coin.displayEngraver() ?: NO_VALUE, coin.displayDesigner() ?: NO_VALUE)
     }
 }
 
@@ -432,11 +436,15 @@ private fun MintageCard(coin: Coin) {
  * larghezza), **Engraver/Designer affiancati sotto** in 2 colonne (nomi di persona, quasi sempre
  * corti): una sola riga in più rispetto alla griglia a 3, non il triplo come la variante a righe
  * impilate scartata per lo stesso motivo (allungava troppo la card).
+ *
+ * Presi come stringhe già pronte (non un `Coin`) ed esportata (non più `private`): riusata da
+ * `RegularDenominationDetailScreen` con tre `NO_VALUE` fissi, perché il dataset Regular Issues
+ * non ha questi campi per taglio — vedi CLAUDE.md § Regular Issues.
  */
 @Composable
-private fun DetailsSection(coin: Coin) {
+fun DetailsSection(mint: String, engraver: String, designer: String) {
     ValueLabel(
-        value = coin.displayMint() ?: NO_VALUE,
+        value = mint,
         label = "Mint",
         modifier = Modifier.fillMaxWidth(),
     )
@@ -447,8 +455,8 @@ private fun DetailsSection(coin: Coin) {
     // trattino restava incollato in alto invece che centrato accanto al nome presente.
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
         listOf(
-            "Engraver" to (coin.displayEngraver() ?: NO_VALUE),
-            "Designer" to (coin.displayDesigner() ?: NO_VALUE),
+            "Engraver" to engraver,
+            "Designer" to designer,
         ).forEach { (label, value) ->
             Column(
                 modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -477,9 +485,12 @@ private fun DetailsSection(coin: Coin) {
     }
 }
 
-/** Valore in evidenza sopra, etichetta piccola sotto, entrambi centrati — usato da MINTAGES e DETAILS. */
+/**
+ * Valore in evidenza sopra, etichetta piccola sotto, entrambi centrati — usato da MINTAGES e
+ * DETAILS. Esportata, vedi [DetailsSection].
+ */
 @Composable
-private fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier) {
+fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
@@ -575,7 +586,7 @@ private fun MintageSection(coin: Coin) {
     }
 }
 
-private const val NO_VALUE = "—"
+const val NO_VALUE = "—"
 
 /**
  * Crediti in piccolo in fondo: fonte dei dati, licenza e credito dell'immagine, link alla
@@ -617,7 +628,7 @@ private fun ImageCreditFooter(coin: Coin) {
 }
 
 @Composable
-private fun FooterLine(text: String) {
+fun FooterLine(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
@@ -732,9 +743,9 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
     }
 }
 
-/** Pillola "✓ OWNED": verde scuro con testo bianco (tema chiaro), invertita nello scuro. */
+/** Pillola "✓ OWNED": verde scuro con testo bianco (tema chiaro), invertita nello scuro. Esportata, vedi [DetailCard]. */
 @Composable
-private fun OwnedBadge(dark: Boolean) {
+fun OwnedBadge(dark: Boolean) {
     val bg = if (dark) VerdigrisDark else Color(0xFF2F4A38)
     val fg = if (dark) BackgroundDark else Color.White
     Row(
