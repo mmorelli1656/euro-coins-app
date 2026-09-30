@@ -139,10 +139,14 @@ app/src/main/java/com/michele/eurocoins/
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
     ├── regular/               # Regular Issues: griglia paesi + serie del paese + collezione per taglio
+    │                         # + RegularDenominationDetailScreen (dettaglio taglio, building
+    │                         # block riusati da ui/detail/)
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
     ├── backup/               # BackupSection (sezione account/backup di Settings), BackupViewModel
-    ├── detail/                # dettaglio moneta, licenza/attribuzione immagine
-    └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> regular issues; home -> backup
+    ├── detail/                # dettaglio moneta, licenza/attribuzione immagine — DetailCard/
+    │                         # SectionLabel/OwnedBadge/FooterLine/ValueLabel/DetailsSection
+    │                         # esportati, riusati dal dettaglio taglio di Regular Issues
+    └── navigation/           # home -> browse -> lista filtrata -> dettaglio; home -> regular issues -> dettaglio taglio; home -> backup
 ```
 
 Navigazione: `HomeScreen` (start) → `BrowseScreen` (selettore Years /
@@ -522,6 +526,31 @@ catalogo completo.
   serie 2026 non ancora fotografata dalla fonte) la lista di card non viene
   mostrata affatto — non è un caso di "immagine che non carica", è
   l'assenza della lista stessa, verificato in emulatore/telefono.
+- **`RegularDenominationDetailScreen`** (route `regular-issues/{paese}/{ordine}/{taglio}`,
+  `ordineCronologico` e non `seriesKey` diretto — eviterebbe il separatore `|` in un argomento di
+  rotta): il tocco sulla riga di un taglio (non più solo la casella) apre un dettaglio a schermo
+  intero, stessa struttura di `CoinDetailScreen` — Hero con foto grande (è lo "zoom": nessun
+  dialog di ingrandimento separato, come nel dettaglio Commemorative, che non ce l'ha nemmeno lui,
+  vedi § Dettaglio moneta più sotto), MINTAGES+DETAILS, COLLECTION, ABOUT THIS SERIES (la
+  `descrizione` della serie, ripetuta qui perché la schermata è raggiungibile direttamente),
+  crediti. **MINTAGES (Standard/BU/Proof) e DETAILS (Mint/Engraver/Designer) restano SEMPRE
+  vuoti** (`NO_VALUE`, "—"): il dataset Regular Issues non ha tirature né zecca fisica/incisore/
+  disegnatore per taglio, solo `zeccaEmittente` a livello di serie (= il paese, non una zecca
+  fisica). Le sezioni ci sono comunque, non omesse — stessa posizione e card unica del dettaglio
+  Commemorative, per coerenza strutturale e per essere già pronte se la pipeline aggiungesse
+  questi dati un giorno; un primo giro le aveva omesse, corretto su richiesta esplicita.
+  `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
+  `collectionItems` (come `RegularIssueCountryViewModel`), non un fetch singolo come
+  `CoinDetailViewModel.getById`: qui non serve un id stabile per riga, il taglio è già una chiave
+  dentro la serie. Building block riusati da `CoinDetailScreen.kt` (esportati, non più `private`):
+  `DetailCard`, `SectionLabel`, `OwnedBadge`, `FooterLine`, `sansTitleMedium`, `ValueLabel`,
+  `NO_VALUE`; `DetailsSection` non prende più un `Coin` ma tre stringhe già pronte (mint, engraver,
+  designer), per essere chiamabile anche con tre `NO_VALUE` fissi. Nuova
+  `RegularIssueImage.displayImageLicense()` in `ImageLicenseNames.kt` (stessa mappa
+  italiano→inglese di `Coin.displayImageLicense()`). I crediti distinguono fonte del TESTO
+  (`RegularIssueSeries.fonteDati`, sempre EC) da fonte dell'IMMAGINE (`RegularIssueImage.fonteDati`,
+  quasi sempre BCE) — due voci, non una sola "Data source" come nelle commemorative, perché qui
+  possono differire (vedi sopra).
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
   intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
@@ -576,6 +605,9 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   condivisa), stessa spunta verdigris di Commemorative. Sopra il titolo del taglio, una riga di
   stato riusa la posizione di "Paese · Anno" di `CoinRow`: "Not owned" (neutro) o "N years owned"
   (`primary` Bold) — dà un'informazione utile invece di ripetere il paese, già nella barra in alto.
+  Anche la card COLLECTION di `RegularDenominationDetailScreen` (§ omonima più sopra) apre lo
+  stesso pannello con "Add to collection"/"Edit collection": due punti di ingresso allo stesso
+  pannello, come nelle commemorative.
 - **`RegularCollectionSheet`** (`ui/components/RegularCollectionSheet.kt`, non `CollectionSheet`
   riusato tale e quale — la forma dei dati è diversa, ma stesso linguaggio visivo, `PriceField` e
   `sanitizePrice` esportati da `CollectionSheet.kt` e riusati qui): tre card Standard/BU/Proof come
@@ -1143,6 +1175,12 @@ Nell'**app**:
   con molte annate insieme; export/backup su Drive non estesi a
   `regular_collection_items` (oggi solo `collection_items` delle
   commemorative, vedi § Backup su Google Drive).
+- **MINTAGES/DETAILS del dettaglio taglio (Regular Issues) sempre vuoti**
+  (§ omonima): il dataset non ha tirature né zecca fisica/incisore/
+  disegnatore per taglio. Se la pipeline li aggiungesse un giorno,
+  `RegularMintageCard` in `RegularDenominationDetailScreen.kt` è già
+  pronta a riceverli (riusa `ValueLabel`/`DetailsSection` come
+  Commemorative) — va solo tolto il fisso `NO_VALUE`.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
