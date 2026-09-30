@@ -199,13 +199,12 @@ private fun FinishCard(
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
-    val backgroundColor by animateColorAsState(
-        targetValue = if (checked) colors.secondaryContainer else colors.surface,
-        animationSpec = tween(durationMillis = 150),
-        label = "cardBackgroundColor",
-    )
+    // Solo bordo, mai fondo pieno: con la spunta verde già presente, il lilla a tutta card era
+    // ridondante ("pesante" secondo l'utente) e competeva con il verde come segnale di stato.
+    // Bordo pieno (non più al 40% di opacità) e più spesso (2.5 dp, era 1.5): su fondo bianco un
+    // bordo sottile e sbiadito si vedeva poco.
     val borderColor by animateColorAsState(
-        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight).copy(alpha = 0.4f) else Color.Transparent,
+        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight) else Color.Transparent,
         animationSpec = tween(durationMillis = 150),
         label = "cardBorderColor",
     )
@@ -216,8 +215,8 @@ private fun FinishCard(
             .fillMaxWidth()
             .height(CardHeight)
             .clip(shape)
-            .background(backgroundColor)
-            .border(1.5.dp, borderColor, shape)
+            .background(colors.surface)
+            .border(2.5.dp, borderColor, shape)
             .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {

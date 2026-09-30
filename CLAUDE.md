@@ -227,6 +227,14 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   campo prezzo è SEMPRE presente (non spuntata: testo piatto al 38%, non
   editabile), così il pannello non cambia altezza a ogni tocco. Dettagli non
   ovvi, tutti scelti dopo mockup e prove su telefono:
+  - **Card spuntata: solo bordo, mai fondo pieno** (`FinishCard`): prima il fondo
+    diventava `secondaryContainer` (lilla) a tutta card; con la spunta verde già
+    presente il lilla pieno era ridondante ("pesante" secondo l'utente) e competeva
+    con il verde come segnale di stato. Ora il fondo resta sempre `colors.surface`
+    (bianco/nero della card) e solo il bordo cambia: 2.5 dp pieno (non più 1.5 dp al
+    40% di opacità) quando spuntata, trasparente quando no — su fondo bianco un
+    bordo sottile e sbiadito si vedeva poco. Stesso trattamento sulla pillola
+    "COLLECTION" del dettaglio (§ Dettaglio moneta, sotto), bordo lì 2 dp.
   - **Campo prezzo = pillola a dimensioni FISSE** (altezza 40 dp, larghezza
     misurata su "0000.00" con `rememberTextMeasurer`), bordo viola
     (`PurpleField*` in `Color.kt`, contrasto ~3.4:1 sul lilla, varianti chiare
@@ -996,10 +1004,14 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
     centrato e "Add to collection" pieno (48 dp, l'unica azione piena); posseduta =
     card bianca con **bordo verdigris da 2 dp** (`colorScheme.primary`, come badge OWNED e spunte: verde = "posseduta"; era viola `PurpleField*`, cambiato su richiesta lasciando lilla le pillole delle finiture), badge `✓ OWNED` verde
-    scuro in alto a destra, **solo le finiture possedute** (una pillola lilla
-    `LilacLight` a tutta larghezza per riga: nome a sinistra, prezzo in grassetto a
-    destra, `—` se assente o 0.00) e "Edit collection" (TextButton compatto) a
-    destra. Scartati: sfondo verde pieno (alternava colori tra le card), righe
+    scuro in alto a destra, **solo le finiture possedute** (una pillola per riga: nome a
+    sinistra in colore normale del testo, prezzo in grassetto viola a destra, `—` se
+    assente o 0.00) e "Edit collection" (TextButton compatto) a destra. **Pillola SOLO
+    bordo** (2 dp pieno, non più al 40% di opacità), fondo bianco come il resto della
+    card: prima era `LilacLight` a tutta pillola, un terzo blocco di colore pieno nella
+    stessa card che ha già il bordo verde e il badge OWNED — "pesante" secondo l'utente,
+    cambiato su richiesta (stesso trattamento della card spuntata in `CollectionSheet`,
+    sotto). Scartati: sfondo verde pieno (alternava colori tra le card), righe
     non possedute tratteggiate, pulsante Edit a tutta larghezza.
   - **HISTORICAL NOTES**: `bodyMedium` 14 sp / 20 sp, `TextAlign.Justify` con
     `LineBreak.Paragraph` e `Hyphens.Auto` (bordo destro regolare; la sillabazione

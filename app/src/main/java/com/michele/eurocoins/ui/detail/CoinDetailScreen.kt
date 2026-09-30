@@ -98,7 +98,6 @@ import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.theme.BackgroundDark
 import com.michele.eurocoins.ui.theme.InkLight
-import com.michele.eurocoins.ui.theme.LilacLight
 import com.michele.eurocoins.ui.theme.PurpleFieldDark
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
 import com.michele.eurocoins.ui.theme.PurpleFieldLight
@@ -664,7 +663,6 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
     // Bordo verdigris (stato "posseduta", come badge OWNED e spunte); righe e pillole lilla/viola (finiture).
     val accent = if (dark) PurpleFieldDark else PurpleFieldLight
     val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
-    val pillColor = if (dark) PurpleFieldDark.copy(alpha = 0.25f) else LilacLight
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -677,8 +675,14 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
             SectionLabel("COLLECTION", modifier = Modifier.weight(1f))
             OwnedBadge(dark)
         }
-        // Solo le finiture possedute: una pillola lilla unica per riga, nome a sinistra e
-        // prezzo a destra (trattino se assente o 0,00, per tenere la colonna allineata).
+        // Solo le finiture possedute: una pillola per riga, nome a sinistra e prezzo a destra
+        // (trattino se assente o 0,00, per tenere la colonna allineata). Solo bordo viola, mai
+        // fondo pieno (era LilacLight): la card ha già il bordo verde "posseduta" e il badge
+        // OWNED, un terzo blocco di colore pieno competeva con quei due segnali. Bordo pieno
+        // (non più al 40% di opacità) e più spesso (2 dp, era 1): su fondo bianco un bordo
+        // sottile e sbiadito si vedeva poco. Etichetta nel colore normale del testo, prezzo
+        // resta viola: è l'unico dato numerico della riga e mantenerlo colorato lo fa leggere
+        // a colpo d'occhio anche col fondo bianco.
         Column(
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -690,8 +694,8 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
                         .fillMaxWidth()
                         .height(44.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(pillColor)
-                        .border(1.dp, accent.copy(alpha = 0.4f), RoundedCornerShape(50))
+                        .background(colors.surface)
+                        .border(2.dp, accent, RoundedCornerShape(50))
                         .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -699,7 +703,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
                         text = item.quality.label,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
-                        color = inkColor,
+                        color = colors.onSurface,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
