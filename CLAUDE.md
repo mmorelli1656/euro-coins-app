@@ -128,6 +128,7 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularIssueKey.kt    # RegularIssueSeries.stableKey — chiave stabile per la collezione (paese + ordineCronologico)
 │   ├── RegularCollectionItem.kt # @Entity: taglio posseduto in un'annata+qualità + RegularCollectionEntry (bozza pannello)
 │   ├── RegularCollectionDao.kt
+│   ├── RegularMintageSummary.kt # summarizeMintages()/groupMintagesByYear() — logica pura, testata
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
@@ -533,13 +534,14 @@ catalogo completo.
   dialog di ingrandimento separato, come nel dettaglio Commemorative, che non ce l'ha nemmeno lui,
   vedi § Dettaglio moneta più sotto), MINTAGES+DETAILS, COLLECTION, ABOUT THIS SERIES (la
   `descrizione` della serie, ripetuta qui perché la schermata è raggiungibile direttamente),
-  crediti. **MINTAGES (Standard/BU/Proof) e DETAILS (Mint/Engraver/Designer) restano SEMPRE
-  vuoti** (`NO_VALUE`, "—"): il dataset Regular Issues non ha tirature né zecca fisica/incisore/
-  disegnatore per taglio, solo `zeccaEmittente` a livello di serie (= il paese, non una zecca
-  fisica). Le sezioni ci sono comunque, non omesse — stessa posizione e card unica del dettaglio
-  Commemorative, per coerenza strutturale e per essere già pronte se la pipeline aggiungesse
-  questi dati un giorno; un primo giro le aveva omesse, corretto su richiesta esplicita.
-  `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
+  crediti. **DETAILS (Mint/Engraver/Designer) resta SEMPRE vuota** (`NO_VALUE`, "—"): il dataset
+  Regular Issues non ha zecca fisica/incisore/disegnatore per taglio, solo `zeccaEmittente` a
+  livello di serie (= il paese, non una zecca fisica). La sezione c'è comunque, non omessa —
+  stessa posizione e card unica del dettaglio Commemorative, per coerenza strutturale e per essere
+  già pronta se la pipeline aggiungesse questi dati un giorno; un primo giro l'aveva omessa,
+  corretto su richiesta esplicita. **MINTAGES invece è dinamica** (§ omonima più sotto): oggi
+  vuota per lo stesso motivo (nessuna serie ha ancora tirature nel dataset), ma pronta a
+  riceverle. `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
   `collectionItems` (come `RegularIssueCountryViewModel`), non un fetch singolo come
   `CoinDetailViewModel.getById`: qui non serve un id stabile per riga, il taglio è già una chiave
   dentro la serie. Building block riusati da `CoinDetailScreen.kt` (esportati, non più `private`):
@@ -551,6 +553,41 @@ catalogo completo.
   (`RegularIssueSeries.fonteDati`, sempre EC) da fonte dell'IMMAGINE (`RegularIssueImage.fonteDati`,
   quasi sempre BCE) — due voci, non una sola "Data source" come nelle commemorative, perché qui
   possono differire (vedi sopra).
+- **MINTAGES: una tiratura per (anno, qualità), non una per qualità.** A differenza delle
+  commemorative, dove un anno = una tiratura per qualità, qui una serie copre più anni (spesso
+  decenni) e ogni qualità può avere una tiratura diversa per anno — `RegularIssueImage.tirature`
+  (`RegularIssueMintage`: `anno`+`quality`+`tiratura`, `data/RegularIssue.kt`), lista vuota di
+  default per lo stesso motivo di `fonteDati` (un campo nuovo su un blob JSON Room deve avere un
+  default, non solo essere nullable, o kotlinx.serialization crasha leggendo righe vecchie prima
+  che `ensureSeeded()` faccia in tempo a ripopolarle — vedi § Regular Issues, lezione su
+  `RegularIssueImage.fonteDati`). `CoinQuality` è ora `@Serializable` (wire format = nome della
+  costante Kotlin, "STANDARD"/"BU"/"PROOF") solo per questo: non tocca il salvataggio Room di
+  `CollectionItem`/`RegularCollectionItem`, che restano sul proprio `TypeConverter`.
+  - **Card compatta invariata nella forma** (3 colonne Standard/BU/Proof, stessa posizione): ogni
+    colonna mostra la **somma** delle tirature di quella qualità (`summarizeMintages` in
+    `data/RegularMintageSummary.kt`, con test in `RegularMintageSummaryTest.kt`), con una
+    didascalia piccola sotto — **"all years" con più annate, l'anno stesso con una sola** (mai
+    "all years" quando non c'è nulla da sommare, per non far leggere l'anno singolo come
+    un'aggregazione). Senza questa distinzione una somma tra più anni si legge come la tiratura di
+    un anno solo, un ordine di grandezza fuorviante per chi guarda la card — punto sollevato
+    dall'utente come consulenza UI/UX (vedi § Convenzioni di lavoro, "Pareri su UI/UX").
+  - **"View by year" compare solo se ci sono almeno due anni distinti in totale** (su qualunque
+    qualità): con un solo anno la somma coincide già col dato di quell'anno, un pulsante per
+    aprire una tabella da una riga sola sarebbe solo attrito.
+  - **`RegularMintageHistorySheet`: bottom sheet di sola lettura**, non un pannello che si espande
+    dentro la pagina (scartato dopo un giro di mockup): con uno sheet l'unica superficie che
+    scorre mentre è aperto è lui stesso, niente ambiguità tra lo scroll della pagina sotto e un
+    riquadro con altezza fissa dentro — un problema reale di scroll annidato su Android, non solo
+    estetico.
+  - **Una riga PER ANNO, tre colonne Standard/BU/Proof affiancate** (`groupMintagesByYear` in
+    `data/RegularMintageSummary.kt`, ordine crescente) — NON tre elenchi separati impilati per
+    qualità (prima proposta, scartata dall'utente): con Standard su 20 anni e BU/Proof su pochi,
+    impilare per qualità avrebbe voluto dire scorrere tutti gli anni di Standard prima di arrivare
+    a BU — con le righe per anno il totale è al massimo quanti sono gli anni distinti, non la
+    somma dei conteggi per qualità. Include solo gli anni con almeno un dato: una serie uscita nel
+    2009 e finita nel 2015 non genera righe fuori da quell'intervallo, per costruzione (non serve
+    un campo "anno inizio/fine serie" — `anniCitati` tra l'altro non è affidabile per quello, vedi
+    sopra).
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
   intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
@@ -792,8 +829,12 @@ lingua da servire.
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
 `MicrostatesTest` legge il `coins.json` vero e controlla che i nomi in
 `MICROSTATE_PAESI` esistano (24 paesi -> 20 nascondendoli) e che `stableKey` sia
-unica. Non ci sono test di UI né di backup (serve un account Google reale). Il
-lint non gira offline (`lint-gradle` non è in cache): serve la rete.
+unica. `RegularMintageSummaryTest` copre `summarizeMintages()`/`groupMintagesByYear()`
+con dati sintetici (nessuna serie ha ancora tirature vere nel dataset — vedi § MINTAGES
+in § Regular Issues): somma vs. anno singolo, qualità che non si mescolano, ordine
+crescente, anni con più qualità che si fondono in una riga sola. Non ci sono test di UI
+né di backup (serve un account Google reale). Il lint non gira offline
+(`lint-gradle` non è in cache): serve la rete.
 
 ## Verifica su emulatore e telefono
 
@@ -1175,12 +1216,13 @@ Nell'**app**:
   con molte annate insieme; export/backup su Drive non estesi a
   `regular_collection_items` (oggi solo `collection_items` delle
   commemorative, vedi § Backup su Google Drive).
-- **MINTAGES/DETAILS del dettaglio taglio (Regular Issues) sempre vuoti**
-  (§ omonima): il dataset non ha tirature né zecca fisica/incisore/
-  disegnatore per taglio. Se la pipeline li aggiungesse un giorno,
-  `RegularMintageCard` in `RegularDenominationDetailScreen.kt` è già
-  pronta a riceverli (riusa `ValueLabel`/`DetailsSection` come
-  Commemorative) — va solo tolto il fisso `NO_VALUE`.
+- **DETAILS del dettaglio taglio (Regular Issues) sempre vuota** (§ omonima):
+  il dataset non ha zecca fisica/incisore/disegnatore per taglio. Se la
+  pipeline li aggiungesse un giorno, `DetailsSection` è già pronta a
+  riceverli (va solo tolto il fisso `NO_VALUE` in `RegularMintageCard`).
+  **MINTAGES invece ha già tutta la struttura pronta** (`RegularIssueImage
+  .tirature`, card con somma, sheet per anno): resta solo da far sì che la
+  pipeline la valorizzi — vedi § MINTAGES nella sezione omonima.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
