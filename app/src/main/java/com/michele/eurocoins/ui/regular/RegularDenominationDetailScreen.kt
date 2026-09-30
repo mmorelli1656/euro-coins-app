@@ -12,10 +12,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,15 +32,18 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EuroSymbol
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,6 +73,8 @@ import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.displayImageLicense
+import com.michele.eurocoins.data.groupMintagesByYear
+import com.michele.eurocoins.data.summarizeMintages
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.detail.DetailCard
@@ -81,20 +92,34 @@ import com.michele.eurocoins.ui.theme.InkLight
 import com.michele.eurocoins.ui.theme.PurpleFieldLight
 import com.michele.eurocoins.ui.theme.appBarColors
 import com.michele.eurocoins.ui.theme.linkColor
+import java.text.NumberFormat
 import java.util.Locale
 
 /**
  * Dettaglio di un taglio: stessa struttura del dettaglio Commemorative
  * (`CoinDetailScreen.kt`, building block `DetailCard`/`SectionLabel`/`OwnedBadge`/`FooterLine`/
- * `ValueLabel`/`DetailsSection` esportati da lì e riusati qui). **MINTAGES e DETAILS (zecca
- * fisica/incisore/disegnatore) restano nella stessa posizione della schermata Commemorative ma
- * SEMPRE vuote (`NO_VALUE`, "—")**: quei dati non esistono per taglio nel dataset Regular Issues
- * (solo a livello di serie c'è `zeccaEmittente`, che è il paese, non una zecca fisica) — vuote e
- * non omesse, per coerenza strutturale con Commemorative e per essere già pronte il giorno in cui
- * la pipeline aggiungesse questi dati anche qui. `descrizione` della serie sta a parte, in ABOUT
- * THIS SERIES. "Zoom" è la card foto grande di questa schermata stessa (come nel dettaglio
- * Commemorative, che non ha un dialog di ingrandimento separato — vedi CLAUDE.md § Dettaglio
- * moneta, "Tocco sulla foto per ingrandirla: non c'è nel dettaglio").
+ * `ValueLabel`/`DetailsSection` esportati da lì e riusati qui). **DETAILS (zecca fisica/incisore/
+ * disegnatore) resta nella stessa posizione della schermata Commemorative ma SEMPRE vuota**
+ * (`NO_VALUE`, "—"): quei dati non esistono per taglio nel dataset Regular Issues (solo a livello
+ * di serie c'è `zeccaEmittente`, che è il paese, non una zecca fisica).
+ *
+ * **MINTAGES è diversa da Commemorative**: lì un anno = una tiratura per qualità; qui una serie
+ * copre più anni, quindi ogni qualità può avere una tiratura DIVERSA per anno (vedi
+ * `RegularIssueImage.tirature`, oggi sempre vuota — nessuna serie ha ancora questo dato dalla
+ * pipeline). La card compatta mostra la SOMMA per qualità (con didascalia "all years", o l'anno
+ * stesso se ce n'è uno solo — mai una somma spacciata per la tiratura di un anno), e un pulsante
+ * "View by year" (solo se c'è più di un anno) apre `RegularMintageHistorySheet`: una tabella,
+ * un anno per riga in ordine crescente, tre colonne Standard/BU/Proof affiancate come nella card
+ * compatta — non tre elenchi separati per qualità (scartato: con molti anni per Standard si
+ * sarebbe dovuto scorrere oltre tutti quegli anni prima di arrivare a BU/Proof). Un bottom sheet
+ * (non un pannello che si espande in pagina) perché è modale: l'unica superficie che scorre
+ * mentre è aperto è lui stesso, senza l'ambiguità di due scroll attivi insieme (la pagina sotto e
+ * un riquadro con altezza fissa dentro) — scelta dopo un giro di mockup con l'utente.
+ *
+ * `descrizione` della serie sta a parte, in ABOUT THIS SERIES. "Zoom" è la card foto grande di
+ * questa schermata stessa (come nel dettaglio Commemorative, che non ha un dialog di
+ * ingrandimento separato — vedi CLAUDE.md § Dettaglio moneta, "Tocco sulla foto per ingrandirla:
+ * non c'è nel dettaglio").
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +129,7 @@ fun RegularDenominationDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
+    var showMintageHistory by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -138,13 +164,21 @@ fun RegularDenominationDetailScreen(
                 onDismiss = { showSheet = false },
             )
         }
+        if (showMintageHistory) {
+            RegularMintageHistorySheet(
+                countryName = state.countryName,
+                seriesNumber = state.seriesNumber,
+                denomination = image,
+                onDismiss = { showMintageHistory = false },
+            )
+        }
         Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
             Column(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 DenominationHero(image)
-                RegularMintageCard()
+                RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
                 RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
                 AboutSeriesCard(series)
                 DenominationCreditFooter(series, image)
@@ -224,21 +258,49 @@ private fun DenominationHeroFallback(message: String) {
 }
 
 /**
- * MINTAGES + DETAILS: stessa card unica di `MintageCard` in `CoinDetailScreen.kt`, con la stessa
- * griglia a 3 colonne (Standard/BU/Proof) e lo stesso `DetailsSection` (Mint/Engraver/Designer),
- * ma tutti i valori sono `NO_VALUE` fissi — il dataset Regular Issues non ha tirature né
- * zecca fisica/incisore/disegnatore per taglio (vedi il commento in cima al file). Card presente
- * comunque, non omessa: stessa scelta di Commemorative per un campo mancante ("—" invece di far
- * sparire la riga, così non si confonde "dato non ancora arrivato" con "sezione che non esiste").
+ * MINTAGES + DETAILS: stessa card unica di `MintageCard` in `CoinDetailScreen.kt`. DETAILS
+ * (Mint/Engraver/Designer, `DetailsSection` riusata) è sempre `NO_VALUE`: non esiste per taglio
+ * nel dataset Regular Issues. MINTAGES invece è dinamica su `image.tirature` (vedi il commento in
+ * cima al file per il perché somma+sheet invece di un numero solo): ogni colonna mostra la somma
+ * della qualità con una didascalia piccola sotto ("all years" con più annate, l'anno stesso con
+ * una sola, nulla se la qualità non ha alcun dato — coerente col trattino della card). "View by
+ * year" compare solo se ci sono almeno due anni distinti in totale: con un solo anno la somma
+ * coincide già col dato di quell'anno, un pulsante per aprire una tabella da una riga sola
+ * sarebbe solo attrito.
  */
 @Composable
-private fun RegularMintageCard() {
+private fun RegularMintageCard(image: RegularIssueImage, onViewByYear: () -> Unit) {
+    val numberFormat = remember { NumberFormat.getIntegerInstance(Locale.ENGLISH) }
+    val distinctYears = remember(image) { image.tirature.map { it.anno }.distinct().size }
     DetailCard {
         SectionLabel("MINTAGES")
         Spacer(Modifier.height(10.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
             CoinQuality.entries.forEach { quality ->
-                ValueLabel(value = NO_VALUE, label = quality.label, modifier = Modifier.weight(1f))
+                val summary = remember(image, quality) { summarizeMintages(image.tirature, quality) }
+                Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    ValueLabel(
+                        value = summary.total?.let(numberFormat::format) ?: NO_VALUE,
+                        label = quality.label,
+                    )
+                    summary.caption?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.outline,
+                        )
+                    }
+                }
+            }
+        }
+        if (distinctYears > 1) {
+            TextButton(
+                onClick = onViewByYear,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 4.dp),
+            ) {
+                Text("View by year")
+                Spacer(Modifier.width(4.dp))
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
         HorizontalDivider(
@@ -249,6 +311,102 @@ private fun RegularMintageCard() {
         Spacer(Modifier.height(10.dp))
         DetailsSection(mint = NO_VALUE, engraver = NO_VALUE, designer = NO_VALUE)
     }
+}
+
+/**
+ * Tabella di sola lettura delle tirature per anno: un anno per riga in ordine crescente, tre
+ * colonne Standard/BU/Proof come nella card compatta ("—" dove quella qualità non ha un dato
+ * quell'anno). Bottom sheet come `RegularCollectionSheet`, ma senza bozza/Save: qui non si scrive
+ * nulla, solo si legge — vedi il commento in cima al file per il perché di uno sheet invece di un
+ * pannello in pagina. Include solo gli anni con almeno un dato: non serve un range esplicito di
+ * inizio/fine serie, una serie 2009-2015 semplicemente non ha righe fuori da quell'intervallo.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RegularMintageHistorySheet(
+    countryName: String,
+    seriesNumber: Int,
+    denomination: RegularIssueImage,
+    onDismiss: () -> Unit,
+) {
+    val rows = remember(denomination) { groupMintagesByYear(denomination.tirature) }
+    val numberFormat = remember { NumberFormat.getIntegerInstance(Locale.ENGLISH) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.background,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 16.dp)
+                .windowInsetsPadding(WindowInsets.navigationBars),
+        ) {
+            Text(
+                text = "MINTAGES BY YEAR",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = denomination.taglio,
+                style = sansTitleMedium(),
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+            Text(
+                text = "$countryName · Series $seriesNumber",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                MintageHeaderCell("Year", modifier = Modifier.weight(0.8f), alignEnd = false)
+                CoinQuality.entries.forEach { MintageHeaderCell(it.label, modifier = Modifier.weight(1f), alignEnd = true) }
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+            LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                items(rows, key = { it.first }) { (year, values) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = year.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(0.8f),
+                        )
+                        CoinQuality.entries.forEach { quality ->
+                            Text(
+                                text = values[quality]?.let(numberFormat::format) ?: NO_VALUE,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.End,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                }
+            }
+            TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End).padding(top = 8.dp)) {
+                Text("Close")
+            }
+        }
+    }
+}
+
+@Composable
+private fun MintageHeaderCell(text: String, modifier: Modifier = Modifier, alignEnd: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+        modifier = modifier,
+    )
 }
 
 /**

@@ -53,6 +53,22 @@ data class RegularIssueImage(
      * lette prima che `ensureSeeded()` facesse in tempo a ripopolarle con l'asset nuovo.
      */
     val fonteDati: String = "",
+    /**
+     * Tirature per anno e qualità di QUESTO taglio, se la pipeline le fornisce. Dataset attuale:
+     * sempre vuota, nessuna serie ha ancora questo dato — la card MINTAGES del dettaglio taglio
+     * mostra "—" finché resta così (vedi CLAUDE.md § Regular Issues). Default lista vuota, non
+     * null: stesso motivo di [fonteDati] sopra, un campo nuovo su un blob JSON Room deve avere un
+     * default o kotlinx.serialization crasha leggendo righe già salvate col JSON vecchio.
+     */
+    val tirature: List<RegularIssueMintage> = emptyList(),
+)
+
+/** Una tiratura: un anno, una qualità, un numero — più di una per taglio quando la serie copre più anni. */
+@Serializable
+data class RegularIssueMintage(
+    val anno: Int,
+    val quality: CoinQuality,
+    val tiratura: Int,
 )
 
 /** Serializza [RegularIssueSeries.anniCitati] e [RegularIssueSeries.immagini] a stringa JSON per Room. */

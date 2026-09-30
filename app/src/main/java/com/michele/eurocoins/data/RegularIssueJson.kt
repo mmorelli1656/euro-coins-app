@@ -34,6 +34,15 @@ data class RegularIssueImageJson(
     @SerialName("attribuzione_immagine_raw") val attribuzioneImmagineRaw: String? = null,
     /** Fonte di QUESTA immagine ("ecb", "bcl", ...): può differire da quella del testo della serie — vedi RegularIssueSeries.fonteDati. */
     @SerialName("fonte_dati") val fonteDati: String = "",
+    /** Vedi RegularIssueMintage — vuota nel dataset attuale, la pipeline non le fornisce ancora. */
+    val tirature: List<RegularIssueMintageJson> = emptyList(),
+)
+
+@Serializable
+data class RegularIssueMintageJson(
+    val anno: Int,
+    val quality: CoinQuality,
+    val tiratura: Int,
 )
 
 fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
@@ -53,6 +62,7 @@ fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
             licenzaImmagine = it.licenzaImmagine,
             attribuzioneImmagineRaw = it.attribuzioneImmagineRaw,
             fonteDati = it.fonteDati,
+            tirature = it.tirature.map { m -> RegularIssueMintage(anno = m.anno, quality = m.quality, tiratura = m.tiratura) },
         )
     },
     possibileIncongruenza = possibileIncongruenza,
