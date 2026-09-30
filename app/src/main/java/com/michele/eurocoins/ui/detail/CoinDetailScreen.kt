@@ -689,13 +689,19 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
         ) {
             CoinQuality.entries.mapNotNull { q -> items.firstOrNull { it.quality == q } }.forEach { item ->
                 val cents = item.priceCents?.takeIf { it > 0 }
+                // Rettangolo a 14 dp come le altre card del dettaglio e la FinishCard del pannello
+                // di modifica, non più una pillola ovale: la riga non è cliccabile (solo "Edit
+                // collection" apre il pannello), e in tutta l'app la pillola è riservata a
+                // controlli azionabili (pulsanti, filtri, selettori) o etichette/badge — usarla
+                // qui per un dato statico suggeriva "si tocca" quando non è così.
+                val rowShape = RoundedCornerShape(14.dp)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(44.dp)
-                        .clip(RoundedCornerShape(50))
+                        .clip(rowShape)
                         .background(colors.surface)
-                        .border(2.dp, accent, RoundedCornerShape(50))
+                        .border(2.dp, accent, rowShape)
                         .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

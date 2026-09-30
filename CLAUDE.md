@@ -1004,15 +1004,22 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
     centrato e "Add to collection" pieno (48 dp, l'unica azione piena); posseduta =
     card bianca con **bordo verdigris da 2 dp** (`colorScheme.primary`, come badge OWNED e spunte: verde = "posseduta"; era viola `PurpleField*`, cambiato su richiesta lasciando lilla le pillole delle finiture), badge `✓ OWNED` verde
-    scuro in alto a destra, **solo le finiture possedute** (una pillola per riga: nome a
+    scuro in alto a destra, **solo le finiture possedute** (una riga per finitura: nome a
     sinistra in colore normale del testo, prezzo in grassetto viola a destra, `—` se
-    assente o 0.00) e "Edit collection" (TextButton compatto) a destra. **Pillola SOLO
+    assente o 0.00) e "Edit collection" (TextButton compatto) a destra. **Riga SOLO
     bordo** (2 dp pieno, non più al 40% di opacità), fondo bianco come il resto della
     card: prima era `LilacLight` a tutta pillola, un terzo blocco di colore pieno nella
     stessa card che ha già il bordo verde e il badge OWNED — "pesante" secondo l'utente,
     cambiato su richiesta (stesso trattamento della card spuntata in `CollectionSheet`,
-    sotto). Scartati: sfondo verde pieno (alternava colori tra le card), righe
-    non possedute tratteggiate, pulsante Edit a tutta larghezza.
+    sotto). **Angoli a 14 dp, non più pillola ovale** (`RoundedCornerShape(50)`): nell'app
+    la pillola è riservata a controlli azionabili ed etichette/badge (pulsanti, FILTER,
+    selettore tema, OWNED, COMMON ISSUE), mai a un dato statico non cliccabile — la riga
+    finitura+prezzo non lo è (solo "Edit collection" apre il pannello), e la pillola
+    suggeriva "si tocca" quando non era così. Ora stessa forma della `FinishCard` del
+    pannello di modifica, che mostra lo stesso dato (finitura+prezzo) in modo editabile:
+    la card letta e quella modificabile hanno finalmente la stessa forma. Scartati: sfondo
+    verde pieno (alternava colori tra le card), righe non possedute tratteggiate,
+    pulsante Edit a tutta larghezza.
   - **HISTORICAL NOTES**: `bodyMedium` 14 sp / 20 sp, `TextAlign.Justify` con
     `LineBreak.Paragraph` e `Hyphens.Auto` (bordo destro regolare; la sillabazione
     spezza anche "Croa-tia", dizionario di sistema). 4 righe con ellissi e "Show
