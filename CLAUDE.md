@@ -657,7 +657,13 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   già spuntata con una riga vuota, come nelle commemorative. **Le righe con anno vuoto o
   incompleto (meno di 4 cifre) vengono ignorate al salvataggio**, invece di bloccare "Save" con un
   errore — un modo leggero di scartare bozze non finite di scrivere, scelto per non introdurre
-  validazione bloccante in un pannello che finora non ne aveva mai avuta.
+  validazione bloccante in un pannello che finora non ne aveva mai avuta. **Card spuntata: solo
+  bordo (2.5 dp pieno), mai fondo lilla pieno** — stesso trattamento di `FinishCard` in
+  `CollectionSheet.kt`. Era rimasta indietro rispetto a quel cambiamento (fondo
+  `secondaryContainer` e bordo 1.5 dp al 40%, lo stile vecchio): trovato e allineato dall'utente
+  dopo il giro di fix su MINTAGES — i building block condivisi (`PriceField`/`sanitizePrice`)
+  erano stati riesportati, ma lo stile della card non era mai stato risincronizzato quando è
+  cambiato nell'originale.
 - **Non ancora fatto** (vedi anche § Backlog): nessuna deduplicazione visibile se l'utente scrive
   lo stesso anno due volte nella stessa qualità (l'ultima riga sovrascrive silenziosamente
   l'altra al salvataggio, per via della chiave primaria); prezzo non testato per anno diverso
