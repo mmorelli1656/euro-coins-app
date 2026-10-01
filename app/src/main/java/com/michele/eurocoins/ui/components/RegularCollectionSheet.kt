@@ -236,13 +236,11 @@ private fun QualityCard(
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
-    val backgroundColor by animateColorAsState(
-        targetValue = if (checked) colors.secondaryContainer else colors.surface,
-        animationSpec = tween(durationMillis = 150),
-        label = "qualityCardBackground",
-    )
+    // Solo bordo, mai fondo pieno: stesso trattamento di FinishCard in CollectionSheet.kt (la
+    // spunta verde è già il segnale di stato, un fondo lilla a tutta card era ridondante e
+    // "pesante" secondo l'utente). Bordo pieno a 2.5 dp (non più 1.5 dp al 40% di opacità).
     val borderColor by animateColorAsState(
-        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight).copy(alpha = 0.4f) else Color.Transparent,
+        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight) else Color.Transparent,
         animationSpec = tween(durationMillis = 150),
         label = "qualityCardBorder",
     )
@@ -250,8 +248,8 @@ private fun QualityCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(backgroundColor)
-            .border(1.5.dp, borderColor, shape)
+            .background(colors.surface)
+            .border(2.5.dp, borderColor, shape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Row(
