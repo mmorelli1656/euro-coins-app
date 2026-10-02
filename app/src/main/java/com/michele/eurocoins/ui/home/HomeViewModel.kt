@@ -35,6 +35,10 @@ data class HomeUiState(
     val regularIssueOwnedCount: Int = 0,
     /** Una foto per fascia di taglio crescente (§ dataset), null dove manca, per la fascia della scheda Regular Issues. */
     val regularIssueShowcase: List<String?> = emptyList(),
+    /** Set di domani per Regular Issues (vuoto con la rotazione spenta): la Home ne precarica le foto in Coil. */
+    val regularIssueNextShowcase: List<String?> = emptyList(),
+    /** Come [lastShowcaseUrls], per Regular Issues: posizioni preservate, vedi `UserSettings.regularIssueLastShowcase`. */
+    val regularIssueLastShowcaseUrls: List<String?> = emptyList(),
 )
 
 class HomeViewModel(
@@ -61,7 +65,14 @@ class HomeViewModel(
     private val lastShowcaseUrls: List<String> =
         (if (settings.rotateHomeCoins.value) settings.showcaseUrlsFor(LocalDate.now().toEpochDay()) else null) ?: settings.lastShowcase
 
+    /** Stesso discorso di [lastShowcaseUrls], per la fascia di Regular Issues. */
+    private val regularIssueLastShowcaseUrls: List<String?> =
+        (if (settings.rotateHomeCoins.value) settings.regularIssueShowcaseUrlsFor(LocalDate.now().toEpochDay()) else null)
+            ?: settings.regularIssueLastShowcase
+
     fun saveLastShowcase(urls: List<String>) = settings.setLastShowcase(urls)
+
+    fun saveLastRegularIssueShowcase(urls: List<String?>) = settings.setRegularIssueLastShowcase(urls)
 
     val uiState: StateFlow<HomeUiState> = combine(
         repository.coins,
@@ -75,6 +86,12 @@ class HomeViewModel(
         val nextShowcase = if (rotate) pickShowcase(coins, today + 1) else emptyList()
         if (rotate && showcase.isNotEmpty()) {
             settings.saveShowcaseUrls(mapOf(today to showcase.mapNotNull { it.urlImmagineFonte }, today + 1 to nextShowcase.mapNotNull { it.urlImmagineFonte }))
+        }
+        val regularIssueShowcase = pickRegularIssueShowcaseUrls(regularIssueSeries, if (rotate) today else null)
+        val regularIssueNextShowcase = if (rotate) pickRegularIssueShowcaseUrls(regularIssueSeries, today + 1) else emptyList()
+        if (rotate && regularIssueShowcase.any { it != null }) {
+            // Niente mapNotNull qui: le posizioni contano (vedi UserSettings.saveRegularIssueShowcaseUrls).
+            settings.saveRegularIssueShowcaseUrls(mapOf(today to regularIssueShowcase, today + 1 to regularIssueNextShowcase))
         }
         // Tagli distinti posseduti (qualsiasi annata/qualità): coerente con `regularIssueCoinsCount`,
         // che conta i disegni di taglio del catalogo, non le monete fisiche — vedi CLAUDE.md.
@@ -94,9 +111,15 @@ class HomeViewModel(
             regularIssueCountries = regularIssueSeries.map { it.paese }.distinct().size,
             regularIssueSeriesCount = regularIssueSeries.size,
             regularIssueOwnedCount = regularIssueOwned,
-            regularIssueShowcase = pickRegularIssueShowcaseUrls(regularIssueSeries, if (rotate) today else null),
+            regularIssueShowcase = regularIssueShowcase,
+            regularIssueNextShowcase = regularIssueNextShowcase,
+            regularIssueLastShowcaseUrls = regularIssueLastShowcaseUrls,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState(lastShowcaseUrls = lastShowcaseUrls))
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        HomeUiState(lastShowcaseUrls = lastShowcaseUrls, regularIssueLastShowcaseUrls = regularIssueLastShowcaseUrls),
+    )
 
     // La home è la prima schermata: è qui che i database vengono popolati al
     // primo avvio (ensureSeeded è protetto da mutex e idempotente).

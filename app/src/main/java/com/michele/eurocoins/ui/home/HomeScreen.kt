@@ -121,6 +121,13 @@ fun HomeScreen(
             coin.urlImmagineFonte?.let { loader.enqueue(ImageRequest.Builder(context).data(it).build()) }
         }
     }
+    // Stessa cosa per Regular Issues: stesso meccanismo, URL diretti invece di Coin.
+    LaunchedEffect(state.regularIssueNextShowcase) {
+        val loader = SingletonImageLoader.get(context)
+        state.regularIssueNextShowcase.filterNotNull().forEach { url ->
+            loader.enqueue(ImageRequest.Builder(context).data(url).build())
+        }
+    }
 
     // Foto effettivamente mostrate per slot: quando le 4 sono arrivate, quel set diventa il ripiego per
     // le aperture in cui le foto del giorno non si caricano (vedi `ShowcaseCoin`). Nessuna dissolvenza né
@@ -128,6 +135,12 @@ fun HomeScreen(
     val shown = remember(state.showcase) { mutableStateMapOf<Int, String>() }
     LaunchedEffect(shown.size) {
         if (shown.size == SHOWCASE_SIZE) viewModel.saveLastShowcase((0 until SHOWCASE_SIZE).map { shown.getValue(it) })
+    }
+    val regularShown = remember(state.regularIssueShowcase) { mutableStateMapOf<Int, String>() }
+    LaunchedEffect(regularShown.size) {
+        if (regularShown.size == SHOWCASE_SIZE) {
+            viewModel.saveLastRegularIssueShowcase((0 until SHOWCASE_SIZE).map { regularShown.getValue(it) })
+        }
     }
 
     Scaffold(
@@ -168,6 +181,7 @@ fun HomeScreen(
                     state = state,
                     progressAnimation = regularProgressAnimation,
                     onClick = onRegularIssuesClick,
+                    onSlotLoaded = { slot, url -> regularShown[slot] = url },
                     minHeight = cardHeight,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -411,6 +425,7 @@ private fun RegularIssuesCard(
     state: HomeUiState,
     progressAnimation: ProgressAnimation,
     onClick: () -> Unit,
+    onSlotLoaded: (Int, String) -> Unit,
     minHeight: Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -432,12 +447,14 @@ private fun RegularIssuesCard(
             // classe per il perché.
             band = { bandModifier ->
                 CoinBand(veil = onFill.copy(alpha = 0.06f), modifier = bandModifier) { i, size ->
+                    // Stessa catena di ripiego di Commemorative: foto di oggi, poi quella dell'ultimo
+                    // set mostrato per intero, poi moneta disegnata — vedi ShowcaseCoin.
                     ShowcaseCoin(
-                        urls = listOfNotNull(state.regularIssueShowcase.getOrNull(i)),
+                        urls = listOfNotNull(state.regularIssueShowcase.getOrNull(i), state.regularIssueLastShowcaseUrls.getOrNull(i)).distinct(),
                         dataReady = state.regularIssueCoinsCount > 0,
                         size = size,
                         tint = onFill.copy(alpha = 0.10f),
-                        onLoaded = {},
+                        onLoaded = { url -> onSlotLoaded(i, url) },
                         fallback = { RegularCoin(RegularCoins[i], size) },
                         transformations = listOf(RegularIssueImageTrim),
                     )

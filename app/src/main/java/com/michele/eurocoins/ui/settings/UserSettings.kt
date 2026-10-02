@@ -60,6 +60,36 @@ class UserSettings(context: Context) {
         if (urls != lastShowcase) prefs.edit().putString(KEY_LAST_SHOWCASE, urls.joinToString(SHOWCASE_SEPARATOR)).apply()
     }
 
+    /**
+     * Stesso ripiego di [lastShowcase], per la fascia di Regular Issues — ma qui una posizione può
+     * essere `null` (nessuna serie ha una foto per quella fascia di taglio, vedi
+     * `pickRegularIssueShowcaseUrls`): a differenza delle commemorative (sempre 4 monete dense),
+     * filtrare le righe vuote sposterebbe gli URL nelle posizioni sbagliate rispetto a
+     * `regularIssueShowcase` (il confronto in `ShowcaseCoin` è posizionale, slot per slot) — per
+     * questo niente `.filter { isNotBlank() }` qui, una riga vuota diventa `null`, non sparisce.
+     */
+    val regularIssueLastShowcase: List<String?>
+        get() = prefs.getString(KEY_LAST_SHOWCASE_REGULAR, null)
+            ?.split(SHOWCASE_SEPARATOR)?.map { it.ifBlank { null } }.orEmpty()
+
+    fun regularIssueShowcaseUrlsFor(day: Long): List<String?>? =
+        prefs.getString(KEY_SHOWCASE_DAY_PREFIX_REGULAR + day, null)?.split(SHOWCASE_SEPARATOR)?.map { it.ifBlank { null } }
+
+    /** Salva i set di oggi e domani per Regular Issues, posizioni comprese (vedi [regularIssueLastShowcase]). */
+    fun saveRegularIssueShowcaseUrls(sets: Map<Long, List<String?>>) {
+        if (sets.all { (day, urls) -> regularIssueShowcaseUrlsFor(day) == urls }) return
+        prefs.edit().apply {
+            prefs.all.keys.filter { it.startsWith(KEY_SHOWCASE_DAY_PREFIX_REGULAR) }.forEach { remove(it) }
+            sets.forEach { (day, urls) -> putString(KEY_SHOWCASE_DAY_PREFIX_REGULAR + day, urls.joinToString(SHOWCASE_SEPARATOR) { it.orEmpty() }) }
+        }.apply()
+    }
+
+    fun setRegularIssueLastShowcase(urls: List<String?>) {
+        if (urls != regularIssueLastShowcase) {
+            prefs.edit().putString(KEY_LAST_SHOWCASE_REGULAR, urls.joinToString(SHOWCASE_SEPARATOR) { it.orEmpty() }).apply()
+        }
+    }
+
     fun setRotateHomeCoins(value: Boolean) {
         prefs.edit().putBoolean(KEY_ROTATE_HOME_COINS, value).apply()
         _rotateHomeCoins.value = value
@@ -81,6 +111,11 @@ class UserSettings(context: Context) {
         const val KEY_ROTATE_HOME_COINS = "rotate_home_coins"
         const val KEY_LAST_SHOWCASE = "last_showcase"
         const val KEY_SHOWCASE_DAY_PREFIX = "showcase_day_"
+        const val KEY_LAST_SHOWCASE_REGULAR = "last_showcase_regular"
+        // "regular_showcase_day_" e non "showcase_day_regular_": deve restare un prefisso DIVERSO
+        // da KEY_SHOWCASE_DAY_PREFIX, non solo una variante — altrimenti il filtro a prefisso di
+        // saveShowcaseUrls() cancellerebbe anche le chiavi di Regular Issues (e viceversa).
+        const val KEY_SHOWCASE_DAY_PREFIX_REGULAR = "regular_showcase_day_"
         const val SHOWCASE_SEPARATOR = "\n"
     }
 }
