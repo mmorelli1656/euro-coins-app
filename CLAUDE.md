@@ -339,12 +339,27 @@ regge un pulsante pieno):
   (paese → elemento, stessa logica "una scelta per paese, deterministica sul giorno") più due
   funzioni sottili in cima, `pickShowcase` (commemorative, invariata) e
   `pickRegularIssueShowcaseUrls` (appiattisce `RegularIssueSeries.immagini` di tutte le serie in
-  coppie paese/URL, perché lì non esiste un'entità "moneta" singola come `Coin`). Per Regular
-  Issues NON c'è (ancora) la catena di ripiego "ultimo set mostrato"/precaricamento di domani —
-  solo foto di oggi o, se manca/non carica, la moneta disegnata (`RegularCoin`/`RegularCoins`, le
-  4 già usate come segnaposto prima di questa rotazione): estensione minima, da allineare a
-  Commemorative se servirà reggere l'offline anche lì. Test: `HomeShowcaseTest` (solo
-  `pickShowcase`, invariato dal refactoring — nessun test aggiunto per `pickRegularIssueShowcaseUrls`).
+  coppie paese/URL, perché lì non esiste un'entità "moneta" singola come `Coin`). **Regular Issues
+  ha ORA la stessa catena di ripiego/precaricamento di Commemorative** (allineata su richiesta
+  esplicita, "devono seguire la stessa logica per coerenza e uniformità dell'app" — prima era
+  un'estensione minima con solo "foto di oggi → moneta disegnata", `onLoaded` un no-op che non
+  registrava mai l'ultimo set mostrato): `HomeViewModel` calcola anche `regularIssueNextShowcase`
+  (precaricato in Coil da un secondo `LaunchedEffect` in `HomeScreen`, accanto a quello di
+  Commemorative) e `regularShown`/`regularIssueLastShowcaseUrls` tracciano e salvano l'ultimo set
+  mostrato per intero, stesso meccanismo di `shown`/`lastShowcaseUrls`. **Le funzioni equivalenti
+  in `UserSettings.kt` lavorano su `List<String?>`, non `List<String>` come quelle Commemorative**:
+  a differenza delle commemorative (`pickShowcase` restituisce sempre 4 monete dense, mai meno),
+  una fascia di taglio di `pickRegularIssueShowcaseUrls` può restituire `null` (nessuna serie ha
+  una foto per quella fascia) — filtrare i null prima di salvare sposterebbe gli URL nelle
+  posizioni sbagliate rispetto al confronto posizionale di `ShowcaseCoin` (slot per slot), quindi
+  `regularIssueLastShowcase`/`regularIssueShowcaseUrlsFor`/`saveRegularIssueShowcaseUrls` non
+  filtrano le righe vuote come fanno gli equivalenti Commemorative, le preservano come `null`.
+  **Prefisso delle chiavi "giorno" deliberatamente diverso**: `regular_showcase_day_` e non
+  `showcase_day_regular_`, per non essere un sottoinsieme del prefisso Commemorative
+  `showcase_day_` né viceversa — altrimenti il filtro a prefisso che pulisce le chiavi dei giorni
+  passati in uno dei due `saveShowcaseUrls` avrebbe cancellato anche le chiavi dell'altro. Test:
+  `HomeShowcaseTest` (solo `pickShowcase`, invariato dal refactoring — nessun test aggiunto per
+  `pickRegularIssueShowcaseUrls`, anche dopo questo allineamento).
 - **Reset collection**: dialog di conferma con il numero di monete; svuota
   solo `collection_items` (`CoinRepository.resetCollection`). Il backup su
   Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
@@ -607,10 +622,9 @@ catalogo completo.
   stesso pattern di `lastShownOwned` per Commemorative), **ora reale**: conta `regularIssueOwnedCount` (§
   Collezione su Regular Issues) su `regularIssueCoinsCount`.
 - **Fuori scope di questa prima versione** (vedi anche § Backlog):
-  ricerca/filtro/ordinamento nella griglia Countries; catena di ripiego "ultimo set mostrato" e
-  precaricamento di domani per la fascia Home (oggi solo foto di oggi o moneta disegnata, a
-  differenza di Commemorative); gestione di `possibileIncongruenza` in UI (oggi sempre `false`
-  nel dataset).
+  ricerca/filtro/ordinamento nella griglia Countries; gestione di `possibileIncongruenza` in UI
+  (oggi sempre `false` nel dataset). La catena di ripiego/precaricamento della fascia Home è stata
+  allineata a Commemorative (vedi sopra, § Impostazioni "Rotate home coins").
 
 ### Collezione su Regular Issues
 
@@ -1212,10 +1226,8 @@ Nella **pipeline dati** (repo separato, va fatto lì):
 
 Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima):
-  ricerca/filtro/ordinamento nella griglia Countries; catena di ripiego
-  "ultimo set mostrato" e precaricamento di domani per la fascia Home (oggi
-  solo foto di oggi o moneta disegnata, a differenza di Commemorative);
-  gestione di `possibileIncongruenza` in UI.
+  ricerca/filtro/ordinamento nella griglia Countries; gestione di
+  `possibileIncongruenza` in UI.
 - **Collezione su Regular Issues** (§ omonima): deduplicazione se l'utente
   scrive lo stesso anno due volte nella stessa qualità (oggi l'ultima riga
   sovrascrive silenziosamente); scroll interno del pannello non verificato
