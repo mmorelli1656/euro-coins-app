@@ -299,6 +299,7 @@ private fun RegularMintageCard(image: RegularIssueImage, onViewByYear: () -> Uni
                     ValueLabel(
                         value = summary.total?.let(numberFormat::format) ?: NO_VALUE,
                         label = quality.label,
+                        shrinkToFit = true,
                     )
                     summary.caption?.let {
                         Text(
@@ -382,8 +383,8 @@ private fun RegularMintageHistorySheet(
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                MintageHeaderCell("Year", modifier = Modifier.weight(0.8f), alignEnd = false)
-                CoinQuality.entries.forEach { MintageHeaderCell(it.label, modifier = Modifier.weight(1f), alignEnd = true) }
+                MintageHeaderCell("Year", modifier = Modifier.weight(0.6f), alignEnd = false)
+                CoinQuality.entries.forEach { MintageHeaderCell(it.label, modifier = Modifier.weight(it.columnWeight()), alignEnd = true) }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
             LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
@@ -396,7 +397,7 @@ private fun RegularMintageHistorySheet(
                             text = year.toString(),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(0.8f),
+                            modifier = Modifier.weight(0.6f),
                         )
                         CoinQuality.entries.forEach { quality ->
                             Text(
@@ -404,7 +405,9 @@ private fun RegularMintageHistorySheet(
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
                                 fontWeight = FontWeight.Medium,
                                 textAlign = TextAlign.End,
-                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.weight(quality.columnWeight()),
                             )
                         }
                     }
@@ -600,3 +603,10 @@ private fun DenominationCreditFooter(series: RegularIssueSeries, image: RegularI
         }
     }
 }
+
+/**
+ * Larghezza relativa delle colonne del pannello per anno: Standard più larga perché è l'unica che
+ * arriva ai miliardi (4.000.000.000 della Germania 2002, 13 caratteri); BU e Proof per anno
+ * restano sotto il milione. Con tre colonne uguali la cifra andava a capo a metà.
+ */
+private fun CoinQuality.columnWeight(): Float = if (this == CoinQuality.STANDARD) 1.5f else 1f

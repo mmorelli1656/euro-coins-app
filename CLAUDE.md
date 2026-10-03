@@ -665,6 +665,13 @@ catalogo completo.
     un anno finisce in `altro` (es. Italia 10 cent 2002, 1,14 miliardi con nota "Type A: small
     signature"), e in quella riga Standard compare "—". Non corretto a mano (regola 5 della
     pipeline). Neanche le lettere di zecca per anno (`zecche_lettere`, 1572 righe) sono mostrate.
+  - **Numeri a 10+ cifre** (verificato sul telefono, Germania 1 cent): la somma Standard arriva
+    a 12.475.760.000 e in una colonna da un terzo andava a capo a metà cifra. `ValueLabel(...,
+    shrinkToFit = true)` la tiene su una riga riducendo il corpo oltre 12 caratteri (le colonne
+    restano di larghezza uguale, vedi § Dettaglio moneta); nel pannello per anno Standard pesa
+    1.5 contro 1 (`columnWeight`), BU/Proof per anno non superano il milione. Esempio di "—"
+    che è il dato e non un bug: Vaticano serie 2 (Sede Vacante) 1 cent, 60.000 pezzi tutti in
+    `altro` ("In Sets only").
   - **Buchi noti**: Bulgaria (nessun type Numista: tirature vuote, testo BCE), Francia 2022 2 euro
     e Lussemburgo 2026 2 euro (type non ancora presente), Monaco serie 3 dei centesimi (Numista
     tiene i cent 2025 nel type della serie 2 e dice che cambiano solo 1/2 euro, la BCE dice tutti

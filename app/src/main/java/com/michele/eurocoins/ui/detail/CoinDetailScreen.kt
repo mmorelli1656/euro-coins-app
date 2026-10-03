@@ -499,14 +499,25 @@ fun DetailsSection(mint: String, engraver: String, designer: String) {
  * DETAILS. Esportata, vedi [DetailsSection].
  */
 @Composable
-fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier) {
+fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier, shrinkToFit: Boolean = false) {
+    // `shrinkToFit`: per i numeri in colonne di larghezza fissa (MINTAGES delle Regular Issues: la
+    // somma di Standard può arrivare a 12.475.760.000, 14 caratteri). Una riga sola, corpo ridotto
+    // in proporzione oltre i 12 caratteri che stanno a corpo pieno in una colonna da un terzo:
+    // andare a capo spezzava la cifra a metà ("12,475,760,0" / "00").
+    val baseStyle = sansTitleMedium()
+    val style = if (shrinkToFit && value.length > ShrinkAfterChars) {
+        baseStyle.copy(fontSize = baseStyle.fontSize * (ShrinkAfterChars.toFloat() / value.length))
+    } else {
+        baseStyle
+    }
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
-            style = sansTitleMedium(),
+            style = style,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = if (shrinkToFit) 1 else 2,
+            softWrap = !shrinkToFit,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -771,3 +782,6 @@ fun OwnedBadge(dark: Boolean) {
 }
 
 private const val NotesExpandMillis = 495
+
+/** Caratteri oltre i quali [ValueLabel] con `shrinkToFit` riduce il corpo per restare su una riga. */
+private const val ShrinkAfterChars = 12
