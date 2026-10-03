@@ -573,16 +573,17 @@ catalogo completo.
   rotta): il tocco sulla riga di un taglio (non più solo la casella) apre un dettaglio a schermo
   intero, stessa struttura di `CoinDetailScreen` — Hero con foto grande (è lo "zoom": nessun
   dialog di ingrandimento separato, come nel dettaglio Commemorative, che non ce l'ha nemmeno lui,
-  vedi § Dettaglio moneta più sotto), MINTAGES+DETAILS, COLLECTION, ABOUT THIS SERIES (la
-  `descrizione` della serie, ripetuta qui perché la schermata è raggiungibile direttamente),
-  crediti. **DETAILS (Mint/Engraver/Designer) viene da Numista per (serie, taglio)**
+  vedi § Dettaglio moneta più sotto), MINTAGES+DETAILS, COLLECTION, ABOUT THIS COIN, crediti. **La
+  descrizione della SERIE (ABOUT THIS SERIES) NON è in questa schermata**: tolta su richiesta
+  dell'utente (2026-10-03), resta solo nell'intestazione di `RegularIssueCountryScreen`; ripeterla
+  qui duplicava il testo con ABOUT THIS COIN. **DETAILS (Mint/Engraver/Designer) viene da Numista per (serie, taglio)**
   (`RegularIssueImage.zeccaFisicaRaw`/`incisoreRaw`/`disegnatoreRaw`, formattate da
   `displayMint()`/`displayEngraver()`/`displayDesigner()` in `CoinCredits.kt`, stessa regola
   "oltre 3 zecche uniche → N mints" delle commemorative): "—" dove Numista non ha il campo
   (il disegnatore manca su 348 type su 381; l'incisore su 31) o non ha il type (Bulgaria). Prima
   era sempre vuota, ora no. **MINTAGES è dinamica** (§ omonima più sotto) e ora piena. **ABOUT THIS
   COIN** (`RegularIssueImage.descrizione`): descrizione del disegno nazionale di QUEL taglio,
-  tra COLLECTION e ABOUT THIS SERIES, **riusa `NotesCard` di Commemorative tale e quale**
+  dopo COLLECTION, **riusa `NotesCard` di Commemorative tale e quale**
   (esportata, etichetta parametrica: 4 righe + "Show more", giustificato, animazione a mano —
   nessun disegno nuovo, per questo nessun mockup) e compare solo se il testo esiste. Il testo è
   Numista (verbatim, inglese, scritto da utenti: più ricco della BCE) o, dove Numista non ha il

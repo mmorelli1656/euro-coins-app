@@ -61,11 +61,8 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.Hyphens
-import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -79,6 +76,7 @@ import com.michele.eurocoins.data.displayDesigner
 import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
 import com.michele.eurocoins.data.displayMint
+import com.michele.eurocoins.data.formatApproxTotal
 import com.michele.eurocoins.data.groupMintagesByYear
 import com.michele.eurocoins.data.summarizeMintages
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
@@ -109,7 +107,8 @@ import java.util.Locale
  * disegnatore) viene da Numista per (serie, taglio)** (`RegularIssueImage.zeccaFisicaRaw`/...):
  * "—" dove Numista non ha il campo (il disegnatore manca quasi sempre) o non ha il type
  * (Bulgaria). La descrizione del singolo taglio ("ABOUT THIS COIN", `NotesCard` riusata da
- * Commemorative) sta tra COLLECTION e ABOUT THIS SERIES; compare solo se esiste.
+ * Commemorative) sta dopo COLLECTION; compare solo se esiste. La descrizione della SERIE non è
+ * qui: sta solo nella schermata del paese (`RegularIssueCountryScreen`), scelta dell'utente.
  *
  * **MINTAGES è diversa da Commemorative**: lì un anno = una tiratura per qualità; qui una serie
  * copre più anni, quindi ogni qualità può avere una tiratura DIVERSA per anno (vedi
@@ -124,7 +123,7 @@ import java.util.Locale
  * mentre è aperto è lui stesso, senza l'ambiguità di due scroll attivi insieme (la pagina sotto e
  * un riquadro con altezza fissa dentro) — scelta dopo un giro di mockup con l'utente.
  *
- * `descrizione` della serie sta a parte, in ABOUT THIS SERIES. "Zoom" è la card foto grande di
+ * "Zoom" è la card foto grande di
  * questa schermata stessa (come nel dettaglio Commemorative, che non ha un dialog di
  * ingrandimento separato — vedi CLAUDE.md § Dettaglio moneta, "Tocco sulla foto per ingrandirla:
  * non c'è nel dettaglio").
@@ -197,7 +196,6 @@ fun RegularDenominationDetailScreen(
                 RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
                 RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
                 image.descrizione?.let { NotesCard(it, scrollState, { viewport }, label = "ABOUT THIS COIN") }
-                AboutSeriesCard(series)
                 DenominationCreditFooter(series, image)
             }
         }
@@ -297,7 +295,7 @@ private fun RegularMintageCard(image: RegularIssueImage, onViewByYear: () -> Uni
                 val summary = remember(image, quality) { summarizeMintages(image.tirature, quality) }
                 Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     ValueLabel(
-                        value = summary.total?.let(numberFormat::format) ?: NO_VALUE,
+                        value = summary.total?.let { if (summary.isSum) formatApproxTotal(it) else numberFormat.format(it) } ?: NO_VALUE,
                         label = quality.label,
                         shrinkToFit = true,
                     )
@@ -383,8 +381,8 @@ private fun RegularMintageHistorySheet(
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
             Row(modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                MintageHeaderCell("Year", modifier = Modifier.weight(0.6f), alignEnd = false)
-                CoinQuality.entries.forEach { MintageHeaderCell(it.label, modifier = Modifier.weight(it.columnWeight()), alignEnd = true) }
+                MintageHeaderCell("Year", modifier = Modifier.weight(0.6f), center = false)
+                CoinQuality.entries.forEach { MintageHeaderCell(it.label, modifier = Modifier.weight(it.columnWeight()), center = true) }
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
             LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
@@ -404,7 +402,7 @@ private fun RegularMintageHistorySheet(
                                 text = values[quality]?.let(numberFormat::format) ?: NO_VALUE,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
                                 fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.End,
+                                textAlign = TextAlign.Center,
                                 maxLines = 1,
                                 softWrap = false,
                                 modifier = Modifier.weight(quality.columnWeight()),
@@ -422,13 +420,13 @@ private fun RegularMintageHistorySheet(
 }
 
 @Composable
-private fun MintageHeaderCell(text: String, modifier: Modifier = Modifier, alignEnd: Boolean) {
+private fun MintageHeaderCell(text: String, modifier: Modifier = Modifier, center: Boolean) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        textAlign = if (alignEnd) TextAlign.End else TextAlign.Start,
+        textAlign = if (center) TextAlign.Center else TextAlign.Start,
         modifier = modifier,
     )
 }
@@ -520,30 +518,6 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
             Spacer(Modifier.width(6.dp))
             Text("Edit collection")
         }
-    }
-}
-
-/**
- * Descrizione della serie, per intero: stesso testo (e stesso trattamento tipografico
- * giustificato con sillabazione) già mostrato nell'intestazione di `RegularIssueCountryScreen`,
- * ripetuto qui perché questa schermata può essere raggiunta direttamente. "ABOUT THIS SERIES" e
- * non "HISTORICAL NOTES": non è una nota sulla singola moneta (non esiste, l'anno lo sceglie
- * l'utente), è la descrizione dell'intero disegno di serie.
- */
-@Composable
-private fun AboutSeriesCard(series: RegularIssueSeries) {
-    DetailCard {
-        SectionLabel("ABOUT THIS SERIES")
-        Text(
-            text = series.descrizione,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                textAlign = TextAlign.Justify,
-                lineHeight = 20.sp,
-                lineBreak = LineBreak.Paragraph,
-                hyphens = Hyphens.Auto,
-            ),
-            modifier = Modifier.padding(top = 8.dp),
-        )
     }
 }
 
