@@ -73,7 +73,13 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
@@ -505,21 +511,32 @@ fun ValueLabel(value: String, label: String, modifier: Modifier = Modifier, shri
     // in proporzione oltre i 12 caratteri che stanno a corpo pieno in una colonna da un terzo:
     // andare a capo spezzava la cifra a metà ("12,475,760,0" / "00").
     val baseStyle = sansTitleMedium()
-    val style = if (shrinkToFit && value.length > ShrinkAfterChars) {
-        baseStyle.copy(fontSize = baseStyle.fontSize * (ShrinkAfterChars.toFloat() / value.length))
+    // "≈ 7.87 B": il simbolo a sinistra spostava le CIFRE a destra dell'asse su cui sono centrate le
+    // etichette sotto (Standard/BU/Proof). Si bilancia con lo stesso "≈ " in coda, trasparente: la
+    // stringa resta simmetrica e le cifre cadono sull'asse. Il testo letto da TalkBack è l'originale.
+    val display = if (value.startsWith("≈ ")) {
+        buildAnnotatedString {
+            append(value)
+            withStyle(SpanStyle(color = Color.Transparent)) { append(" ≈") }
+        }
+    } else {
+        AnnotatedString(value)
+    }
+    val style = if (shrinkToFit && display.length > ShrinkAfterChars) {
+        baseStyle.copy(fontSize = baseStyle.fontSize * (ShrinkAfterChars.toFloat() / display.length))
     } else {
         baseStyle
     }
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = value,
+            text = display,
             style = style,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             maxLines = if (shrinkToFit) 1 else 2,
             softWrap = !shrinkToFit,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().semantics { contentDescription = value },
         )
         Text(
             text = label,
