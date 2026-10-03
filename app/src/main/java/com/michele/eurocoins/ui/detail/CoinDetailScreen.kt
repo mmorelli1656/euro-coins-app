@@ -99,6 +99,8 @@ import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayDesigner
 import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
+import com.michele.eurocoins.data.displaySourceName
+import com.michele.eurocoins.data.numistaUrl
 import com.michele.eurocoins.data.displayMint
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
@@ -626,42 +628,23 @@ private fun MintageSection(coin: Coin) {
 const val NO_VALUE = "—"
 
 /**
- * Crediti in piccolo in fondo: fonte dei dati, licenza e credito dell'immagine, link alla
- * fonte. Sempre visibili (attribuzione). Testo in inchiostro (≈10:1 sul fondo chiaro); il link
- * usa [linkColor] e la sottolineatura, perché il verdigris del tema (4:1) non raggiunge il 4.5:1
- * WCAG AA per testo piccolo.
+ * Crediti in piccolo in fondo, nel formato comune a tutti i dettagli ([SourceCredits]): testo e
+ * immagine dalla stessa fonte (BCE) in una voce sola con il link all'immagine, "Data: Numista
+ * N#…" con il link al type (tirature, zecca, incisore: l'attribuzione con N# la chiedono i
+ * Termini API e prima mancava qui), e sotto la licenza e il credito dell'immagine. Sempre
+ * visibili (attribuzione).
  */
 @Composable
 private fun ImageCreditFooter(coin: Coin) {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        // Una sola voce compatta: fonte · licenza · credito (l'attribuzione resta sempre visibile).
-        val parts = listOfNotNull(
-            "Data source: ${coin.fonteDati.uppercase(Locale.ENGLISH)}",
-            "Image license: ${coin.displayImageLicense()}",
-            coin.attribuzioneImmagineRaw?.let { "Credit: $it" },
-        )
-        // Il link alla fonte è un'icona discreta accanto ai crediti (tocco da 48 dp), non più un
-        // testo sottolineato: l'attribuzione resta visibile e il link raggiungibile.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f, fill = false)) { FooterLine(parts.joinToString(" · ")) }
-            coin.urlImmagineFonte?.let { url ->
-                IconButton(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = "Open source image",
-                        tint = linkColor(),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
-        }
+    val sources = buildList {
+        add(SourceItem("Source", displaySourceName(coin.fonteDati), coin.urlImmagineFonte))
+        coin.numistaId?.let { add(SourceItem("Data", "Numista N#$it", numistaUrl(it))) }
     }
+    val license = listOfNotNull(
+        "License: ${coin.displayImageLicense()}",
+        coin.attribuzioneImmagineRaw?.let { "Credit: $it" },
+    ).joinToString(" · ")
+    SourceCredits(sources = sources, licenseLine = license)
 }
 
 @Composable

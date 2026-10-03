@@ -43,4 +43,6 @@ data class Coin(
     val tiraturaNumistaStandard: Int?,
     val tiraturaNumistaBu: Int?,
     val tiraturaNumistaProof: Int?,
+    /** N# del type Numista da cui vengono tirature, zecca e incisore: attribuzione obbligatoria nei crediti (Termini API, par. 4). Null per le poche monete senza abbinamento. */
+    val numistaId: Int? = null,
 )

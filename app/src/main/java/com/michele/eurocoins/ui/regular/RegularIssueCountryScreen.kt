@@ -56,6 +56,7 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.displayTextSource
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.theme.appBarColors
 
@@ -172,6 +173,14 @@ private fun SeriesHeader(series: RegularIssueSeries, number: Int) {
             ),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp),
+        )
+        // Fonte del testo sopra: EC per quasi tutte le serie, altrove la fonte che lo ha fornito
+        // (BCL, CFN, Monaco Tribune). Qui e non nel dettaglio del taglio, dove questo testo non c'è.
+        Text(
+            text = "Series text: ${series.displayTextSource()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 4.dp),
         )
     }
 }

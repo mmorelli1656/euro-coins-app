@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class, RegularCollectionItem::class],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 @TypeConverters(RegularIssueConverters::class)
@@ -97,6 +97,17 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * 7 -> 8: aggiunge `numistaId` a `coins` (colonna nullable, niente default) per i crediti
+         * Numista nel dettaglio. L'asset coins.json NON cambia, quindi l'hash non farebbe ripopolare:
+         * `CoinRepository.SEED_VERSION` forza il ripopolamento che riempie la colonna.
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `coins` ADD COLUMN `numistaId` INTEGER")
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -105,7 +116,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { instance = it }
             }
     }
 }

@@ -298,7 +298,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 7, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 8, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
@@ -307,7 +307,11 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   `MIGRATION_5_6` (`CREATE TABLE regular_issue_series`, § Regular Issues —
   tabella nuova, non un `ALTER` su `coins`), `MIGRATION_6_7`
   (`CREATE TABLE regular_collection_items`, § Regular Issues — collezione
-  utente sulle monete circolanti, stesso motivo). Ogni migrazione aggiunta va accodata,
+  utente sulle monete circolanti, stesso motivo), `MIGRATION_7_8` (`coins.numistaId`, nullable:
+  il N# per i crediti Numista). **Una migrazione che aggiunge una colonna che il JSON già
+  contiene (come la 8) NON cambia `coins.json`, quindi l'hash non farebbe ripopolare**:
+  `CoinRepository.SEED_VERSION` entra nella chiave salvata (`hash:v2`) e va incrementata in
+  quei casi. Ogni migrazione aggiunta va accodata,
   mai riscritta sopra una già rilasciata (anche in sviluppo: una volta
   installata su un telefono di prova, quel numero di versione è "usato"). Il
   valore delle nuove colonne conta poco: `ensureSeeded()` ripopola comunque
@@ -597,13 +601,21 @@ catalogo completo.
   `NO_VALUE`; `DetailsSection` non prende più un `Coin` ma tre stringhe già pronte (mint, engraver,
   designer), per essere chiamabile anche con tre `NO_VALUE` fissi. Nuova
   `RegularIssueImage.displayImageLicense()` in `ImageLicenseNames.kt` (stessa mappa
-  italiano→inglese di `Coin.displayImageLicense()`). I crediti distinguono fonte del TESTO
-  (`RegularIssueSeries.fonteDati`, sempre EC) da fonte dell'IMMAGINE (`RegularIssueImage.fonteDati`,
-  quasi sempre BCE) — due voci, non una sola "Data source" come nelle commemorative, perché qui
-  possono differire (vedi sopra). In più: "Coin text: ECB" quando il testo del taglio è il ripiego
-  BCE, e una riga cliccabile "Source: Numista N#<id>" (link alla pagina del type) ogni volta che
-  esiste un type Numista: è il minimo che chiedono i Termini API (§4: N# visibile e
-  attribuzione), non va tolta.
+  italiano→inglese di `Coin.displayImageLicense()`). **Crediti nel formato comune a tutti i
+  dettagli (`SourceCredits`, `ui/detail/`)**: una riga centrata `Source: ECB ↗  Data: Numista
+  N#… ↗` (voci distanziate, senza "·": andando a capo restava a inizio riga; `FlowRow` perché con
+  font ingrandito non sta su una riga) e sotto `License: … · Credit: …`. Testo del taglio e
+  immagine con la stessa fonte (BCE) → una voce "Source"; se differiscono (testo BCE di
+  ripiego + immagine BCL del Lussemburgo) due voci "Text"/"Image". "Data: Numista N#<id>"
+  (link alla pagina del type) compare ogni volta che esiste un type Numista ed è il minimo che
+  chiedono i Termini API (§4: N# visibile e attribuzione): non va tolto. Nomi leggibili in
+  `displaySourceName()` (`SourceNames.kt`: `ec_national_sides` → "European Commission"), mai
+  lo slug grezzo. **Il testo introduttivo della serie viene dalla Commissione europea** (pagina
+  "National sides of euro coins", NON dalla BCE) ed è accreditato dove compare, sotto la
+  descrizione in `RegularIssueCountryScreen` ("Series text: European Commission"); non nel
+  dettaglio del taglio, dove non c'è più. La BCE ha un testo di paese equivalente
+  (`contesto_paese`, 19 paesi su 25) ma uno solo per tutte le serie: tenuta EC su richiesta
+  dell'utente (2026-10-03), passare alla BCE è un lavoro da fare nella pipeline.
 - **MINTAGES: una tiratura per (anno, qualità), non una per qualità.** A differenza delle
   commemorative, dove un anno = una tiratura per qualità, qui una serie copre più anni (spesso
   decenni) e ogni qualità può avere una tiratura diversa per anno — `RegularIssueImage.tirature`
@@ -1217,9 +1229,13 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     superiore resta a filo). Scartati: `BringIntoViewRequester` con ritardo fisso e
     `BringIntoViewSpec` lenta (scatto finale), e "scorri solo se il bordo inferiore
     esce" (su schermi alti non scorreva mai).
-  - **Crediti**: una riga centrata "Data source · Image license · Credit" con il
-    link alla fonte come icona (`OpenInNew`, `linkColor()`, tocco da 48 dp) al posto
-    del testo sottolineato; la licenza resta il testo vero (non "Public domain").
+  - **Crediti** (`SourceCredits`, lo stesso formato delle Regular Issues): `Source: ECB ↗  Data:
+    Numista N#… ↗` e sotto `License: … · Credit: …`. "Source" = testo e immagine BCE (link
+    all'immagine, icona `OpenInNew`, `linkColor()`); "Data" = tirature, zecca e incisore, che
+    sono Numista: l'attribuzione con N# mancava (la regola dei Termini API §4), il campo
+    `Coin.numistaId` (colonna dalla v8, `numista_id` in `coins.json`) serve a questo. Le poche
+    monete senza abbinamento Numista non hanno la voce "Data". La licenza resta il testo vero
+    (non "Public domain").
   - Tocco sulla foto per ingrandirla: non c'è nel dettaglio (solo nell'elenco).
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 - **Barra "x / y collected" della home: animata, con onda vettoriale disegnata a

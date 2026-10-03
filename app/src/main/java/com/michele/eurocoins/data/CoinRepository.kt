@@ -115,11 +115,14 @@ class CoinRepository(
         withContext(Dispatchers.IO) {
             val bytes = context.assets.open(ASSET_FILE_NAME).use { it.readBytes() }
             val hash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
-            if (prefs.getString(KEY_ASSET_HASH, null) == hash && dao.count() > 0) return@withContext
+            // Hash dell'asset + versione dello schema dei dati letti: una migrazione che aggiunge una
+            // colonna da riempire (v8: numistaId) non cambia coins.json, ma deve comunque ripopolare.
+            val seedKey = "$hash:v$SEED_VERSION"
+            if (prefs.getString(KEY_ASSET_HASH, null) == seedKey && dao.count() > 0) return@withContext
 
             val parsed = jsonFormat.decodeFromString<List<CoinJson>>(bytes.decodeToString())
             dao.replaceAll(parsed.map { it.toEntity() })
-            prefs.edit().putString(KEY_ASSET_HASH, hash).apply()
+            prefs.edit().putString(KEY_ASSET_HASH, seedKey).apply()
         }
     }
 
@@ -129,6 +132,9 @@ class CoinRepository(
         private const val ASSET_FILE_NAME = "coins.json"
         private const val PREFS_NAME = "dataset"
         private const val KEY_ASSET_HASH = "coins_asset_sha256"
+
+        /** Da incrementare quando una migrazione aggiunge colonne di `coins` che il JSON già contiene. 2 = numistaId. */
+        private const val SEED_VERSION = 2
         private val jsonFormat = Json { ignoreUnknownKeys = true }
     }
 }

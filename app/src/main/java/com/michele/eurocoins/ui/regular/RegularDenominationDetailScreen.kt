@@ -76,6 +76,8 @@ import com.michele.eurocoins.data.displayDesigner
 import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
 import com.michele.eurocoins.data.displayMint
+import com.michele.eurocoins.data.displaySourceName
+import com.michele.eurocoins.data.numistaUrl
 import com.michele.eurocoins.data.formatApproxTotal
 import com.michele.eurocoins.data.groupMintagesByYear
 import com.michele.eurocoins.data.summarizeMintages
@@ -83,7 +85,8 @@ import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.detail.DetailCard
 import com.michele.eurocoins.ui.detail.DetailsSection
-import com.michele.eurocoins.ui.detail.FooterLine
+import com.michele.eurocoins.ui.detail.SourceCredits
+import com.michele.eurocoins.ui.detail.SourceItem
 import com.michele.eurocoins.ui.detail.NotesCard
 import com.michele.eurocoins.ui.detail.NO_VALUE
 import com.michele.eurocoins.ui.detail.OwnedBadge
@@ -196,7 +199,7 @@ fun RegularDenominationDetailScreen(
                 RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
                 RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
                 image.descrizione?.let { NotesCard(it, scrollState, { viewport }, label = "ABOUT THIS COIN") }
-                DenominationCreditFooter(series, image)
+                DenominationCreditFooter(image)
             }
         }
     }
@@ -521,61 +524,35 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
     }
 }
 
+
 /**
- * Crediti: fonte del testo della serie e fonte dell'immagine possono differire (vedi
- * `RegularIssueImage.fonteDati` in `RegularIssue.kt`), quindi due voci distinte invece della sola
- * "Data source" delle commemorative. Il testo del singolo taglio può venire dalla BCE (ripiego), e
- * i dati Numista (tirature, crediti, testo) hanno la loro riga: N# e "Source: Numista" sempre
- * visibili con link alla pagina, come chiedono i Termini API (§4, vedi NOTES.md della pipeline).
+ * Crediti nel formato comune ([SourceCredits]). Testo del taglio e immagine possono avere fonti
+ * diverse (vedi `RegularIssueImage.fonteDati`): se coincidono (testo BCE di ripiego + immagine
+ * BCE) una voce sola, altrimenti due. "Data: Numista N#…" con il link al type compare ogni volta
+ * che esiste un type: copre testo, tirature, zecca, incisore e disegnatore, ed è il minimo che
+ * chiedono i Termini API (§4) — non va tolto. Il testo introduttivo della serie (EC) non è in
+ * questa schermata: è accreditato dove compare, in `RegularIssueCountryScreen`.
  */
 @Composable
-private fun DenominationCreditFooter(series: RegularIssueSeries, image: RegularIssueImage) {
-    val context = LocalContext.current
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val parts = listOfNotNull(
-            "Text source: ${series.fonteDati.uppercase(Locale.ENGLISH)}",
-            "Coin text: ECB".takeIf { image.descrizioneFonte == "ecb" },
-            image.fonteDati.takeIf { it.isNotBlank() }?.let { "Image source: ${it.uppercase(Locale.ENGLISH)}" },
-            "Image license: ${image.displayImageLicense()}",
-            image.attribuzioneImmagineRaw?.let { "Credit: $it" },
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.weight(1f, fill = false)) { FooterLine(parts.joinToString(" · ")) }
-            image.urlImmagineFonte?.let { url ->
-                IconButton(
-                    onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) },
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = "Open source image",
-                        tint = linkColor(),
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+private fun DenominationCreditFooter(image: RegularIssueImage) {
+    val imageSource = image.fonteDati.takeIf { it.isNotBlank() }
+    val textSource = image.descrizioneFonte?.takeIf { it == "ecb" }
+    val sources = buildList {
+        when {
+            imageSource != null && textSource == imageSource ->
+                add(SourceItem("Source", displaySourceName(imageSource), image.urlImmagineFonte))
+            else -> {
+                textSource?.let { add(SourceItem("Text", displaySourceName(it))) }
+                imageSource?.let { add(SourceItem("Image", displaySourceName(it), image.urlImmagineFonte)) }
             }
         }
-        image.numistaId?.let { id ->
-            TextButton(
-                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://en.numista.com/$id"))) },
-            ) {
-                Text(
-                    text = "Source: Numista N#$id",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = linkColor(),
-                )
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = "Open Numista page",
-                    tint = linkColor(),
-                    modifier = Modifier.size(14.dp),
-                )
-            }
-        }
+        image.numistaId?.let { add(SourceItem("Data", "Numista N#$it", numistaUrl(it))) }
     }
+    val license = listOfNotNull(
+        "License: ${image.displayImageLicense()}",
+        image.attribuzioneImmagineRaw?.let { "Credit: $it" },
+    ).joinToString(" · ")
+    SourceCredits(sources = sources, licenseLine = license)
 }
 
 /**

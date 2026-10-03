@@ -30,6 +30,7 @@ data class CoinJson(
     @SerialName("tiratura_numista_standard") val tiraturaNumistaStandard: Int? = null,
     @SerialName("tiratura_numista_bu") val tiraturaNumistaBu: Int? = null,
     @SerialName("tiratura_numista_proof") val tiraturaNumistaProof: Int? = null,
+    @SerialName("numista_id") val numistaId: Int? = null,
 )
 
 fun CoinJson.toEntity(): Coin = Coin(
@@ -52,4 +53,5 @@ fun CoinJson.toEntity(): Coin = Coin(
     tiraturaNumistaStandard = tiraturaNumistaStandard,
     tiraturaNumistaBu = tiraturaNumistaBu,
     tiraturaNumistaProof = tiraturaNumistaProof,
+    numistaId = numistaId,
 )
