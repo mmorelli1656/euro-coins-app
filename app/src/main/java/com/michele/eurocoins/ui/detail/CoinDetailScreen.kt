@@ -166,7 +166,7 @@ fun CoinDetailScreen(
                 CoinHero(currentCoin)
                 MintageCard(currentCoin)
                 CollectionCard(items = items, onEdit = { showSheet = true })
-                currentCoin.noteStoriche?.let { NotesCard(it, scrollState) { viewport } }
+                currentCoin.noteStoriche?.let { NotesCard(it, scrollState, viewport = { viewport }) }
                 ImageCreditFooter(currentCoin)
             }
         }
@@ -311,9 +311,18 @@ private class NotesMetrics {
  * testo a righe piene per tutta l'animazione; a fine chiusura torna a 4 righe con ellissi
  * (stessa altezza, quindi senza salti). In espansione la pagina scorre in sincronia per
  * centrare la card.
+ *
+ * Esportata e con etichetta parametrica: `RegularDenominationDetailScreen` la riusa tale e quale
+ * per la descrizione del singolo taglio ("ABOUT THIS COIN") — stesso componente e stesso
+ * comportamento, non una copia.
  */
 @Composable
-private fun NotesCard(note: String, scrollState: ScrollState, viewport: () -> Rect?) {
+fun NotesCard(
+    note: String,
+    scrollState: ScrollState,
+    viewport: () -> Rect?,
+    label: String = "HISTORICAL NOTES",
+) {
     var expanded by rememberSaveable(note) { mutableStateOf(false) }
     var showFull by remember(note) { mutableStateOf(expanded) }
     var animating by remember(note) { mutableStateOf(false) }
@@ -362,7 +371,7 @@ private fun NotesCard(note: String, scrollState: ScrollState, viewport: () -> Re
     }
 
     DetailCard(modifier = Modifier.onGloballyPositioned { coords = it }) {
-        SectionLabel("HISTORICAL NOTES")
+        SectionLabel(label)
         Text(
             text = note,
             style = MaterialTheme.typography.bodyMedium.copy(

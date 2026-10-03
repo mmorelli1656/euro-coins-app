@@ -54,21 +54,43 @@ data class RegularIssueImage(
      */
     val fonteDati: String = "",
     /**
-     * Tirature per anno e qualità di QUESTO taglio, se la pipeline le fornisce. Dataset attuale:
-     * sempre vuota, nessuna serie ha ancora questo dato — la card MINTAGES del dettaglio taglio
-     * mostra "—" finché resta così (vedi CLAUDE.md § Regular Issues). Default lista vuota, non
-     * null: stesso motivo di [fonteDati] sopra, un campo nuovo su un blob JSON Room deve avere un
-     * default o kotlinx.serialization crasha leggendo righe già salvate col JSON vecchio.
+     * Tirature per anno e qualità di QUESTO taglio in QUESTA serie (Numista, abbinate per anni:
+     * vedi `scripts/export-regular-issues.ps1`). Vuota dove Numista non ha il type (Bulgaria,
+     * Lussemburgo 2026 2 euro...): la card MINTAGES mostra "—". Default lista vuota, non null:
+     * stesso motivo di [fonteDati] sopra, un campo nuovo su un blob JSON Room deve avere un
+     * default o kotlinx.serialization crasha leggendo righe già salvate col JSON vecchio — vale
+     * per TUTTI i campi sotto.
      */
     val tirature: List<RegularIssueMintage> = emptyList(),
+    /**
+     * Descrizione del disegno nazionale di QUESTO taglio, verbatim e in inglese: da Numista dove
+     * c'è il type ([descrizioneFonte] = "numista"), altrimenti dalla pagina BCE del taglio ("ecb",
+     * un unico testo per paese che a volte descrive più serie insieme). Null se nessuna fonte
+     * copre quella serie (Lussemburgo 2026 2 euro).
+     */
+    val descrizione: String? = null,
+    val descrizioneFonte: String? = null,
+    /** Pagina da cui viene [descrizione] (Numista o BCE): attribuzione sempre visibile nei crediti. */
+    val fonteUrl: String? = null,
+    /** N# del type Numista "principale" di questa serie+taglio (quello di [descrizione] e dei crediti sotto). */
+    val numistaId: Int? = null,
+    /** Zecche fisiche unite da "; " e già senza doppioni — si mostra con [displayMint]. */
+    val zeccaFisicaRaw: String? = null,
+    /** Lato nazionale (campo `obverse` di Numista: la convenzione è invertita, vedi NOTES.md della pipeline). */
+    val incisoreRaw: String? = null,
+    val disegnatoreRaw: String? = null,
 )
 
-/** Una tiratura: un anno, una qualità, un numero — più di una per taglio quando la serie copre più anni. */
+/**
+ * Una tiratura: un anno, una qualità, un numero — più di una per taglio quando la serie copre più
+ * anni. `Long` e non `Int`: la Germania 2002 ha 4 miliardi di 1 cent standard, e la somma su tutti
+ * gli anni sfora i 2,1 miliardi anche per tagli più modesti.
+ */
 @Serializable
 data class RegularIssueMintage(
     val anno: Int,
     val quality: CoinQuality,
-    val tiratura: Int,
+    val tiratura: Long,
 )
 
 /** Serializza [RegularIssueSeries.anniCitati] e [RegularIssueSeries.immagini] a stringa JSON per Room. */

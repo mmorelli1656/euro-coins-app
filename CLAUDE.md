@@ -60,24 +60,50 @@ interamente nella pipeline.
    con cache su disco automatica di Coil dopo il primo caricamento. Scelta
    deliberata (vedi conversazione che ha avviato questo repo): APK leggero
    a scapito di richiedere rete la prima volta che si vede un'immagine.
-5. **Stesso schema per le serie divisionali**: la pipeline produce
-   `data/processed/ec_national_sides.jsonl` (schema pydantic
+5. **Serie divisionali: tre file della pipeline, uniti da uno script.** La
+   pipeline produce `data/processed/ec_national_sides.jsonl` (schema pydantic
    `SezioneSerieDivisionale`/`ImmagineTaglio`, vedi `src/models.py` in quel
    repo — una riga per "serie" nazionale delle monete 1c-2€, non per
-   moneta), esportato allo stesso modo in
+   moneta), più due file per TAGLIO che da ottobre 2026 arricchiscono ogni
+   immagine di serie: `numista_divisional.jsonl` (un record per type Numista:
+   descrizione, incisore/disegnatore, zecca, tirature per anno e qualità) e
+   `ecb_national_sides_coin_descriptions.jsonl` (testo BCE per paese+taglio,
+   ripiego dove Numista non ha il type). Non è più un export diretto di un
+   solo JSONL: l'unione è nello script, che scrive
    `app/src/main/assets/regular_issues.json`:
 
    ```powershell
-   $records = Get-Content "..\euro-coins-data-pipeline\data\processed\ec_national_sides.jsonl" -Encoding UTF8 | ForEach-Object { $_ | ConvertFrom-Json }
-   $json = $records | ConvertTo-Json -Compress -Depth 8
-   [System.IO.File]::WriteAllText("app\src\main\assets\regular_issues.json", $json, [System.Text.UTF8Encoding]::new($false))
+   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\export-regular-issues.ps1
    ```
 
-   `-Depth 8` e non 5 come per `coins.json`: qui i record hanno un campo
-   annidato (`immagini`, fino a 8 oggetti per serie), che `coins.json` non
-   ha. Stesso meccanismo di seeding (`RegularIssueRepository.ensureSeeded()`,
+   Stampa un riepilogo (tagli con tirature, fonte dei testi, type Numista
+   non abbinati, tagli senza type) da leggere ogni volta che i dataset
+   cambiano. Le regole di abbinamento per anni sono in § Regular Issues,
+   MINTAGES. L'interruttore `-ExcludeNumista` esporta solo ciò che NON viene
+   da Numista (testo BCE, niente tirature/zecca/incisore/disegnatore): è il
+   piano B se il gate Numista (§ Backlog) obbligasse a toglierli. Lo script
+   è in PowerShell perché su questa macchina non c'è Python; la logica di
+   abbinamento sarebbe da spostare nella pipeline (§ Backlog).
+
+   Il file completo pesa ~650 KB (330 senza Numista, era 130): le tirature sono la maggior parte
+   (fino a 84 voci per taglio). Il `-Depth 8` dello script è necessario
+   (serie → immagini → tirature → voce = 4 livelli, il margine è per
+   campi futuri). Stesso meccanismo di seeding (`RegularIssueRepository.ensureSeeded()`,
    hash SHA-256 dell'asset, SharedPreferences separate `regular_issues_dataset`)
    e stessa scelta sulle immagini (hotlink, non bundlate).
+
+   **L'asset COMMITTATO è l'export `-ExcludeNumista`** (testo BCE, nessuna
+   tiratura/zecca/incisore/disegnatore): il repo `euro-coins-app` è PUBBLICO su
+   GitHub (verificato il 2026-10-03; la pipeline è privata) e pubblicarvi dati
+   Numista sarebbe distribuzione, vietata dai Termini API (§3/§11). Decisione
+   del proprietario dopo aver visto che il repo era pubblico. Per provare
+   l'app sul telefono con i dati completi si rilancia lo script SENZA
+   `-ExcludeNumista`, si installa, e prima di committare si rigenera con
+   `-ExcludeNumista` (o `git checkout app/src/main/assets/regular_issues.json`):
+   **mai committare l'export completo**. Il codice dell'app per tirature, DETAILS
+   e "Source: Numista" resta nel repo ed è inerte senza i dati (card "—", niente
+   riga Numista); `RegularIssuesAssetTest` salta i test sui dati Numista se
+   l'asset è quello ridotto.
 
 ## Stack tecnico
 
@@ -549,14 +575,20 @@ catalogo completo.
   dialog di ingrandimento separato, come nel dettaglio Commemorative, che non ce l'ha nemmeno lui,
   vedi § Dettaglio moneta più sotto), MINTAGES+DETAILS, COLLECTION, ABOUT THIS SERIES (la
   `descrizione` della serie, ripetuta qui perché la schermata è raggiungibile direttamente),
-  crediti. **DETAILS (Mint/Engraver/Designer) resta SEMPRE vuota** (`NO_VALUE`, "—"): il dataset
-  Regular Issues non ha zecca fisica/incisore/disegnatore per taglio, solo `zeccaEmittente` a
-  livello di serie (= il paese, non una zecca fisica). La sezione c'è comunque, non omessa —
-  stessa posizione e card unica del dettaglio Commemorative, per coerenza strutturale e per essere
-  già pronta se la pipeline aggiungesse questi dati un giorno; un primo giro l'aveva omessa,
-  corretto su richiesta esplicita. **MINTAGES invece è dinamica** (§ omonima più sotto): oggi
-  vuota per lo stesso motivo (nessuna serie ha ancora tirature nel dataset), ma pronta a
-  riceverle. `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
+  crediti. **DETAILS (Mint/Engraver/Designer) viene da Numista per (serie, taglio)**
+  (`RegularIssueImage.zeccaFisicaRaw`/`incisoreRaw`/`disegnatoreRaw`, formattate da
+  `displayMint()`/`displayEngraver()`/`displayDesigner()` in `CoinCredits.kt`, stessa regola
+  "oltre 3 zecche uniche → N mints" delle commemorative): "—" dove Numista non ha il campo
+  (il disegnatore manca su 348 type su 381; l'incisore su 31) o non ha il type (Bulgaria). Prima
+  era sempre vuota, ora no. **MINTAGES è dinamica** (§ omonima più sotto) e ora piena. **ABOUT THIS
+  COIN** (`RegularIssueImage.descrizione`): descrizione del disegno nazionale di QUEL taglio,
+  tra COLLECTION e ABOUT THIS SERIES, **riusa `NotesCard` di Commemorative tale e quale**
+  (esportata, etichetta parametrica: 4 righe + "Show more", giustificato, animazione a mano —
+  nessun disegno nuovo, per questo nessun mockup) e compare solo se il testo esiste. Il testo è
+  Numista (verbatim, inglese, scritto da utenti: più ricco della BCE) o, dove Numista non ha il
+  type, la pagina BCE del taglio (`descrizioneFonte` = "numista"/"ecb"; il testo BCE è uno per
+  paese e a volte descrive più serie insieme). Lussemburgo 2026 2 euro non ha nessun testo: né
+  Numista né BCE (che descriverebbe la serie precedente) — la card manca. `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
   `collectionItems` (come `RegularIssueCountryViewModel`), non un fetch singolo come
   `CoinDetailViewModel.getById`: qui non serve un id stabile per riga, il taglio è già una chiave
   dentro la serie. Building block riusati da `CoinDetailScreen.kt` (esportati, non più `private`):
@@ -567,7 +599,10 @@ catalogo completo.
   italiano→inglese di `Coin.displayImageLicense()`). I crediti distinguono fonte del TESTO
   (`RegularIssueSeries.fonteDati`, sempre EC) da fonte dell'IMMAGINE (`RegularIssueImage.fonteDati`,
   quasi sempre BCE) — due voci, non una sola "Data source" come nelle commemorative, perché qui
-  possono differire (vedi sopra).
+  possono differire (vedi sopra). In più: "Coin text: ECB" quando il testo del taglio è il ripiego
+  BCE, e una riga cliccabile "Source: Numista N#<id>" (link alla pagina del type) ogni volta che
+  esiste un type Numista: è il minimo che chiedono i Termini API (§4: N# visibile e
+  attribuzione), non va tolta.
 - **MINTAGES: una tiratura per (anno, qualità), non una per qualità.** A differenza delle
   commemorative, dove un anno = una tiratura per qualità, qui una serie copre più anni (spesso
   decenni) e ogni qualità può avere una tiratura diversa per anno — `RegularIssueImage.tirature`
@@ -603,6 +638,39 @@ catalogo completo.
     2009 e finita nel 2015 non genera righe fuori da quell'intervallo, per costruzione (non serve
     un campo "anno inizio/fine serie" — `anniCitati` tra l'altro non è affidabile per quello, vedi
     sopra).
+  - **Dati reali dal 2026-10-02** (Numista, `numista_divisional.jsonl` della pipeline: 381 type,
+    3954 righe anno; 280 tagli su 303 con almeno una tiratura). Il file è **per type Numista**,
+    non per serie, quindi `scripts/export-regular-issues.ps1` li abbina alle serie **per anni**:
+    ogni serie ha un intervallo [inizio, inizio della successiva − 1] (inizio dall'anno
+    nell'intestazione, o dalla tabella `$StartOverrides` per Monaco/Vaticano/Lussemburgo, dove
+    l'intestazione non lo dice) e **ogni type va per intero alla serie con cui ha più anni in
+    comune** — non riga per riga, perché il 2005 vaticano esiste come Giovanni Paolo II e come
+    Sede Vacante in due type distinti. Per ogni taglio partecipano solo le serie che hanno
+    un'immagine di quel taglio (la Francia 2022 cambia solo 1 e 2 euro) o che non ne hanno
+    nessuna (Vaticano 2026, che "assorbe" i suoi 8 type invece di lasciarli alla serie
+    precedente; poi li scarta perché non ha foto). Descrizione/zecca/incisore/disegnatore sono
+    quelli del type con più anni nella serie.
+  - **`tiratura` è `Long`**: la Germania 2002 ha 4 miliardi di 1 cent standard e anche le somme
+    su tutti gli anni sfondano `Int` (2,1 miliardi) — la prima versione con `Int` avrebbe
+    sommato in overflow in silenzio. (Cambiare `Int`→`Long` sul blob JSON Room è sicuro: i
+    vecchi numeri si leggono uguale.)
+  - **Didascalia "N of M years"**: "all years" solo se quella qualità ha un dato in ogni anno in
+    cui il taglio ne ha uno per qualunque qualità. Numista spesso non ha lo standard di un anno,
+    e BU/Proof esistono in pochi anni: "all years" su una somma incompleta sarebbe un totale
+    falso scritto come esatto. Non distinguibile se il buco è "non coniata" o "dato mancante",
+    quindi la didascalia dichiara solo su quanti anni poggia il numero.
+  - **Solo Standard/BU/Proof**, come le commemorative: la categoria `tiratura_altro` di Numista
+    (809 righe su 3954, quasi tutte "In sets"/lotti/varianti con mintmark) non è mostrata —
+    stessa scelta e stesso motivo di § dataset. Conseguenza visibile: a volte la circolazione di
+    un anno finisce in `altro` (es. Italia 10 cent 2002, 1,14 miliardi con nota "Type A: small
+    signature"), e in quella riga Standard compare "—". Non corretto a mano (regola 5 della
+    pipeline). Neanche le lettere di zecca per anno (`zecche_lettere`, 1572 righe) sono mostrate.
+  - **Buchi noti**: Bulgaria (nessun type Numista: tirature vuote, testo BCE), Francia 2022 2 euro
+    e Lussemburgo 2026 2 euro (type non ancora presente), Monaco serie 3 dei centesimi (Numista
+    tiene i cent 2025 nel type della serie 2 e dice che cambiano solo 1/2 euro, la BCE dice tutti
+    gli 8: conflitto della pipeline non risolto — le tirature 2025 dei cent restano alla serie 2,
+    il testo della serie 3 è quello BCE). Un type può includere anni con dati pre-euro
+    (Belgio/Finlandia/Spagna dal 1999): sono monete datate, non vengono tagliati.
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
   intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
@@ -850,9 +918,14 @@ Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest
 `MicrostatesTest` legge il `coins.json` vero e controlla che i nomi in
 `MICROSTATE_PAESI` esistano (24 paesi -> 20 nascondendoli) e che `stableKey` sia
 unica. `RegularMintageSummaryTest` copre `summarizeMintages()`/`groupMintagesByYear()`
-con dati sintetici (nessuna serie ha ancora tirature vere nel dataset — vedi § MINTAGES
-in § Regular Issues): somma vs. anno singolo, qualità che non si mescolano, ordine
-crescente, anni con più qualità che si fondono in una riga sola. Non ci sono test di UI
+con dati sintetici: somma vs. anno singolo, qualità che non si mescolano, ordine
+crescente, anni con più qualità che si fondono in una riga sola, somma oltre `Int`
+(miliardi), didascalia "N of M years". `RegularIssuesAssetTest` legge il
+`regular_issues.json` vero con le stesse classi dell'app (se lo script cambia forma o un
+campo nuovo perde il default, il test lo dice prima del crash all'avvio sul telefono) e
+fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio a tre
+intervalli senza sovrapposizioni, Germania 4 miliardi, zecche deduplicate. Non ci sono test
+di UI
 né di backup (serve un account Google reale). Il lint non gira offline
 (`lint-gradle` non è in cache): serve la rete.
 
@@ -1234,13 +1307,16 @@ Nell'**app**:
   con molte annate insieme; export/backup su Drive non estesi a
   `regular_collection_items` (oggi solo `collection_items` delle
   commemorative, vedi § Backup su Google Drive).
-- **DETAILS del dettaglio taglio (Regular Issues) sempre vuota** (§ omonima):
-  il dataset non ha zecca fisica/incisore/disegnatore per taglio. Se la
-  pipeline li aggiungesse un giorno, `DetailsSection` è già pronta a
-  riceverli (va solo tolto il fisso `NO_VALUE` in `RegularMintageCard`).
-  **MINTAGES invece ha già tutta la struttura pronta** (`RegularIssueImage
-  .tirature`, card con somma, sheet per anno): resta solo da far sì che la
-  pipeline la valorizzi — vedi § MINTAGES nella sezione omonima.
+- **Regular Issues: spostare l'abbinamento nella pipeline.** Oggi l'unione dei tre file
+  (type Numista → serie per anni, § MINTAGES) vive in `scripts/export-regular-issues.ps1`
+  perché su questa macchina non c'è Python; è logica sui dati, quindi il posto giusto è la
+  pipeline (un `ec_national_sides_enriched.jsonl` come `coins_with_mintages.jsonl`, e questo
+  repo tornerebbe a un export diretto). Da farlo quando Python è disponibile. Da sistemare
+  lì anche: conflitto Monaco 2025 cent (Numista vs BCE), 2 euro 2026 del Lussemburgo e 2 euro
+  2022 della Francia non ancora su Numista, Bulgaria senza type.
+- **Regular Issues: righe "per anno" ancora non mostrate**: bucket `altro` di Numista (quasi
+  sempre "In sets") e lettere di zecca per anno; il blocco DETAILS mostra la zecca del type
+  principale, non quella di ogni anno.
 - Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
@@ -1261,7 +1337,13 @@ Nell'**app**:
   consapevolmente finché repo pipeline privato e app non pubblicata (vedi
   `NOTES.md` § Tirature Numista nella pipeline). Da ridecidere esplicitamente
   a quel punto: permesso scritto da Numista, o togliere quei campi da quanto
-  finisce in `coins.json`.
+  finisce in `coins.json` **e in `regular_issues.json`** (da ottobre 2026 anche le
+  divisionali portano dati Numista: tirature per anno, zecca, incisore, disegnatore e il
+  testo del taglio; la regola 6 della pipeline dice esplicitamente "niente dati Numista
+  nell'app senza autorizzazione scritta" — scelta consapevole del proprietario, stessa
+  logica del rischio già accettato). Per le divisionali il piano B è già pronto:
+  `scripts/export-regular-issues.ps1 -ExcludeNumista` — **ed è quello committato**: `euro-coins-app` è un repo pubblico, quindi `regular_issues.json` su GitHub non contiene dati Numista (`coins.json` sì, già pushato in precedenza: da ridecidere). Nell'app restano visibili "Source:
+  Numista N#…" e il link (§4 dei Termini API).
 - Confronto backup ↔ collezione locale (oggi lo stato non dice "up to date").
 - Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
   segnaposto "Go Pro".

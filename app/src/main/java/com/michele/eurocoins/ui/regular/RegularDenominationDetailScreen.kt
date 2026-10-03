@@ -53,9 +53,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
@@ -72,7 +75,10 @@ import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.displayDesigner
+import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
+import com.michele.eurocoins.data.displayMint
 import com.michele.eurocoins.data.groupMintagesByYear
 import com.michele.eurocoins.data.summarizeMintages
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
@@ -80,6 +86,7 @@ import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.detail.DetailCard
 import com.michele.eurocoins.ui.detail.DetailsSection
 import com.michele.eurocoins.ui.detail.FooterLine
+import com.michele.eurocoins.ui.detail.NotesCard
 import com.michele.eurocoins.ui.detail.NO_VALUE
 import com.michele.eurocoins.ui.detail.OwnedBadge
 import com.michele.eurocoins.ui.detail.SectionLabel
@@ -99,14 +106,15 @@ import java.util.Locale
  * Dettaglio di un taglio: stessa struttura del dettaglio Commemorative
  * (`CoinDetailScreen.kt`, building block `DetailCard`/`SectionLabel`/`OwnedBadge`/`FooterLine`/
  * `ValueLabel`/`DetailsSection` esportati da lì e riusati qui). **DETAILS (zecca fisica/incisore/
- * disegnatore) resta nella stessa posizione della schermata Commemorative ma SEMPRE vuota**
- * (`NO_VALUE`, "—"): quei dati non esistono per taglio nel dataset Regular Issues (solo a livello
- * di serie c'è `zeccaEmittente`, che è il paese, non una zecca fisica).
+ * disegnatore) viene da Numista per (serie, taglio)** (`RegularIssueImage.zeccaFisicaRaw`/...):
+ * "—" dove Numista non ha il campo (il disegnatore manca quasi sempre) o non ha il type
+ * (Bulgaria). La descrizione del singolo taglio ("ABOUT THIS COIN", `NotesCard` riusata da
+ * Commemorative) sta tra COLLECTION e ABOUT THIS SERIES; compare solo se esiste.
  *
  * **MINTAGES è diversa da Commemorative**: lì un anno = una tiratura per qualità; qui una serie
  * copre più anni, quindi ogni qualità può avere una tiratura DIVERSA per anno (vedi
- * `RegularIssueImage.tirature`, oggi sempre vuota — nessuna serie ha ancora questo dato dalla
- * pipeline). La card compatta mostra la SOMMA per qualità (con didascalia "all years", o l'anno
+ * `RegularIssueImage.tirature`, da Numista abbinate alla serie per anni — vuota solo dove Numista
+ * non ha il type). La card compatta mostra la SOMMA per qualità (con didascalia "all years", o l'anno
  * stesso se ce n'è uno solo — mai una somma spacciata per la tiratura di un anno), e un pulsante
  * "View by year" (solo se c'è più di un anno) apre `RegularMintageHistorySheet`: una tabella,
  * un anno per riga in ordine crescente, tre colonne Standard/BU/Proof affiancate come nella card
@@ -130,6 +138,8 @@ fun RegularDenominationDetailScreen(
     val state by viewModel.uiState.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
     var showMintageHistory by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    var viewport by remember { mutableStateOf<Rect?>(null) }
 
     Scaffold(
         topBar = {
@@ -172,7 +182,13 @@ fun RegularDenominationDetailScreen(
                 onDismiss = { showMintageHistory = false },
             )
         }
-        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .onGloballyPositioned { viewport = it.boundsInWindow() }
+                .verticalScroll(scrollState),
+        ) {
             Column(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -180,6 +196,7 @@ fun RegularDenominationDetailScreen(
                 DenominationHero(image)
                 RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
                 RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
+                image.descrizione?.let { NotesCard(it, scrollState, { viewport }, label = "ABOUT THIS COIN") }
                 AboutSeriesCard(series)
                 DenominationCreditFooter(series, image)
             }
@@ -259,10 +276,10 @@ private fun DenominationHeroFallback(message: String) {
 
 /**
  * MINTAGES + DETAILS: stessa card unica di `MintageCard` in `CoinDetailScreen.kt`. DETAILS
- * (Mint/Engraver/Designer, `DetailsSection` riusata) è sempre `NO_VALUE`: non esiste per taglio
- * nel dataset Regular Issues. MINTAGES invece è dinamica su `image.tirature` (vedi il commento in
+ * (Mint/Engraver/Designer, `DetailsSection` riusata) legge i campi Numista del taglio, "—" se mancano.
+ * MINTAGES invece è dinamica su `image.tirature` (vedi il commento in
  * cima al file per il perché somma+sheet invece di un numero solo): ogni colonna mostra la somma
- * della qualità con una didascalia piccola sotto ("all years" con più annate, l'anno stesso con
+ * della qualità con una didascalia piccola sotto ("all years" con più annate complete, "N of M years" se mancano anni, l'anno stesso con
  * una sola, nulla se la qualità non ha alcun dato — coerente col trattino della card). "View by
  * year" compare solo se ci sono almeno due anni distinti in totale: con un solo anno la somma
  * coincide già col dato di quell'anno, un pulsante per aprire una tabella da una riga sola
@@ -309,7 +326,11 @@ private fun RegularMintageCard(image: RegularIssueImage, onViewByYear: () -> Uni
         )
         SectionLabel("DETAILS")
         Spacer(Modifier.height(10.dp))
-        DetailsSection(mint = NO_VALUE, engraver = NO_VALUE, designer = NO_VALUE)
+        DetailsSection(
+            mint = image.displayMint() ?: NO_VALUE,
+            engraver = image.displayEngraver() ?: NO_VALUE,
+            designer = image.displayDesigner() ?: NO_VALUE,
+        )
     }
 }
 
@@ -526,7 +547,9 @@ private fun AboutSeriesCard(series: RegularIssueSeries) {
 /**
  * Crediti: fonte del testo della serie e fonte dell'immagine possono differire (vedi
  * `RegularIssueImage.fonteDati` in `RegularIssue.kt`), quindi due voci distinte invece della sola
- * "Data source" delle commemorative.
+ * "Data source" delle commemorative. Il testo del singolo taglio può venire dalla BCE (ripiego), e
+ * i dati Numista (tirature, crediti, testo) hanno la loro riga: N# e "Source: Numista" sempre
+ * visibili con link alla pagina, come chiedono i Termini API (§4, vedi NOTES.md della pipeline).
  */
 @Composable
 private fun DenominationCreditFooter(series: RegularIssueSeries, image: RegularIssueImage) {
@@ -537,6 +560,7 @@ private fun DenominationCreditFooter(series: RegularIssueSeries, image: RegularI
     ) {
         val parts = listOfNotNull(
             "Text source: ${series.fonteDati.uppercase(Locale.ENGLISH)}",
+            "Coin text: ECB".takeIf { image.descrizioneFonte == "ecb" },
             image.fonteDati.takeIf { it.isNotBlank() }?.let { "Image source: ${it.uppercase(Locale.ENGLISH)}" },
             "Image license: ${image.displayImageLicense()}",
             image.attribuzioneImmagineRaw?.let { "Credit: $it" },
@@ -554,6 +578,24 @@ private fun DenominationCreditFooter(series: RegularIssueSeries, image: RegularI
                         modifier = Modifier.size(18.dp),
                     )
                 }
+            }
+        }
+        image.numistaId?.let { id ->
+            TextButton(
+                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://en.numista.com/$id"))) },
+            ) {
+                Text(
+                    text = "Source: Numista N#$id",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = linkColor(),
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = "Open Numista page",
+                    tint = linkColor(),
+                    modifier = Modifier.size(14.dp),
+                )
             }
         }
     }

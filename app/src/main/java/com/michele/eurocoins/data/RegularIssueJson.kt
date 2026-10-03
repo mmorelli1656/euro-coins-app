@@ -8,7 +8,8 @@ import kotlinx.serialization.Serializable
  * `data/processed/ec_national_sides.jsonl` della pipeline dati (repo
  * euro-coins-data-pipeline). I nomi dei campi ricalcano lo schema pydantic
  * `SezioneSerieDivisionale`/`ImmagineTaglio` — vedi quel repo per il
- * significato di ciascuno.
+ * significato di ciascuno. Il file NON è l'export diretto di quel JSONL: lo produce
+ * `scripts/export-regular-issues.ps1`, che aggiunge a ogni immagine i campi Numista/BCE per taglio.
  */
 @Serializable
 data class RegularIssueSeriesJson(
@@ -34,15 +35,23 @@ data class RegularIssueImageJson(
     @SerialName("attribuzione_immagine_raw") val attribuzioneImmagineRaw: String? = null,
     /** Fonte di QUESTA immagine ("ecb", "bcl", ...): può differire da quella del testo della serie — vedi RegularIssueSeries.fonteDati. */
     @SerialName("fonte_dati") val fonteDati: String = "",
-    /** Vedi RegularIssueMintage — vuota nel dataset attuale, la pipeline non le fornisce ancora. */
+    /** Vedi RegularIssueMintage. */
     val tirature: List<RegularIssueMintageJson> = emptyList(),
+    /** Campi aggiunti dal merge con Numista/BCE (`scripts/export-regular-issues.ps1`): vedi RegularIssueImage. */
+    val descrizione: String? = null,
+    @SerialName("descrizione_fonte") val descrizioneFonte: String? = null,
+    @SerialName("fonte_url") val fonteUrl: String? = null,
+    @SerialName("numista_id") val numistaId: Int? = null,
+    @SerialName("zecca_fisica_raw") val zeccaFisicaRaw: String? = null,
+    @SerialName("incisore_raw") val incisoreRaw: String? = null,
+    @SerialName("disegnatore_raw") val disegnatoreRaw: String? = null,
 )
 
 @Serializable
 data class RegularIssueMintageJson(
     val anno: Int,
     val quality: CoinQuality,
-    val tiratura: Int,
+    val tiratura: Long,
 )
 
 fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
@@ -63,6 +72,13 @@ fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
             attribuzioneImmagineRaw = it.attribuzioneImmagineRaw,
             fonteDati = it.fonteDati,
             tirature = it.tirature.map { m -> RegularIssueMintage(anno = m.anno, quality = m.quality, tiratura = m.tiratura) },
+            descrizione = it.descrizione,
+            descrizioneFonte = it.descrizioneFonte,
+            fonteUrl = it.fonteUrl,
+            numistaId = it.numistaId,
+            zeccaFisicaRaw = it.zeccaFisicaRaw,
+            incisoreRaw = it.incisoreRaw,
+            disegnatoreRaw = it.disegnatoreRaw,
         )
     },
     possibileIncongruenza = possibileIncongruenza,

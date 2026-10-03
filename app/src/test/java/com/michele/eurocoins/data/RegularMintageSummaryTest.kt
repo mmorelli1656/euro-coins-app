@@ -43,9 +43,9 @@ class RegularMintageSummaryTest {
         )
         val rows = groupMintagesByYear(tirature)
         assertEquals(listOf(2002, 2015, 2020), rows.map { it.first })
-        assertEquals(mapOf(CoinQuality.STANDARD to 1_200_000), rows[0].second)
-        assertEquals(mapOf(CoinQuality.BU to 25_000), rows[1].second)
-        assertEquals(mapOf(CoinQuality.PROOF to 12_000), rows[2].second)
+        assertEquals(mapOf(CoinQuality.STANDARD to 1_200_000L), rows[0].second)
+        assertEquals(mapOf(CoinQuality.BU to 25_000L), rows[1].second)
+        assertEquals(mapOf(CoinQuality.PROOF to 12_000L), rows[2].second)
     }
 
     @Test
@@ -56,6 +56,30 @@ class RegularMintageSummaryTest {
         )
         val rows = groupMintagesByYear(tirature)
         assertEquals(1, rows.size)
-        assertEquals(mapOf(CoinQuality.STANDARD to 1_000_000, CoinQuality.PROOF to 12_000), rows[0].second)
+        assertEquals(mapOf(CoinQuality.STANDARD to 1_000_000L, CoinQuality.PROOF to 12_000L), rows[0].second)
+    }
+
+    @Test
+    fun sumsBeyondIntRangeDoNotOverflow() {
+        // Germania 1 cent: 4 miliardi nel solo 2002, oltre Int.MAX_VALUE (2,147,483,647).
+        val tirature = listOf(
+            RegularIssueMintage(anno = 2002, quality = CoinQuality.STANDARD, tiratura = 4_000_000_000),
+            RegularIssueMintage(anno = 2004, quality = CoinQuality.STANDARD, tiratura = 1_400_000_000),
+        )
+        assertEquals(MintageSummary(5_400_000_000, "all years"), summarizeMintages(tirature, CoinQuality.STANDARD))
+    }
+
+    @Test
+    fun captionAdmitsMissingYearsInsteadOfClaimingAllYears() {
+        // Lo standard del 2003 manca (Numista non lo ha): "all years" sarebbe un totale falso.
+        val tirature = listOf(
+            RegularIssueMintage(anno = 2002, quality = CoinQuality.STANDARD, tiratura = 1_000),
+            RegularIssueMintage(anno = 2002, quality = CoinQuality.BU, tiratura = 10),
+            RegularIssueMintage(anno = 2003, quality = CoinQuality.BU, tiratura = 20),
+            RegularIssueMintage(anno = 2004, quality = CoinQuality.STANDARD, tiratura = 3_000),
+            RegularIssueMintage(anno = 2004, quality = CoinQuality.BU, tiratura = 30),
+        )
+        assertEquals(MintageSummary(4_000, "2 of 3 years"), summarizeMintages(tirature, CoinQuality.STANDARD))
+        assertEquals(MintageSummary(60, "all years"), summarizeMintages(tirature, CoinQuality.BU))
     }
 }

@@ -10,9 +10,18 @@ package com.michele.eurocoins.data
  * card e tronca in un punto qualunque, senza comunicare nulla. Oltre le 3 zecche uniche si passa
  * a un conteggio ("5 mints"); con 2-3 restano elencate (leggibili anche troncate).
  */
-fun Coin.displayMint(): String? {
-    val raw = zeccaFisicaRaw?.takeIf { it.isNotBlank() } ?: return null
-    val mints = raw.split("; ").map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+fun Coin.displayMint(): String? = formatMints(zeccaFisicaRaw)
+
+/** Stesso criterio di [Coin.displayMint], per la zecca di un taglio delle Regular Issues. */
+fun RegularIssueImage.displayMint(): String? = formatMints(zeccaFisicaRaw)
+
+/** Incisore del lato nazionale del taglio; ruolo distinto da [displayDesigner], vedi [Coin.displayEngraver]. */
+fun RegularIssueImage.displayEngraver(): String? = incisoreRaw?.takeIf { it.isNotBlank() }
+
+fun RegularIssueImage.displayDesigner(): String? = disegnatoreRaw?.takeIf { it.isNotBlank() }
+
+private fun formatMints(raw: String?): String? {
+    val mints = raw?.split("; ")?.map { it.trim() }?.filter { it.isNotEmpty() }?.distinct().orEmpty()
     return when {
         mints.isEmpty() -> null
         mints.size == 1 -> mints.first()
