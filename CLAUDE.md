@@ -172,7 +172,8 @@ app/src/main/java/com/michele/eurocoins/
     │                         # report di riconciliazione della pipeline dati
     ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
     │                         # RegularCollectionSheet (come CollectionSheet + selettore anno a griglia, Regular Issues),
-    │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
+    │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet,
+    │                         # CoinThumbnailRing (anello + qualità di ridimensionamento delle miniature)
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
@@ -203,7 +204,7 @@ altre, scartato dopo un mockup. Nell'elenco (sia "All" sia per paese), le
 monete di un'emissione comune hanno una piccola icona a globo accanto a
 "Paese · Anno", tinta come quel testo (`primary`)
 per leggersi come parte dell'etichetta invece che un accento nuovo. **Barra
-flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: card ad **altezza FISSA 72 dp** (`.height(72.dp)`: non varia con la lunghezza del titolo; miniatura 52 dp (era 46 dp in area 52: rimessa a 52 su richiesta), MA il cerchio lilla del segnaposto è 50 dp (`PlaceholderSize`): le foto BCE hanno un margine bianco attorno alla moneta, e a pari riquadro il lilla pieno sembrava più grande (misurato sullo screenshot: 169 px contro 162-165, dopo 163), sottotitolo 13 sp Bold in `primary`, titolo `bodyMedium` SemiBold max 2 righe con ellissi, il testo intero sta nel dettaglio; scelta dopo mockup A+Y, scartate 88 dp a 3 righe e sottotitolo in pillola lilla); il tocco sulla miniatura apre il dettaglio come il resto della riga. Titolo e paese passano da `displayTema()`/`displayCountry()`; testi con 12 dp a destra (prima della casella). Senza foto o foto che non si carica (anche offline con cache svuotata): la stessa icona `€`; MENTRE la foto arriva solo il cerchio lilla, senza icona (il `€` a ogni riapertura sembrava un riscaricamento; vedi § Decisioni di prodotto, "Stato di `SubcomposeAsyncImage`"). L'icona è `Icons.Filled.EuroSymbol` (il glifo pieno: l'outline sottile `Outlined.Euro` "sembrava strano"; scartate anche la 2€ disegnata e una moneta con € dentro) su cerchio lilla, non più SOTTO la foto ma solo dove serve: niente icone diverse per "non pubblicata" e "non caricata". `CoinImageDialog` (foto grande, "Close"/"Details") esiste ancora ma è scollegato: per riattivarlo decommentare il blocco `zoomed` in `CoinListContent` e passare `onImageClick` a `CoinRow`. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Regular Issues (§ omonima più sotto) riusa questo stesso trattamento di caricamento/fallback per le immagini dei tagli, non questo elenco: ha una sua schermata. Dettagli della barra non ovvi: **testo e cursore vivono nella barra** (`TextFieldValue` locale, `query` vale solo come valore iniziale): il valore che tornava da un StateFlow del ViewModel arrivava con qualche fotogramma di ritardo e un `BasicTextField(String)` che riceve un valore vecchio riporta indietro testo e cursore (cursore dopo la terza lettera, caratteri persi, blocco in Years); tutta la metà sinistra (lente, margini, altezza intera) è cliccabile e porta il focus al campo (`FocusRequester` + `keyboard.show()`), perché il `BasicTextField` è alto quanto una riga di testo e toccare sopra, sotto o sulla lente non apriva la tastiera; alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.84 scuro, 0.78 chiaro; era 0.94/0.88, ridotto a vista) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo.
+flottante in basso** (`FloatingSearchBar`: pillola con ricerca + pulsante FILTER, sfondo vetro con blur reale via libreria Haze, `hazeSource` sulla lista/griglia sottostante; sotto Android 12 resta il solo fondo semitrasparente) in ogni scheda di Browse e in ogni lista filtrata; ogni scheda ha query e filtri propri. Il pannello FILTER (`FilterSheet`) contiene anche l'ordinamento (Years: dal più recente / dal 2004; Countries: A → Z / Z → A; liste: per anno o paese) più filtri Collection (All/Incomplete/Complete sulle griglie, All/Owned/Missing + qualità sulle liste); il pallino sul pulsante segnala un filtro attivo. Liste e griglie lasciano `floatingBarClearance()` di padding in fondo. La griglia (e ora anche l'elenco) torna in cima a ogni cambio d'ordine: lo stato di scorrimento si ricrea con `key(...)` nella stessa composizione, NON con un `LaunchedEffect`, che arrivava un fotogramma dopo e faceva vedere l'ordine nuovo scorso a metà (scritte che sembravano sovrapporsi). **Elenco monete**: card ad **altezza FISSA 80 dp** (`RowHeight`, era 72 dp: non varia con la lunghezza del titolo; miniatura **64 dp** (`ThumbnailSize`; era 52, prima ancora 46 in area 52), MA il cerchio lilla del segnaposto è 62 dp (`PlaceholderSize`, era 50 su 52): a pari riquadro il lilla pieno sembrava più grande della moneta (misurato sullo screenshot: 169 px contro 162-165, dopo 163; **la nota storica parlava di un margine bianco attorno alla moneta, ma misurato il 2026-10-04 su 3 foto BCE la moneta occupa il 97-98% del quadrato: nessun margine da ritagliare**), sottotitolo 13 sp Bold in `primary`, titolo `bodyMedium` SemiBold max 2 righe con ellissi, il testo intero sta nel dettaglio; scelta dopo mockup A+Y, scartate 88 dp a 3 righe e sottotitolo in pillola lilla); il tocco sulla miniatura apre il dettaglio come il resto della riga. Titolo e paese passano da `displayTema()`/`displayCountry()`; testi con 12 dp a destra (prima della casella). Senza foto o foto che non si carica (anche offline con cache svuotata): la stessa icona `€`; MENTRE la foto arriva solo il cerchio lilla, senza icona (il `€` a ogni riapertura sembrava un riscaricamento; vedi § Decisioni di prodotto, "Stato di `SubcomposeAsyncImage`"). L'icona è `Icons.Filled.EuroSymbol` (il glifo pieno: l'outline sottile `Outlined.Euro` "sembrava strano"; scartate anche la 2€ disegnata e una moneta con € dentro) su cerchio lilla, non più SOTTO la foto ma solo dove serve: niente icone diverse per "non pubblicata" e "non caricata". `CoinImageDialog` (foto grande, "Close"/"Details") esiste ancora ma è scollegato: per riattivarlo decommentare il blocco `zoomed` in `CoinListContent` e passare `onImageClick` a `CoinRow`. `PrefetchThumbnails` accoda in Coil le foto delle 24 monete oltre l'ultima visibile, così sono già nella cache su disco quando la riga arriva (le foto pesano ~130 KB l'una da BCE, vedi Decisioni di prodotto). Regular Issues (§ omonima più sotto) riusa questo stesso trattamento di caricamento/fallback per le immagini dei tagli, non questo elenco: ha una sua schermata. Dettagli della barra non ovvi: **testo e cursore vivono nella barra** (`TextFieldValue` locale, `query` vale solo come valore iniziale): il valore che tornava da un StateFlow del ViewModel arrivava con qualche fotogramma di ritardo e un `BasicTextField(String)` che riceve un valore vecchio riporta indietro testo e cursore (cursore dopo la terza lettera, caratteri persi, blocco in Years); tutta la metà sinistra (lente, margini, altezza intera) è cliccabile e porta il focus al campo (`FocusRequester` + `keyboard.show()`), perché il `BasicTextField` è alto quanto una riga di testo e toccare sopra, sotto o sulla lente non apriva la tastiera; alta 72 dp e larga quasi tutto lo schermo (margini 8 dp) per coprire per intero la riga sottostante; fondo molto opaco (0.84 scuro, 0.78 chiaro; era 0.94/0.88, ridotto a vista) perché con testo chiaro su fondo scuro il solo blur lascia il testo leggibile; sta in un Box esterno a schermo intero che assorbe i tocchi ("zona morta", `BarDeadZone` sopra + margine sotto) per non aprire monete vicine per errore (blocca anche il trascinamento iniziato lì). **Tastiera**: `MainActivity` ha `windowSoftInputMode="adjustNothing"` e la barra si solleva con `WindowInsets.ime`/`navigationBars` via `offset`, senza `imePadding()` e senza molle: con il ridimensionamento della finestra attivo l'altezza della tastiera veniva contata due volte, e una molla sopra l'animazione di sistema partiva in ritardo.
 Il paese si passa in rotta come `Coin.paese` (valore stabile, non il nome
 mostrato) con `Uri.encode`, perché "Città del Vaticano" e "Paesi Bassi"
 hanno spazi/accenti.
@@ -562,7 +563,7 @@ catalogo completo.
   e poi per serie, riga posseduta = almeno un'annata nella finestra della serie). **Il PAESE è il
   titolo** ("🇧🇪 Belgium") e "Series 2 · 2008 – 2013" la riga piccola sopra: il taglio è già nella
   barra in alto, ripeterlo 41 volte sarebbe rumore. Riga = `RegularCoinRow` (estratta da
-  `RegularIssueCountryScreen` in `RegularCoinRow.kt`, stessa 72 dp con stato/titolo parametrici): il
+  `RegularIssueCountryScreen` in `RegularCoinRow.kt`, stessa 80 dp con stato/titolo parametrici): il
   tocco apre il dettaglio taglio della serie GUARDATA, la casella il `RegularCollectionSheet` (chiave
   = serie di origine, titolo = serie guardata, salvataggio con la finestra). Barra flottante:
   ricerca per paese/serie/periodo, FILTER Collection All/Owned/Missing (`OwnershipFilter`).
@@ -692,7 +693,7 @@ catalogo completo.
   Sotto, **una card per taglio** (non più una riga
   orizzontale scorrevole dentro un'unica card di serie — cambiato su
   richiesta, riusa la struttura di `CoinRow` in `CoinListScreen.kt`: card ad
-  altezza fissa 72 dp, miniatura 52 dp/segnaposto lilla 50 dp, testo,
+  altezza fissa 80 dp, miniatura 64 dp/segnaposto lilla 62 dp, testo,
   casella a destra), **ordinate per valore** (`RegularIssueCountryViewModel`,
   elenco canonico 1 cent → 2 euro): `RegularIssueSeries.immagini` non è
   garantita in quest'ordine — i tagli aggiunti dal secondo arricchimento BCE
@@ -1255,7 +1256,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   visibile e link alla fonte. Le foto BCE sono JPEG quadrati (i campioni
   controllati: 270×270, ~100-260 KB), con sfondo **bianco puro** (255,255,255)
   e senza trasparenza. Conseguenze: nell'elenco pesano molto per un cerchio da
-  52 dp (da qui il precaricamento); WebP non serve finché non le serviamo noi.
+  64 dp (da qui il precaricamento); WebP non serve finché non le serviamo noi.
 - **Foto della moneta**: nell'ingrandimento è un quadrato bianco con angoli
   arrotondati (16 dp); nel dettaglio è in una **card bianca pura fissa**
   (`Color.White`, angoli 24 dp, bordo 1 dp, senza secondo riquadro dentro): lo
@@ -1266,6 +1267,26 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   un riquadro calcolato sui pixel non bianchi (provato su telefono). Non
   riprovarlo senza un dato migliore dalla pipeline (es. centro/raggio della
   moneta).
+- **Visibilità delle miniature negli elenchi** (commemorative e Regular Issues, 2026-10-04).
+  Misurato prima di intervenire: foto BCE 270×270, la moneta ne occupa il 97-98% (niente margine
+  da ritagliare); la miniatura ne usa ~140-190 px fisici, quindi il limite non è la risoluzione ma
+  la grandezza sullo schermo; le monete sono chiare (luminanza media 187-213/255) su una card
+  bianca e il contorno si perdeva. Tre interventi: (1) **miniatura 64 dp, card 80 dp** (era 52/72:
+  +23% di diametro, ~10% di densità dell'elenco in meno), l'unico che aggiunge dettaglio vero;
+  (2) **anello da 1 dp** (`onSurfaceVariant` al 35%, `CoinThumbnailRing` in `ui/components/`)
+  disegnato SOPRA la foto e solo a foto caricata (non sul segnaposto lilla); (3)
+  **`FilterQuality.Medium`** (`ThumbnailFilterQuality`) sulle `SubcomposeAsyncImage` delle miniature:
+  Coil non riduce da 270 px alla misura del riquadro (precisione inesatta), la riduzione la fa
+  Compose e con la qualità bassa di default era morbida (ipotesi, valutata a occhio sul
+  telefono: "va meglio"). Le due liste hanno la STESSA misura per scelta dell'utente: provato
+  68/60 dp con 4 dp tra le card per far stare le 8 monete di una serie in una schermata (calcolo:
+  8 × 72 = 576 dp contro ~590 visibili sul suo telefono), poi scartato per tenere le liste
+  identiche; **con 80/64 le 8 righe di una serie non ci stanno più tutte insieme** e l'ultima esce
+  in parte. A 68 dp i titoli commemorativi su due righe sforerebbero (serve togliere il padding
+  verticale della colonna di testo). Scartati: boost di contrasto con `ColorMatrix` (altera i
+  colori reali della moneta, difetto in un'app da collezionisti, e l'anello risolve già il
+  bordo) e tocco prolungato per ingrandire (un'azione in più chiesta all'utente). La fascia Home
+  non è stata toccata.
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile. Causa poi chiarita (vedi sotto): `painter.state` è uno `StateFlow`. Solo icona di errore.
@@ -1356,7 +1377,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   tagliato), titolo delle tile Home con `padding(end = 8.dp)` verso la pillola "Coming soon" (ora
   può andare a capo, non la tocca), pillola "COMMON ISSUE" che NON scala con il font
   (`CompositionLocalProvider(LocalDensity ... fontScale = 1f)`: cresceva e copriva l'anno). Restano
-  accettabili: titoli dell'elenco tagliati a una riga (card da 72 dp fissi) e email accorciata.
+  accettabili: titoli dell'elenco tagliati a una riga (card da 80 dp fissi) e email accorciata.
   Non verificati: landscape, TalkBack, schermi molto piccoli.
 - **Tipografia: serif solo per l'identità "catalogo", sans per tutto il resto**
   (`Type.kt`; via di mezzo scelta dopo mockup, su suggerimento di un altro assistente
