@@ -111,7 +111,7 @@ fun RegularDenominationListScreen(
             FloatingSearchBar(
                 query = viewModel.queryNow,
                 onQueryChange = viewModel::onQueryChange,
-                placeholder = "Country, series or year…",
+                placeholder = "Country, series, year…",
                 filterActive = state.filterActive,
                 onFilterClick = { showFilters = true },
                 hazeState = hazeState,

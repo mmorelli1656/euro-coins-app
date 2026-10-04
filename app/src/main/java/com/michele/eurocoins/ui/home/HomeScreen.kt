@@ -381,8 +381,8 @@ private class DrawnCoin(val label: String, val outer: Color, val inner: Color?)
 private val RegularCoins = listOf(
     DrawnCoin("1c", Color(0xFFC08A6B), null), // rame
     DrawnCoin("10c", Color(0xFFD3B56C), null), // oro nordico
-    DrawnCoin("1€", Color(0xFFD9DBD9), Color(0xFFD3B56C)), // bimetallica: anello argento, centro oro
-    DrawnCoin("2€", Color(0xFFD3B56C), Color(0xFFD9DBD9)), // bimetallica: anello oro, centro argento
+    DrawnCoin("1€", Color(0xFFD3B56C), Color(0xFFD9DBD9)), // bimetallica: anello oro, centro argento
+    DrawnCoin("2€", Color(0xFFD9DBD9), Color(0xFFD3B56C)), // bimetallica: anello argento, centro oro
 )
 
 /**

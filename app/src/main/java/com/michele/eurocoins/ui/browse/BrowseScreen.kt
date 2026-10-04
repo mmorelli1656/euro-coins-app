@@ -260,6 +260,8 @@ private fun ModeSelector(
                 selected = selected == mode,
                 onClick = { onSelected(mode) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
+                // Nessuna spunta: spostava l'etichetta fuori centro (come nei selettori di Impostazioni).
+                icon = {},
                 label = {
                     Text(
                         when (mode) {

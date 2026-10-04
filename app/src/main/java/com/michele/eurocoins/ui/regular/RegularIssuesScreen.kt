@@ -121,7 +121,13 @@ fun RegularIssuesScreen(
                         ) {
                             items(state.denominations, key = { it.taglio }) { card ->
                                 BrowseCard(onClick = { onDenominationClick(card.taglio) }) {
-                                    Text(card.taglio, style = MaterialTheme.typography.headlineMedium)
+                                    // Nella posizione della bandiera delle card Countries: le due schede hanno la stessa grammatica.
+                                    DenominationCoin(card.taglio)
+                                    Text(
+                                        card.taglio,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        modifier = Modifier.padding(top = 6.dp),
+                                    )
                                     CardFooter(card.progress)
                                 }
                             }
@@ -150,7 +156,7 @@ fun RegularIssuesScreen(
                 RegularBrowseMode.DENOMINATIONS -> FloatingSearchBar(
                     query = viewModel.denominationsQueryNow,
                     onQueryChange = viewModel::setDenominationsQuery,
-                    placeholder = "Filter by denomination…",
+                    placeholder = "Filter by value…",
                     filterActive = state.prefs.denominationsFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
@@ -218,6 +224,8 @@ private fun ModeSelector(
                 selected = selected == mode,
                 onClick = { onSelected(mode) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
+                // Nessuna spunta: spostava l'etichetta fuori centro (come nei selettori di Impostazioni).
+                icon = {},
                 label = {
                     Text(
                         when (mode) {
