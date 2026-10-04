@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class, RegularCollectionItem::class],
-    version = 8,
+    version = 9,
     exportSchema = false,
 )
 @TypeConverters(RegularIssueConverters::class)
@@ -108,6 +108,33 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * 8 -> 9: `variety` entra nella chiave primaria di `regular_collection_items` (il 2002 greco
+         * di Atene e quello EFS sono lo stesso anno e qualità). SQLite non cambia una chiave primaria
+         * con ALTER: si ricostruisce la tabella copiando le voci esistenti, tutte con varietà `''`
+         * (moneta normale). Dati dell'utente: nessuna voce deve andare persa. Colonna NOT NULL senza
+         * DEFAULT, come l'entity (il valore vuoto lo mette la copia).
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE `regular_collection_items_new` (" +
+                        "`seriesKey` TEXT NOT NULL, `taglio` TEXT NOT NULL, `anno` INTEGER NOT NULL, " +
+                        "`quality` TEXT NOT NULL, `variety` TEXT NOT NULL, `priceCents` INTEGER, " +
+                        "`paese` TEXT NOT NULL, `addedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`seriesKey`, `taglio`, `anno`, `quality`, `variety`))",
+                )
+                db.execSQL(
+                    "INSERT INTO `regular_collection_items_new` " +
+                        "(`seriesKey`, `taglio`, `anno`, `quality`, `variety`, `priceCents`, `paese`, `addedAt`) " +
+                        "SELECT `seriesKey`, `taglio`, `anno`, `quality`, '', `priceCents`, `paese`, `addedAt` " +
+                        "FROM `regular_collection_items`",
+                )
+                db.execSQL("DROP TABLE `regular_collection_items`")
+                db.execSQL("ALTER TABLE `regular_collection_items_new` RENAME TO `regular_collection_items`")
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -116,7 +143,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build().also { instance = it }
             }
     }
 }

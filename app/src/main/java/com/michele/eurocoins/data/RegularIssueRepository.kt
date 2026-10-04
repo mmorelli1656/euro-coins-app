@@ -50,11 +50,11 @@ class RegularIssueRepository(
     /**
      * Salva in blocco le annate/qualità possedute di un taglio ([entries]): quelle non presenti
      * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti (stessa (anno,
-     * qualità)). Stesso pattern di `CoinRepository.saveCollection`, ma qui la chiave include
+     * qualità, varietà)). Stesso pattern di `CoinRepository.saveCollection`, ma qui la chiave include
      * anche l'anno perché più annate dello stesso taglio possono coesistere.
      */
     suspend fun saveCollection(seriesKey: String, taglio: String, paese: String, entries: List<RegularCollectionEntry>) {
-        val existing = collectionDao.itemsFor(seriesKey, taglio).associateBy { it.anno to it.quality }
+        val existing = collectionDao.itemsFor(seriesKey, taglio).associateBy { Triple(it.anno, it.quality, it.variety) }
         val now = System.currentTimeMillis()
         collectionDao.replaceForDenomination(
             seriesKey,
@@ -65,9 +65,10 @@ class RegularIssueRepository(
                     taglio = taglio,
                     anno = entry.anno,
                     quality = entry.quality,
+                    variety = entry.variety,
                     priceCents = entry.priceCents,
                     paese = paese,
-                    addedAt = existing[entry.anno to entry.quality]?.addedAt ?: now,
+                    addedAt = existing[Triple(entry.anno, entry.quality, entry.variety)]?.addedAt ?: now,
                 )
             },
         )

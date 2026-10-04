@@ -16,12 +16,18 @@ import androidx.room.Entity
  * [paese] è una copia di quando la voce è stata salvata: serve solo a riconoscere una voce
  * "orfana" se la chiave della serie cambiasse (vedi [stableKey]).
  */
-@Entity(tableName = "regular_collection_items", primaryKeys = ["seriesKey", "taglio", "anno", "quality"])
+@Entity(tableName = "regular_collection_items", primaryKeys = ["seriesKey", "taglio", "anno", "quality", "variety"])
 data class RegularCollectionItem(
     val seriesKey: String,
     val taglio: String,
     val anno: Int,
     val quality: CoinQuality,
+    /**
+     * Varietà dell'annata (oggi solo [VARIETY_EFS], Grecia 2002), stringa vuota per la moneta
+     * normale. Nella chiave: il 2002 greco di Atene e il 2002 EFS sono lo stesso anno e la stessa
+     * qualità ma due monete, e un utente può averle entrambe. Vedi [RegularIssueSeries.varietyFor].
+     */
+    val variety: String = "",
     /** Prezzo pagato in centesimi di euro, se l'utente lo ha inserito. */
     val priceCents: Int? = null,
     val paese: String,
@@ -29,4 +35,4 @@ data class RegularCollectionItem(
 )
 
 /** Un'annata inserita nel pannello di collezione, prima di essere salvata come [RegularCollectionItem]. */
-data class RegularCollectionEntry(val anno: Int, val quality: CoinQuality, val priceCents: Int?)
+data class RegularCollectionEntry(val anno: Int, val quality: CoinQuality, val priceCents: Int?, val variety: String = "")

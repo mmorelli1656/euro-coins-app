@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,7 +70,9 @@ import com.michele.eurocoins.data.RegularCollectionEntry
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.RegularVariety
 import com.michele.eurocoins.data.stableKey
+import com.michele.eurocoins.data.varietyFor
 import com.michele.eurocoins.ui.theme.PurpleFieldDark
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
@@ -90,9 +93,11 @@ private var nextEntryId = 0L
 private fun newEntryId() = nextEntryId++
 
 /** Una riga di annata in fase di modifica: identità stabile ([id]) per le chiavi di Compose, testo mutabile. */
-private class YearEntry(val id: Long, year: String, price: String) {
+private class YearEntry(val id: Long, year: String, price: String, variety: String = "") {
     var year by mutableStateOf(year)
     var price by mutableStateOf(price)
+    /** Codice della varietà spuntata (`VARIETY_EFS`) o vuoto; vale solo se l'anno ne offre una. */
+    var variety by mutableStateOf(variety)
 }
 
 /**
@@ -135,8 +140,8 @@ fun RegularCollectionSheet(
         mutableStateMapOf<CoinQuality, SnapshotStateList<YearEntry>>().apply {
             CoinQuality.entries.forEach { quality ->
                 val existing = itemsByQuality[quality].orEmpty()
-                    .sortedBy { it.anno }
-                    .map { YearEntry(newEntryId(), it.anno.toString(), formatPrice(it.priceCents)) }
+                    .sortedWith(compareBy({ it.anno }, { it.variety }))
+                    .map { YearEntry(newEntryId(), it.anno.toString(), formatPrice(it.priceCents), it.variety) }
                 this[quality] = if (existing.isEmpty() && checked[quality] == true) {
                     mutableStateListOf(YearEntry(newEntryId(), "", ""))
                 } else {
@@ -144,6 +149,11 @@ fun RegularCollectionSheet(
                 }
             }
         }
+    }
+
+    // varietà offerta dall'anno scritto in una riga (oggi solo Grecia 2002, EFS), null altrimenti
+    val varietyOf: (YearEntry) -> RegularVariety? = { entry ->
+        entry.year.takeIf { it.length == 4 }?.toIntOrNull()?.let { series.varietyFor(denomination.taglio, it) }
     }
 
     ModalBottomSheet(
@@ -188,7 +198,13 @@ fun RegularCollectionSheet(
                                 years[quality] = mutableStateListOf(YearEntry(newEntryId(), "", ""))
                             }
                         },
-                        onYearChange = { entry, value -> entry.year = sanitizeYear(value) },
+                        varietyOf = varietyOf,
+                        onVarietyChange = { entry, isOn -> entry.variety = if (isOn) varietyOf(entry)?.code.orEmpty() else "" },
+                        onYearChange = { entry, value ->
+                            entry.year = sanitizeYear(value)
+                            // cambiando anno la varietà non vale più: niente EFS nascosto su un 2005
+                            if (varietyOf(entry) == null) entry.variety = ""
+                        },
                         onPriceChange = { entry, value -> entry.price = sanitizePrice(value) },
                         onAddYear = {
                             years.getOrPut(quality) { mutableStateListOf() }.add(YearEntry(newEntryId(), "", ""))
@@ -211,7 +227,13 @@ fun RegularCollectionSheet(
                             .flatMap { quality ->
                                 years[quality].orEmpty().mapNotNull { entry ->
                                     val year = entry.year.takeIf { it.length == 4 }?.toIntOrNull() ?: return@mapNotNull null
-                                    RegularCollectionEntry(anno = year, quality = quality, priceCents = parsePriceCents(entry.price))
+                                    RegularCollectionEntry(
+                                        anno = year,
+                                        quality = quality,
+                                        priceCents = parsePriceCents(entry.price),
+                                        // salvata solo se l'anno la offre (guardia in più al cambio anno)
+                                        variety = if (varietyOf(entry) != null) entry.variety else "",
+                                    )
                                 }
                             }
                         onSave(entries)
@@ -229,6 +251,8 @@ private fun QualityCard(
     checked: Boolean,
     years: List<YearEntry>,
     onCheckedChange: (Boolean) -> Unit,
+    varietyOf: (YearEntry) -> RegularVariety?,
+    onVarietyChange: (YearEntry, Boolean) -> Unit,
     onYearChange: (YearEntry, String) -> Unit,
     onPriceChange: (YearEntry, String) -> Unit,
     onAddYear: () -> Unit,
@@ -281,6 +305,8 @@ private fun QualityCard(
                     key(entry.id) {
                         YearRow(
                             entry = entry,
+                            variety = varietyOf(entry),
+                            onVarietyChange = { onVarietyChange(entry, it) },
                             onYearChange = { onYearChange(entry, it) },
                             onPriceChange = { onPriceChange(entry, it) },
                             onRemove = { onRemoveYear(entry) },
@@ -297,27 +323,51 @@ private fun QualityCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun YearRow(
     entry: YearEntry,
+    /** Varietà offerta da questo anno (Grecia 2002: EFS), null per tutti gli altri. */
+    variety: RegularVariety?,
+    onVarietyChange: (Boolean) -> Unit,
     onYearChange: (String) -> Unit,
     onPriceChange: (String) -> Unit,
     onRemove: () -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        YearField(value = entry.year, onValueChange = onYearChange)
-        PriceField(value = entry.price, onValueChange = onPriceChange, enabled = true, description = "Price paid (€)")
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = "Remove this year",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(16.dp),
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            YearField(value = entry.year, onValueChange = onYearChange)
+            PriceField(value = entry.price, onValueChange = onPriceChange, enabled = true, description = "Price paid (€)")
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "Remove this year",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+        // compare solo quando l'anno scritto ha una varietà: negli altri casi la riga non cambia
+        if (variety != null) {
+            val selected = entry.variety == variety.code
+            FilterChip(
+                selected = selected,
+                onClick = { onVarietyChange(!selected) },
+                label = {
+                    Text(variety.label, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        variety.detail,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                modifier = Modifier.padding(top = 4.dp),
             )
         }
     }

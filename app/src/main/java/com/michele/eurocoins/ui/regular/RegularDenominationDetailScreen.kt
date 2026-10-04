@@ -628,7 +628,7 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
             modifier = Modifier.padding(top = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items.sortedWith(compareBy({ it.quality.ordinal }, { it.anno })).forEach { item ->
+            items.sortedWith(compareBy({ it.quality.ordinal }, { it.anno }, { it.variety })).forEach { item ->
                 val cents = item.priceCents?.takeIf { it > 0 }
                 val rowShape = RoundedCornerShape(14.dp)
                 Row(
@@ -642,7 +642,7 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "${item.quality.label} · ${item.anno}",
+                        text = "${item.quality.label} · ${item.anno}" + if (item.variety.isNotEmpty()) " · ${item.variety}" else "",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
                         color = colors.onSurface,
