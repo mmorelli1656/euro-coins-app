@@ -1,14 +1,13 @@
 package com.michele.eurocoins.data
 
 /**
- * Nome della zecca fisica che ha coniato la moneta (es. "Rome"), non il paese emittente
- * (`displayCountry()`). Fonte: campo 'mints' di Numista, più valori uniti da "; " quando la
- * moneta è stata coniata in più zecche (unite anche se identiche: es. "Royal Dutch Mint;
- * Royal Dutch Mint" nel dataset grezzo). La Germania è il caso limite: ogni moneta è coniata in
- * tutte e 5 le zecche regionali (mintmark A/D/F/G/J), quindi lo stesso elenco fisso e lunghissimo
- * di 5 nomi si ripete identico su 33 monete — mostrarlo per intero eccede sempre le 2 righe della
- * card e tronca in un punto qualunque, senza comunicare nulla. Oltre le 3 zecche uniche si passa
- * a un conteggio ("5 mints"); con 2-3 restano elencate (leggibili anche troncate).
+ * Dove è stata coniata la moneta, come paese della zecca ("Italy", "Netherlands"; vedi
+ * [mintCountry] in MintNames.kt), non il paese emittente (`displayCountry()`).
+ * Fonte: campo 'mints' di Numista, più valori uniti da "; " quando la moneta è stata coniata in
+ * più zecche (anche identiche: es. "Royal Dutch Mint; Royal Dutch Mint" nel dataset grezzo).
+ * Le 5 zecche regionali tedesche (mintmark A/D/F/G/J, su ogni moneta tedesca) collassano in un
+ * solo "Germany" dopo la mappatura, quindi non serve più il conteggio "5 mints" che serviva
+ * quando si mostravano i nomi per esteso. Il valore non contiene "Mint": c'è già l'etichetta.
  */
 fun Coin.displayMint(): String? = formatMints(zeccaFisicaRaw)
 
@@ -21,13 +20,10 @@ fun RegularIssueImage.displayEngraver(): String? = incisoreRaw?.takeIf { it.isNo
 fun RegularIssueImage.displayDesigner(): String? = disegnatoreRaw?.takeIf { it.isNotBlank() }
 
 private fun formatMints(raw: String?): String? {
-    val mints = raw?.split("; ")?.map { it.trim() }?.filter { it.isNotEmpty() }?.distinct().orEmpty()
-    return when {
-        mints.isEmpty() -> null
-        mints.size == 1 -> mints.first()
-        mints.size <= 3 -> mints.joinToString(", ")
-        else -> "${mints.size} mints"
-    }
+    // distinct() DOPO la mappatura: Berlin/Munich/... sono cinque stringhe e un solo "Germany"
+    val mints = raw?.split("; ")?.map { it.trim() }?.filter { it.isNotEmpty() }
+        ?.map(::mintCountry)?.distinct().orEmpty()
+    return mints.takeIf { it.isNotEmpty() }?.joinToString(", ")
 }
 
 /**

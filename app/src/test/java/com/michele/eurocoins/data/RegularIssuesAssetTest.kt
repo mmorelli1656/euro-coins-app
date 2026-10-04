@@ -69,11 +69,22 @@ class RegularIssuesAssetTest {
     }
 
     @Test
-    fun mintsAreDeduplicatedAndCollapsedLikeCommemoratives() {
+    fun mintsAreShownAsCountryWithoutDuplicates() {
         assumeTrue(hasNumista)
-        assertEquals("5 mints", image("Germania", 1, "1 euro").displayMint())
-        assertEquals("Rome", image("Italia", 1, "2 euro").displayMint())
+        // 5 zecche regionali tedesche → un solo "Germany"
+        assertEquals("Germany", image("Germania", 1, "1 euro").displayMint())
+        assertEquals("Italy", image("Italia", 1, "2 euro").displayMint())
         // "Mint of Finland; Mint of Finland; Royal Dutch Mint" nel dataset grezzo: un solo Finland.
-        assertEquals("Mint of Finland, Royal Dutch Mint", image("Finlandia", 1, "1 cent").displayMint())
+        assertEquals("Finland, Netherlands", image("Finlandia", 1, "1 cent").displayMint())
+        // il dato grezzo non si tocca
+        assertTrue(image("Germania", 1, "1 euro").zeccaFisicaRaw!!.contains("Berlin"))
+    }
+
+    @Test
+    fun everyMintInTheAssetHasACountry() {
+        val unknown = series.flatMap { it.immagini }
+            .flatMap { it.zeccaFisicaRaw?.split("; ").orEmpty() }
+            .map { it.trim() }.filter { it.isNotEmpty() && !isKnownMint(it) }.toSet()
+        assertTrue("Zecche senza paese in MintNames.kt: $unknown", unknown.isEmpty())
     }
 }

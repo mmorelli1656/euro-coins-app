@@ -447,9 +447,10 @@ private fun MintageCard(coin: Coin) {
  * dato manca, non si distingue da "il dato non esiste"). Engraver e Designer sono ruoli distinti,
  * non l'uno il ripiego dell'altro — 25 monete su 584 li hanno entrambi valorizzati con persone
  * diverse, vedi [displayEngraver]. **Non una griglia a 3 colonne pari** (scartata dopo un
- * mockup): la zecca è spesso un nome istituzionale lungo (es. "State Mint of Stuttgart / State
+ * mockup): la zecca era spesso un nome istituzionale lungo (es. "State Mint of Stuttgart / State
  * Mints of Baden-Württemberg" per la Lettonia, che usa zecche tedesche in subappalto) e si
- * schiacciava in un terzo di card. **Mint su una riga intera** (va a capo leggibile su tutta la
+ * schiacciava in un terzo di card; ora è il nome del paese della zecca ("Germany", vedi
+ * `displayMint`), ma la struttura resta. **Mint su una riga intera** (va a capo leggibile su tutta la
  * larghezza), **Engraver/Designer affiancati sotto** in 2 colonne (nomi di persona, quasi sempre
  * corti): una sola riga in più rispetto alla griglia a 3, non il triplo come la variante a righe
  * impilate scartata per lo stesso motivo (allungava troppo la card).
