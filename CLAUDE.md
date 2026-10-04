@@ -339,7 +339,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 ### Impostazioni
 
 Schermata unica (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro
-sotto, senza titolo proprio), Catalog and display, Appearance, Danger zone.
+sotto, senza titolo proprio), Commemorative, Regular Issues, Appearance, Danger zone.
 Ordine interno delle card, uguale in ogni sezione: prima gli interruttori (`SwitchRow`), poi i selettori a segmenti (`SegmentedChoice`), separati da un filetto. Titoli con "and", non "&" (coerenza con "Account and backup").
 
 **Palette: tre livelli visibili** — neutro (sfondi, testi, titoli), lilla (selezioni) e
@@ -364,14 +364,25 @@ regge un pulsante pieno):
 
 - **Hide microstates** (Andorra, Monaco, San Marino, Città del Vaticano,
   `MICROSTATE_PAESI`): il filtro sta in `CoinRepository.coins`/`paesi`
-  (`combine` con `UserSettings.hideMicrostates`), quindi elenchi, griglie,
+  (`combine` con `UserSettings.hideCommemorativeMicrostates`), quindi elenchi, griglie,
   ricerca e home lo rispettano tutti e i totali "x / y collected" escludono
   i microstati nascosti. Le monete già possedute restano nella collezione e
-  nel backup.
+  nel backup. **Impostazione INDIPENDENTE per catalogo** (ottobre 2026): Regular Issues ha la sua
+  (`hideRegularMicrostates`, filtro in `RegularIssueRepository.series`), così si possono nascondere
+  solo da uno, dall'altro o da entrambi. **Struttura: una sezione per catalogo** ("Commemorative" e
+  "Regular Issues", `CatalogCard`), ognuna con interruttore + scheda iniziale, al posto della vecchia
+  "Catalog and display" (variante A scelta dopo mockup; scartata la B, una sola card con un selettore a
+  4 stati Off/Comm./Regular/Both: etichette abbreviate, segmenti stretti, due "Default tab" da
+  distinguere). La chiave `hide_microstates` resta e vale per le commemorative; quella delle Regular
+  (`hide_regular_microstates`) finché non viene toccata EREDITA il valore delle commemorative
+  (`resolveHideRegularMicrostates`), così chi aveva l'interruttore acceso non vede cambiare niente.
 - **Default tab**: scheda di Commemorative che si apre per prima
   (`UserSettings.defaultTab`, letto alla creazione del `BrowseViewModel`).
   Scartato il riordino completo dei segmenti: i segmenti restano Years /
-  Countries / All.
+  Countries / All. **Anche Regular Issues ha la sua** (`UserSettings.defaultRegularTab`, chiave
+  `default_regular_tab`, Countries / Denominations, predefinito Countries, letta alla creazione di
+  `RegularIssuesViewModel`: cambiarla da Impostazioni vale dalla prossima apertura della schermata,
+  come per Commemorative). `UserSettingsTest` copre ereditarietà e valore di ripiego.
 - **Rotate home coins** (sezione Appearance, interruttore, **acceso di default**;
   `UserSettings.rotateHomeCoins`): le 4 monete della fascia della Home cambiano ogni giorno.
   Solo on/off, senza scegliere la frequenza (scelta dell'utente; scartati "a ogni apertura",
