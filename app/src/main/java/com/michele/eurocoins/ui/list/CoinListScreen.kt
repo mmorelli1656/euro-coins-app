@@ -69,7 +69,9 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.stableKey
+import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.CollectionSheet
+import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
 import com.michele.eurocoins.ui.components.floatingBarClearance
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -193,8 +195,11 @@ fun CoinListContent(
 }
 
 /** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
-private val ThumbnailSize = 52.dp
-private val PlaceholderSize = 50.dp
+private val ThumbnailSize = 64.dp
+private val PlaceholderSize = 62.dp
+
+/** Altezza FISSA della card: miniatura + 2 dp di margine sopra e sotto + 6 dp di respiro. */
+private val RowHeight = 80.dp
 
 /** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
 private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
@@ -251,7 +256,7 @@ private fun CoinRow(
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 3.dp)
             // Altezza FISSA: le card non cambiano misura con la lunghezza del titolo (max 2 righe).
-            .height(72.dp)
+            .height(RowHeight)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
@@ -259,18 +264,18 @@ private fun CoinRow(
             .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Area 52dp attorno alla miniatura da 46dp. Il tocco proprio (anteprima ingrandita) è
-        // disattivo salvo `onImageClick`: di default segue la riga e apre il dettaglio.
+        // Il tocco proprio (anteprima ingrandita) è disattivo salvo `onImageClick`: di default
+        // segue la riga e apre il dettaglio.
         Box(
             modifier = Modifier
-                .size(52.dp)
+                .size(ThumbnailSize)
                 .clip(CircleShape)
                 .then(if (hasImage && onImageClick != null) Modifier.clickable(onClick = onImageClick) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             CoinThumbnail(coin)
         }
-        // Altezza della card fissa a 72 dp: il testo (sottotitolo + titolo a 2 righe) è centrato e
+        // Altezza della card fissa ([RowHeight]): il testo (sottotitolo + titolo a 2 righe) è centrato e
         // sta con 2 dp di margine sopra e sotto.
         Column(
             modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 2.dp, bottom = 2.dp).weight(1f),
@@ -365,10 +370,14 @@ private fun CoinThumbnail(coin: Coin) {
                 model = coin.urlImmagineFonte,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Crop,
+                filterQuality = ThumbnailFilterQuality,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (painter.state.collectAsState().value) {
-                    is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                    is AsyncImagePainter.State.Success -> {
+                        SubcomposeAsyncImageContent()
+                        CoinThumbnailRing()
+                    }
                     is AsyncImagePainter.State.Error -> EuroPlaceholder()
                     else -> PlaceholderCircle()
                 }

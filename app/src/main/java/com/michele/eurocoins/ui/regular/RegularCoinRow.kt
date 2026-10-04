@@ -38,11 +38,13 @@ import coil3.compose.SubcomposeAsyncImageContent
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.data.RegularIssueImage
+import com.michele.eurocoins.ui.components.CoinThumbnailRing
+import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
 
-private val ThumbnailSize = 52.dp
+private val ThumbnailSize = 64.dp
 
-/** Cerchio lilla un po' più piccolo della foto (50 dp contro 52): stesso motivo di `CoinListScreen`. */
-private val PlaceholderSize = 50.dp
+/** Cerchio lilla un po' più piccolo della foto (62 dp contro 64): stesso motivo di `CoinListScreen`. */
+private val PlaceholderSize = 62.dp
 
 /** Stessa altezza di `CoinRow` in `CoinListScreen.kt`. */
 private val RowHeight = 80.dp
@@ -155,12 +157,16 @@ private fun DenominationThumbnail(image: RegularIssueImage) {
                 .build(),
             contentDescription = image.taglio,
             contentScale = ContentScale.Crop,
+            filterQuality = ThumbnailFilterQuality,
             modifier = Modifier.fillMaxSize().clip(CircleShape),
         ) {
             // MAI painter.state.value: e' uno StateFlow, .value non sottoscrive la ricomposizione
             // (vedi CLAUDE.md § Decisioni di prodotto, "Stato di SubcomposeAsyncImage").
             when (painter.state.collectAsState().value) {
-                is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
+                is AsyncImagePainter.State.Success -> {
+                    SubcomposeAsyncImageContent()
+                    CoinThumbnailRing()
+                }
                 is AsyncImagePainter.State.Error -> DenominationPlaceholder()
                 else -> PlaceholderCircle()
             }
