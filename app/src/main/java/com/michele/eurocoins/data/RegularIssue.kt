@@ -3,6 +3,7 @@ package com.michele.eurocoins.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -94,12 +95,30 @@ data class RegularIssueImage(
  * [probabili] (Wikipedia o inferenza dichiarata, usate solo dove non c'è nulla di certo).
  * Stringhe grezze di Numista ("Royal Dutch Mint"): si mostrano con [mintCountry]. Più zecche
  * nello stesso anno sono possibili (Germania: 5, Grecia 2002: due).
+ *
+ * [perZecca]: la divisione delle tirature dell'anno tra le zecche, SOLO dove la fonte la dà e le
+ * zecche sono di paesi diversi (oggi Grecia 2002: zecca nazionale + Parigi/Madrid/Finlandia per i
+ * pezzi aggiuntivi); vuota altrove — lo script di export la scrive solo in quel caso. Le tirature
+ * dell'anno (`RegularIssueMintage`) restano il totale: [perZecca] è il dettaglio, non un di più.
  */
 @Serializable
 data class RegularIssueYearMint(
     val anno: Int,
     val zecche: List<String> = emptyList(),
     val probabili: List<String> = emptyList(),
+    @SerialName("per_zecca") val perZecca: List<RegularIssueMintShare> = emptyList(),
+)
+
+/**
+ * Quota di un anno battuta da una zecca (o da un gruppo di zecche): nomi grezzi e tirature per
+ * qualità, nulle dove quella qualità non ha un dato per quel gruppo.
+ */
+@Serializable
+data class RegularIssueMintShare(
+    val zecche: List<String>,
+    val standard: Long? = null,
+    val bu: Long? = null,
+    val proof: Long? = null,
 )
 
 /**

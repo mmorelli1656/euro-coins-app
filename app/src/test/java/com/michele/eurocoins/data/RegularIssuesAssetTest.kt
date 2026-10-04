@@ -104,6 +104,25 @@ class RegularIssuesAssetTest {
     }
 
     @Test
+    fun greece2002IsSplitBetweenTheNationalMintAndTheHelpingOnes() {
+        assumeTrue(hasNumista)
+        val image = image("Grecia", 1, "1 euro")
+        val parts = yearMintParts(image.zecchePerAnno.first { it.anno == 2002 })
+        assertEquals(listOf("Finland", "Greece"), parts.map { it.country })
+        // la divisione somma esattamente il totale dell'anno mostrato nella riga
+        val total = image.tirature.first { it.anno == 2002 && it.quality == CoinQuality.STANDARD }.tiratura
+        assertEquals(total, parts.sumOf { it.values.getValue(CoinQuality.STANDARD) })
+        val bu = image.tirature.first { it.anno == 2002 && it.quality == CoinQuality.BU }.tiratura
+        assertEquals(bu, parts.sumOf { it.values[CoinQuality.BU] ?: 0L })
+        // 20 cent: la zecca estera è Madrid; il solo 2002 greco si divide, nessun altro paese/anno
+        assertEquals(listOf("Spain", "Greece"), yearMintParts(image("Grecia", 1, "20 cent").zecchePerAnno.first { it.anno == 2002 }).map { it.country })
+        val split = series.flatMap { s -> s.immagini.map { s.paese to it } }
+            .flatMap { (paese, img) -> img.zecchePerAnno.filter { yearMintParts(it).isNotEmpty() }.map { paese to it.anno } }
+        assertTrue("Divisi solo Grecia 2002: $split", split.all { it == ("Grecia" to 2002) })
+        assertEquals(8, split.size)
+    }
+
+    @Test
     fun everyYearMintInTheAssetHasACountry() {
         val unknown = series.flatMap { it.immagini }.flatMap { it.zecchePerAnno }
             .flatMap { it.zecche + it.probabili }.filter { !isKnownMint(it) }.toSet()

@@ -124,6 +124,34 @@ foreach ($grp in ($numista | Group-Object { "$($_.paese)|$($_.taglio)" })) {
     $assignments[$grp.Name] = $list
 }
 
+# Anni la cui tiratura la fonte divide tra zecche di PAESI diversi (oggi solo Grecia 2002: zecca
+# nazionale + Parigi/Madrid/Finlandia per i pezzi aggiuntivi): per_zecca della pipeline, ridotto ai
+# gruppi con una zecca nota e almeno una tiratura. Le zecche dello stesso paese non contano come
+# divisione (5 zecche tedesche, due voci romane, "FI"/"Fi" finlandesi): qui basta riconoscere le
+# tedesche, l'app applica comunque la regola completa con MintNames.kt (yearMintParts).
+function Get-MintCountryKey([string]$mint) {
+    if ($mint -match '^(Berlin|Munich|Hamburg Mint|State Mint)') { return 'Germany' }
+    return $mint
+}
+
+function Get-MintSplit($row) {
+    $groups = @($row.per_zecca | Where-Object {
+            @($_.zecche_anno | Where-Object { $_ }).Count -gt 0 -and
+            ($null -ne $_.tiratura_standard -or $null -ne $_.tiratura_bu -or $null -ne $_.tiratura_proof)
+        })
+    $countries = @($groups | ForEach-Object { (@($_.zecche_anno | ForEach-Object { Get-MintCountryKey $_ }) | Sort-Object -Unique) -join '+' } | Sort-Object -Unique)
+    if ($countries.Count -lt 2) { return @() }
+    $result = @()
+    foreach ($g in $groups) {
+        $s = [ordered]@{ zecche = @($g.zecche_anno | Where-Object { $_ } | Select-Object -Unique) }
+        if ($null -ne $g.tiratura_standard) { $s['standard'] = [long]$g.tiratura_standard }
+        if ($null -ne $g.tiratura_bu) { $s['bu'] = [long]$g.tiratura_bu }
+        if ($null -ne $g.tiratura_proof) { $s['proof'] = [long]$g.tiratura_proof }
+        $result += [pscustomobject]$s
+    }
+    return , $result
+}
+
 function Clean([string]$text) {
     if ([string]::IsNullOrWhiteSpace($text)) { return $null }
     return $text.Trim()
@@ -181,6 +209,8 @@ foreach ($s in $series) {
                 $entry = [ordered]@{ anno = $anno }
                 if ($cert.Count -gt 0) { $entry['zecche'] = $cert }
                 if ($prob.Count -gt 0) { $entry['probabili'] = $prob }
+                $split = Get-MintSplit $row
+                if ($split.Count -gt 0) { $entry['per_zecca'] = $split }
                 $zecchePerAnno += [pscustomobject]$entry
             }
         }

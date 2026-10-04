@@ -54,3 +54,30 @@ fun yearMintLabels(zecchePerAnno: List<RegularIssueYearMint>, years: Collection<
 
 private fun List<String>.toCountries(): List<String> =
     map { it.trim() }.filter { it.isNotEmpty() }.map(::mintCountry).distinct()
+
+/** Una parte di un anno diviso per zecca: il paese e le sue tirature per qualità. */
+data class YearMintPart(val country: String, val values: Map<CoinQuality, Long>)
+
+/**
+ * Le parti in cui un anno si divide tra zecche di PAESI diversi, o lista vuota se non c'è niente da
+ * dividere. Oggi vale solo per la Grecia 2002 (zecca nazionale + Parigi, Madrid o Finlandia per i
+ * pezzi aggiuntivi, ognuna con le sue tirature). Si divide solo con almeno due paesi ognuno con un
+ * dato: le 5 zecche tedesche sono un solo paese ("Germany"), le due voci italiane sono entrambe
+ * Roma, "FI"/"Fi" finlandesi sono la stessa zecca — dividerle non direbbe nulla. Gruppi dello
+ * stesso paese si sommano; l'ordine è quello del dato.
+ */
+fun yearMintParts(yearMint: RegularIssueYearMint?): List<YearMintPart> {
+    if (yearMint == null) return emptyList()
+    val byCountry = linkedMapOf<String, MutableMap<CoinQuality, Long>>()
+    for (share in yearMint.perZecca) {
+        val countries = share.zecche.toCountries()
+        if (countries.isEmpty()) continue
+        val values = mapOf(CoinQuality.STANDARD to share.standard, CoinQuality.BU to share.bu, CoinQuality.PROOF to share.proof)
+            .mapNotNull { (q, v) -> v?.let { q to it } }
+        if (values.isEmpty()) continue
+        val sums = byCountry.getOrPut(countries.joinToString(", ")) { mutableMapOf() }
+        values.forEach { (q, v) -> sums[q] = (sums[q] ?: 0L) + v }
+    }
+    if (byCountry.size < 2) return emptyList()
+    return byCountry.map { (country, values) -> YearMintPart(country, values) }
+}

@@ -63,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
@@ -80,8 +81,10 @@ import com.michele.eurocoins.data.displayImageLicense
 import com.michele.eurocoins.data.displayMint
 import com.michele.eurocoins.data.displaySourceName
 import com.michele.eurocoins.data.YearMintLabel
+import com.michele.eurocoins.data.YearMintPart
 import com.michele.eurocoins.data.numistaUrl
 import com.michele.eurocoins.data.yearMintLabels
+import com.michele.eurocoins.data.yearMintParts
 import com.michele.eurocoins.data.formatApproxTotal
 import com.michele.eurocoins.data.groupMintagesByYear
 import com.michele.eurocoins.data.summarizeMintages
@@ -362,7 +365,12 @@ private fun RegularMintageHistorySheet(
     val mintLabels = remember(denomination) {
         yearMintLabels(denomination.zecchePerAnno, rows.map { it.first })
     }
-    val entries = remember(rows, mintLabels) {
+    // anni divisi tra zecche di paesi diversi (oggi Grecia 2002): il totale resta nella riga
+    // dell'anno, le parti sotto — vedi yearMintParts
+    val parts = remember(denomination) {
+        denomination.zecchePerAnno.associate { it.anno to yearMintParts(it) }.filterValues { it.isNotEmpty() }
+    }
+    val entries = remember(rows, mintLabels, parts) {
         buildList {
             var previous: YearMintLabel? = null
             rows.forEach { (year, values) ->
@@ -370,6 +378,7 @@ private fun RegularMintageHistorySheet(
                 if (label != null && label.sameAs != previous?.sameAs) add(YearTableEntry.Mint(year, label))
                 previous = label
                 add(YearTableEntry.Row(year, values))
+                parts[year]?.forEach { add(YearTableEntry.Part(year, it)) }
             }
         }
     }
@@ -414,32 +423,38 @@ private fun RegularMintageHistorySheet(
                     when (entry) {
                         is YearTableEntry.Mint -> MintPeriodLabel(entry.label)
                         is YearTableEntry.Row -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = entry.year.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(0.6f),
-                                )
-                                CoinQuality.entries.forEach { quality ->
-                                    Text(
-                                        text = entry.values[quality]?.let(numberFormat::format) ?: NO_VALUE,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                                        fontWeight = FontWeight.Medium,
-                                        textAlign = TextAlign.Center,
-                                        maxLines = 1,
-                                        softWrap = false,
-                                        modifier = Modifier.weight(quality.columnWeight()),
-                                    )
-                                }
-                            }
+                            MintageValuesRow(
+                                label = entry.year.toString(),
+                                values = entry.values,
+                                numberFormat = numberFormat,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                        }
+                        // parte di un anno diviso: più piccola e spenta, su fondo leggermente
+                        // diverso, così si legge come dettaglio del totale della riga sopra
+                        is YearTableEntry.Part -> {
+                            MintageValuesRow(
+                                label = entry.part.country,
+                                values = entry.part.values,
+                                numberFormat = numberFormat,
+                                small = true,
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))
+                                    .padding(vertical = 5.dp),
+                            )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
                 }
+            }
+            if (parts.isNotEmpty()) {
+                Text(
+                    text = "Split by mint where the source reports it. BU pieces made for sets may be counted with the national mint.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
             if (hasProbable) {
                 Text(
@@ -468,6 +483,51 @@ private sealed interface YearTableEntry {
         override val key get() = "y$year"
     }
 
+    class Part(val year: Int, val part: YearMintPart) : YearTableEntry {
+        override val key get() = "p$year-${part.country}"
+    }
+}
+
+/**
+ * Riga della tabella "by year": etichetta (anno, o paese della zecca per le parti) a sinistra e
+ * tre colonne Standard/BU/Proof. Le parti ([small]) hanno il testo più piccolo, spento e rientrato.
+ */
+@Composable
+private fun MintageValuesRow(
+    label: String,
+    values: Map<CoinQuality, Long>,
+    numberFormat: NumberFormat,
+    modifier: Modifier = Modifier,
+    small: Boolean = false,
+) {
+    val base = if (small) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
+    val color = if (small) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = base,
+            color = color,
+            fontWeight = if (small) FontWeight.Normal else FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(0.6f).padding(start = if (small) 8.dp else 0.dp),
+        )
+        CoinQuality.entries.forEach { quality ->
+            Text(
+                text = values[quality]?.let(numberFormat::format) ?: NO_VALUE,
+                style = base.copy(fontFeatureSettings = "tnum"),
+                color = color,
+                fontWeight = if (small) FontWeight.Normal else FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.weight(quality.columnWeight()),
+            )
+        }
+    }
 }
 
 /**
