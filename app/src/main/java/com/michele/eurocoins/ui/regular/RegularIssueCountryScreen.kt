@@ -120,14 +120,7 @@ fun RegularIssueCountryScreen(
                 SeriesChipRow(state.seriesList, state.selectedIndex, viewModel::onSelectSeries)
             }
             state.selectedSeries?.let { series ->
-                SeriesHeader(
-                    series = series,
-                    number = state.selectedIndex + 1,
-                    period = seriesPeriod(state.seriesList, series),
-                    textLabel = seriesTextLabel(state.seriesList, series),
-                    scrollState = scrollState,
-                    viewport = { viewport },
-                )
+                SeriesHeader(number = state.selectedIndex + 1, period = seriesPeriod(state.seriesList, series))
             }
             for (denom in state.denominations) {
                 key(denom.image.taglio) {
@@ -137,6 +130,16 @@ fun RegularIssueCountryScreen(
                         onEditCollection = { editing = denom },
                     )
                 }
+            }
+            // La descrizione sta SOTTO i tagli: la lista (e le caselle della collezione) e' cio' che si usa
+            // qui, il testo e' contesto da leggere una volta, come ABOUT THIS COIN nel dettaglio.
+            state.selectedSeries?.let { series ->
+                SeriesAbout(
+                    series = series,
+                    textLabel = seriesTextLabel(state.seriesList, series),
+                    scrollState = scrollState,
+                    viewport = { viewport },
+                )
             }
         }
     }
@@ -180,20 +183,11 @@ private fun SeriesChipRow(seriesList: List<RegularIssueSeries>, selectedIndex: I
 }
 
 /**
- * Titolo della serie, poi la descrizione in una card espandibile (`NotesCard`, la stessa di
- * HISTORICAL NOTES nel dettaglio commemorative: 4 righe + "Show more") invece del muro di testo
- * che spingeva i tagli fuori schermo. La fonte resta SEMPRE visibile sotto la card, anche chiusa:
- * l'attribuzione non deve dipendere da un tocco.
+ * Titolo della serie (il numero) con il periodo sotto, come dato secondario. La descrizione e' in
+ * [SeriesAbout], sotto i tagli.
  */
 @Composable
-private fun SeriesHeader(
-    series: RegularIssueSeries,
-    number: Int,
-    period: SeriesPeriod,
-    textLabel: String,
-    scrollState: ScrollState,
-    viewport: () -> Rect?,
-) {
+private fun SeriesHeader(number: Int, period: SeriesPeriod) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
         Text(
             seriesTitle(number),
@@ -211,19 +205,34 @@ private fun SeriesHeader(
                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
             )
         }
-        val description = series.displayDescription()
-        if (description.isNotBlank()) {
-            Spacer(Modifier.height(4.dp))
-            NotesCard(description, scrollState, viewport, label = textLabel)
-            // Fonte del testo sopra: EC per quasi tutte le serie, altrove la fonte che lo ha fornito
-            // (BCL, CFN, Monaco Tribune). Qui e non nel dettaglio del taglio, dove questo testo non c'è.
-            Text(
-                text = "Series text: ${series.displayTextSource()}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
-            )
-        }
+    }
+}
+
+/**
+ * La descrizione della serie in una card espandibile (`NotesCard`, la stessa di ABOUT THIS COIN
+ * nel dettaglio commemorative: 4 righe + "Show more"), sotto i tagli. La fonte resta SEMPRE visibile
+ * sotto la card, anche chiusa: l'attribuzione non deve dipendere da un tocco. Senza descrizione
+ * non compare niente.
+ */
+@Composable
+private fun SeriesAbout(
+    series: RegularIssueSeries,
+    textLabel: String,
+    scrollState: ScrollState,
+    viewport: () -> Rect?,
+) {
+    val description = series.displayDescription()
+    if (description.isBlank()) return
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 4.dp)) {
+        NotesCard(description, scrollState, viewport, label = textLabel)
+        // Fonte del testo sopra: EC per quasi tutte le serie, altrove la fonte che lo ha fornito
+        // (BCL, CFN, Monaco Tribune). Qui e non nel dettaglio del taglio, dove questo testo non c'è.
+        Text(
+            text = "Series text: ${series.displayTextSource()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
+        )
     }
 }
 

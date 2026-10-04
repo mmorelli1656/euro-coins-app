@@ -165,7 +165,7 @@ fun CoinDetailScreen(
                 .verticalScroll(scrollState),
         ) {
             // Hero card bianca (foto + titolo), poi tre card con la stessa etichetta maiuscola
-            // (OFFICIAL MINTAGES, COLLECTION, HISTORICAL NOTES) e i crediti in una riga in fondo.
+            // (MINTAGES, COLLECTION, ABOUT THIS COIN) e i crediti in una riga in fondo.
             // Margini di 16 dp, 12 dp tra le card.
             Column(
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
@@ -329,7 +329,7 @@ fun NotesCard(
     note: String,
     scrollState: ScrollState,
     viewport: () -> Rect?,
-    label: String = "HISTORICAL NOTES",
+    label: String = "ABOUT THIS COIN",
 ) {
     var expanded by rememberSaveable(note) { mutableStateOf(false) }
     var showFull by remember(note) { mutableStateOf(expanded) }

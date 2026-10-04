@@ -11,12 +11,34 @@ private val OUTER_RING_BOILERPLATE =
     Regex("""\s*The coin['’]s outer ring depicts the 12 stars of the European flag\.""")
 
 /**
- * Descrizione della serie per la UI, senza la frase standard sul bordo esterno. Solo in
- * visualizzazione: `descrizione` resta com'è nel dataset e nel database, e l'asset non cambia
- * (quindi nessun ripopolamento).
+ * La frase generica sul bordo del 2 euro: "2**" (o "2*") ripetuto sei volte, alternato dritto e
+ * rovesciato, in tutte le sue forme di scrittura (con e senza virgolette e virgola, "The edge
+ * lettering on the €2 coin is", "of the 2-euro coin is:", "In all series, ..."). Compare in 22 serie su
+ * 41 ed e' la stessa su quasi tutte le monete: non dice niente della serie. Le iscrizioni SPECIFICHE
+ * di un paese (Germania "EINIGKEIT UND RECHT UND FREIHEIT", Finlandia, Lettonia, Paesi Bassi...,
+ * 12 serie) restano: sono parte dell'identita' della moneta, e qui non vengono toccate.
+ */
+private const val EDGE_SENTENCE =
+    """(?:In (?:all|both) series, )?[Tt]he edge[- ]lettering(?: on the €2 coin| of the 2[- ]euro coin)? is:? """ +
+        """[‘’'"]?2 ?\*{1,2}[‘’'"]?,? repeated six times, alternately """ +
+        """(?:upright and inverted|from the bottom up and top down)\."""
+
+/** Il caso "...; The edge-lettering ... inverted." in coda a un'altra frase (San Marino 2017): si lascia il punto. */
+private val EDGE_LETTERING_TAIL = Regex("""\s*;\s*""" + EDGE_SENTENCE)
+
+private val EDGE_LETTERING_BOILERPLATE = Regex("""\s*""" + EDGE_SENTENCE)
+
+/**
+ * Descrizione della serie per la UI, senza la frase standard sull'anello esterno e senza quella
+ * generica sul bordo del 2 euro. Solo in visualizzazione: `descrizione` resta com'è nel dataset e
+ * nel database, e l'asset non cambia (quindi nessun ripopolamento).
  */
 fun RegularIssueSeries.displayDescription(): String =
-    descrizione.replace(OUTER_RING_BOILERPLATE, "").trim()
+    descrizione
+        .replace(OUTER_RING_BOILERPLATE, "")
+        .replace(EDGE_LETTERING_TAIL, ".")
+        .replace(EDGE_LETTERING_BOILERPLATE, "")
+        .trim()
 
 /**
  * Titolo della serie in UI: sempre "Series N", mai l'intestazione della fonte (`intestazioneRaw`:
@@ -86,4 +108,19 @@ fun seriesTextLabel(allForCountry: List<RegularIssueSeries>, series: RegularIssu
     if (numbers.size < 2) return "ABOUT THIS SERIES"
     val consecutive = numbers.zipWithNext().all { (a, b) -> b == a + 1 }
     return if (consecutive) "ABOUT SERIES ${numbers.first()}–${numbers.last()}" else "ABOUT SERIES ${numbers.joinToString(", ")}"
+}
+
+/**
+ * Descrizione del singolo taglio ("ABOUT THIS COIN") che finisce sempre con un punto. I testi
+ * Numista, scritti da utenti, spesso si fermano senza ("…the twelve stars of Europe": 124 su 303
+ * nell'export completo) e uno della BCE finisce con una parentesi: in una card di testo giustificato
+ * la frase tronca sembra un errore. Si aggiunge il punto solo dove manca ".", "!" o "?" (anche se
+ * seguito da una chiusura di virgolette o parentesi: `."` e `.)` sono già a posto); null se il taglio
+ * non ha testo. Solo in visualizzazione, il dato resta com'è.
+ */
+fun RegularIssueImage.displayCoinDescription(): String? {
+    val text = descrizione?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val closers = "\"”’)"
+    val core = text.trimEnd { it in closers }
+    return if (core.isNotEmpty() && core.last() in ".!?") text else "$text."
 }

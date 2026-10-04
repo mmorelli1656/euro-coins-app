@@ -75,6 +75,7 @@ import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.displayCoinDescription
 import com.michele.eurocoins.data.displayDesigner
 import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
@@ -205,7 +206,7 @@ fun RegularDenominationDetailScreen(
                 DenominationHero(image)
                 RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
                 RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
-                image.descrizione?.let { NotesCard(it, scrollState, { viewport }, label = "ABOUT THIS COIN") }
+                image.displayCoinDescription()?.let { NotesCard(it, scrollState, { viewport }) }
                 DenominationCreditFooter(image)
             }
         }
