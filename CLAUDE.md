@@ -353,7 +353,10 @@ regge un pulsante pieno):
 - **`SegmentedButton`** (Default tab, Theme): selezionato `secondaryContainer` (lilla),
   inattivo trasparente, bordo `onSurfaceVariant` al 40% — l'`outline` del tema scuro
   (`34351F`) è quasi uguale alla card e il bordo spariva —, `icon = {}` (la spunta di
-  default spostava l'etichetta e sbilanciava le larghezze) e `weight(1f)` su ogni segmento.
+  default spostava l'etichetta e sbilanciava le larghezze) e `weight(1f)` su ogni segmento. **Stessa
+  scelta nei selettori di Browse (Years / Countries / All) e di Regular Issues** (`icon = {}`): con
+  la spunta "Years" risultava visibilmente decentrato; il segmento selezionato si riconosce già dal
+  lilla.
 - **Switch** "Hide microstates": colori espliciti anche da spento (bordo e pallino
   `onSurfaceVariant`, traccia `background`) per lo stesso motivo; spunta nel pallino solo
   da acceso.
@@ -404,9 +407,12 @@ regge un pulsante pieno):
   passati in uno dei due `saveShowcaseUrls` avrebbe cancellato anche le chiavi dell'altro. Test:
   `HomeShowcaseTest` (solo `pickShowcase`, invariato dal refactoring — nessun test aggiunto per
   `pickRegularIssueShowcaseUrls`, anche dopo questo allineamento).
-- **Reset collection**: dialog di conferma con il numero di monete; svuota
-  solo `collection_items` (`CoinRepository.resetCollection`). Il backup su
-  Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
+- **Reset collection**: dialog di conferma con il numero di monete, diviso per sezione ("85
+  commemorative coins and 4 Regular Issues coins", `OwnedCounts.describe()`); svuota
+  `collection_items` **e** `regular_collection_items` (`CoinRepository.resetCollection` +
+  `RegularIssueRepository.resetCollection`). Prima toglieva solo le commemorative e lasciava
+  le righe Regular senza dirlo. I tagli Regular si contano distinti per (serie, taglio), non per
+  annata. Il backup su Drive non viene toccato: un nuovo backup dopo il reset lo sovrascrive.
 
 ### Backup su Google Drive
 
@@ -452,13 +458,22 @@ collezione su Drive.
 - **Formato**: un unico JSON versionato (`BackupFile`, `schemaVersion`) con
   le voci di `collection_items`, agganciate a `coinKey` (= `stableKey`) —
   mai il catalogo. JSON e non CSV perché deve poter crescere (note, data di
-  acquisto) senza rompere i backup vecchi.
+  acquisto) senza rompere i backup vecchi. **Versione 2** (ottobre 2026): aggiunge
+  `regularItems` (`RegularBackupItem`: `seriesKey`, taglio, anno, qualità, varietà, prezzo,
+  paese, `addedAt`), cioè `regular_collection_items`; prima Regular Issues non era nel backup e
+  perdere il telefono voleva dire perdere tutte le righe. **Un file v1 si legge ancora ma NON
+  porta Regular** (`BackupFile.includesRegularIssues`, `schemaVersion >= 2`): ripristinarlo
+  lascia la collezione Regular locale com'è invece di azzerarla; un v2 con `regularItems` vuoto
+  invece è un dato vero e sostituisce. Il conteggio "N entries" di backup/ripristino somma le due
+  sezioni, il dialog di sovrascrittura conta monete distinte (commemorative + tagli Regular).
+  Non verificato end-to-end con Drive reale (serve l'account): coperto da `BackupFileTest`.
 - **Storage**: cartella `appDataFolder` di Drive (scope `drive.appdata`):
   privata e nascosta, l'app non vede altri file dell'utente. Un solo file
   (`euro-coins-collection.json`), ogni backup lo sovrascrive. Chiamate REST
   dirette in `DriveBackupClient` (nessuna libreria client Google).
 - **Ripristino = sostituzione** della collezione locale
-  (`CollectionDao.replaceAll`), con dialog di conferma.
+  (`CollectionDao.replaceAll` e, per un backup v2, `RegularCollectionDao.replaceAll`), con
+  dialog di conferma. Le due sostituzioni sono due transazioni consecutive, non una sola.
 - **Login** in due passaggi distinti: identità (`signIn`) e autorizzazione
   Drive (`authorizeDrive`, con schermata di consenso la prima volta).
 - **Configurazione richiesta** (non versionata): `google.webClientId=...`
@@ -550,7 +565,19 @@ catalogo completo.
   `FilterSheet`): resi `internal` invece di duplicarli (prima la griglia dei paesi aveva la sua
   `CountryCard` copiata). **Countries**: la griglia dei paesi, ricerca per nome, FILTER = ordine
   A→Z/Z→A + Collection (All/Incomplete/Complete). **Denominations**: 8 card (2 euro → 1 cent,
-  "41 coins" + barra "x / 41 collected", `headlineMedium` come l'anno in Years), ricerca per valore
+  "41 coins" + barra "x / 41 collected", `headlineMedium` come l'anno in Years) **con la moneta
+  disegnata in alto a sinistra, nella posizione della bandiera delle card Countries** (stessa
+  grammatica tra le due schede, stessa altezza, nessuna collisione con "50 cent" che occupa ~99 dp
+  su 149 utili: provata e scartata la moneta nell'angolo in alto a destra, ~12 dp di margine e
+  collisione a font grande, e la lista a righe, che avrebbe fatto di Denominations un secondo
+  elenco; scelta dell'utente dopo mockup A/B/C). `DenominationCoin` (`ui/regular/DenominationCoin.kt`): **in scala
+  reale** — la 2 euro riempie 44 dp, le altre sono proporzionali ai mm veri (25,75 / 24,25 / 23,25 /
+  22,25 / 21,25 / 19,75 / 18,75 / 16,25: la 5 cent è più grande della 10 cent, la 50 cent più della
+  1 euro) — nei metalli veri (rame, oro nordico, bimetallica: la 1 euro ha l'anello oro e il centro argento, la 2 euro l'anello argento e il centro oro; invertiti per errore nel primo mockup e nella Home, corretto), nello stesso
+  riquadro alto 44 dp così i titoli restano allineati. Disegnata e non foto: un taglio ha 41 disegni
+  nazionali e la foto di un solo paese direbbe "la 2 euro è questa"; niente rete né licenza.
+  Colori duplicati da `RegularCoin` della Home (là attenuata al 62% perché è un ripiego): se i
+  metalli cambiano, cambiarli in entrambi. `DenominationCoinTest`. Ricerca per valore
   ("2 euro", "euro", "cent": `matchesDenomination`, senza badare a maiuscole e spazi), FILTER = ordine
   Largest/Smallest first + Collection. **Niente scheda "All"** (tutte le 328 righe in un elenco, come
   in Commemorative): proposta e poi tolta dall'utente ("non verrebbe mai utilizzata", non ci sono
@@ -729,7 +756,12 @@ catalogo completo.
   sempre con un punto** (`displayCoinDescription()`, `RegularIssueText.kt`): 124 testi Numista su
   303 nell'export completo si fermano senza ("…the twelve stars of Europe"; scritti da utenti) e
   uno BCE finisce con una parentesi. Si aggiunge "." dove manca ".", "!" o "?", anche se seguito da
-  una chiusura di virgolette/parentesi; solo in visualizzazione, come le altre pulizie. Le
+  una chiusura di virgolette/parentesi; solo in visualizzazione, come le altre pulizie. **I
+  paragrafi si uniscono in un blocco solo** (`LINE_BREAKS`: ogni a-capo/riga vuota → uno spazio):
+  163 testi su 295 della BCE sono scritti a paragrafi separati da `\n\n` e nella card a 4 righe
+  la quarta cadeva spesso sulla riga vuota, con l'ellissi "…" da sola e uno spazio morto (visto sul
+  1 cent belga); le note commemorative non hanno mai a-capo. Verificato che non ci sono elenchi
+  né a-capo nei testi di serie. Le
   commemorative hanno 2 note su 584 senza punto (Portogallo 2021 finisce con un'iscrizione tra
   virgolette, Malta 2022 si ferma a "…are the inscriptions": troncata dalla fonte): non toccate.
   Il testo è
@@ -983,9 +1015,11 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   lista del paese conta gli anni distinti (2002 normale + 2002 EFS = 1 anno), la barra della home
   conta i tagli: invariati. `anno + qualità + varietà` è la chiave: il pannello non può più
   produrre due voci uguali (una cella per anno, una spunta per finitura).
-- **Non ancora fatto** (vedi anche § Backlog): varietà EFS non nel backup Drive (come tutta la
-  collezione regolare); nessun "due esemplari dello stesso anno e finitura" (una voce per anno,
-  finitura e varietà, come per le commemorative).
+- **Backup e reset** (ottobre 2026): la collezione Regular è nel backup Drive (v2, varietà EFS
+  compresa) e il Reset la svuota insieme alle commemorative, vedi § Backup su Google Drive e
+  § Impostazioni.
+- **Non ancora fatto** (vedi anche § Backlog): nessun "due esemplari dello stesso anno e finitura"
+  (una voce per anno, finitura e varietà, come per le commemorative).
 
 ## Lingua
 
@@ -1150,6 +1184,9 @@ lingua da servire.
 ## Test
 
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
+`BackupFileTest` copre il formato v2 (andata e ritorno con varietà e prezzo, un v1 che si legge
+ma non porta Regular, un v2 con Regular vuota che invece sostituisce, qualità sconosciuta saltata,
+versione più nuova rifiutata).
 `MicrostatesTest` legge il `coins.json` vero e controlla che i nomi in
 `MICROSTATE_PAESI` esistano (24 paesi -> 20 nascondendoli) e che `stableKey` sia
 unica. `RegularMintageSummaryTest` copre `summarizeMintages()`/`groupMintagesByYear()`
@@ -1345,7 +1382,10 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   leggeva ancora; contorno scuro da 2 dp. Nel tema scuro 0.84 e bordo 1 dp.
 - **Ricerca: griglie filtrano i contenitori, liste cercano le monete.** Years e Countries
   restringono le card (solo per numero d'anno / nome del paese: segnaposto "Filter by
-  year…" / "Filter by country…"); All e le liste cercano sempre in tema, paese e anno
+  year…" / "Filter by country…"; per i tagli di Regular Issues "Filter by value…", la parola
+  del suggerimento "filtered by value", perché "Filter by denomination…" si troncava di un
+  carattere; nell'elenco di un taglio "Country, series, year…", più corto del vecchio "Country,
+  series or year…" che si troncava a "yea…"); All e le liste cercano sempre in tema, paese e anno
   (`CoinListViewModel.compute`), con segnaposto che dicono ESATTAMENTE cosa si può
   scrivere lì: All "Theme, country, year…", anno aperto "Theme or country…", paese
   aperto "Theme or year…" (misurati sul telefono: circa 155 dp di testo, oltre si
@@ -1578,10 +1618,9 @@ Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima):
   gestione di `possibileIncongruenza` in UI; scheda "All" (vedi § omonima: tolta, da riconsiderare
   se serve cercare una moneta precisa o il filtro Missing su tutto il catalogo).
-- **Collezione su Regular Issues** (§ omonima): export/backup su Drive non estesi a
-  `regular_collection_items` (oggi solo `collection_items` delle commemorative, vedi § Backup su
-  Google Drive). Il problema della deduplicazione dell'anno scritto a mano non esiste più (anno
-  scelto da lista).
+- **Collezione su Regular Issues** (§ omonima): export CSV ancora assente. Il backup su Drive e il
+  reset la coprono dal v2 (§ Backup su Google Drive). Il problema della deduplicazione dell'anno
+  scritto a mano non esiste più (anno scelto da lista).
 - **Regular Issues: spostare l'abbinamento nella pipeline.** Oggi l'unione dei tre file
   (type Numista → serie per anni, § MINTAGES) vive in `scripts/export-regular-issues.ps1`
   perché su questa macchina non c'è Python; è logica sui dati, quindi il posto giusto è la
