@@ -85,7 +85,7 @@ interamente nella pipeline.
    è in PowerShell perché su questa macchina non c'è Python; la logica di
    abbinamento sarebbe da spostare nella pipeline (§ Backlog).
 
-   Il file completo pesa ~650 KB (330 senza Numista, era 130): le tirature sono la maggior parte
+   Il file completo pesa ~855 KB con la zecca per anno (era ~650; 330 senza Numista, era 130): le tirature sono la maggior parte
    (fino a 84 voci per taglio). Il `-Depth 8` dello script è necessario
    (serie → immagini → tirature → voce = 4 livelli, il margine è per
    campi futuri). Stesso meccanismo di seeding (`RegularIssueRepository.ensureSeeded()`,
@@ -139,6 +139,7 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── CountryNames.kt       # Coin.displayCountry() — nome paese in UI
 │   ├── CoinTitle.kt          # Coin.displayTema() — titolo in UI (ordinali "550Th" → "550th")
 │   ├── CoinCredits.kt        # Coin.displayMint()/displayEngraver()/displayDesigner()
+│   ├── MintNames.kt          # zecca grezza → paese ("Rome" → "Italy"), solo in visualizzazione
 │   ├── CountryFlags.kt       # Coin.flagEmoji() — bandiera da codice ISO
 │   ├── CollectionProgress.kt # Progress (x / y possedute)
 │   ├── CoinKey.kt            # Coin.stableKey — chiave stabile per la collezione
@@ -152,9 +153,11 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularIssueRepository.kt   # seeding da asset + esposizione Flow, dataset separato da CoinRepository
 │   ├── RegularIssueCountryNames.kt # RegularIssueSeries.displayCountry() — mappa esaustiva (no zeccaRaw inglese qui)
 │   ├── RegularIssueKey.kt    # RegularIssueSeries.stableKey — chiave stabile per la collezione (paese + ordineCronologico)
-│   ├── RegularCollectionItem.kt # @Entity: taglio posseduto in un'annata+qualità + RegularCollectionEntry (bozza pannello)
+│   ├── RegularCollectionItem.kt # @Entity: taglio posseduto in un'annata+qualità+varietà + RegularCollectionEntry (bozza pannello)
+│   ├── RegularVarieties.kt   # tabella fissa delle varietà (Grecia 2002 EFS), RegularIssueSeries.varietyFor()
 │   ├── RegularCollectionDao.kt
 │   ├── RegularMintageSummary.kt # summarizeMintages()/groupMintagesByYear() — logica pura, testata
+│   ├── RegularYearMints.kt   # yearMintLabels(): etichette "Mint · …" per periodo (certa/probabile/non nota), logica pura, testata
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
@@ -298,7 +301,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 8, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 9, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
@@ -308,7 +311,8 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   tabella nuova, non un `ALTER` su `coins`), `MIGRATION_6_7`
   (`CREATE TABLE regular_collection_items`, § Regular Issues — collezione
   utente sulle monete circolanti, stesso motivo), `MIGRATION_7_8` (`coins.numistaId`, nullable:
-  il N# per i crediti Numista). **Una migrazione che aggiunge una colonna che il JSON già
+  il N# per i crediti Numista), `MIGRATION_8_9` (`regular_collection_items.variety` nella chiave primaria:
+  tabella ricostruita, vedi § Collezione su Regular Issues). **Una migrazione che aggiunge una colonna che il JSON già
   contiene (come la 8) NON cambia `coins.json`, quindi l'hash non farebbe ripopolare**:
   `CoinRepository.SEED_VERSION` entra nella chiave salvata (`hash:v2`) e va incrementata in
   quei casi. Ogni migrazione aggiunta va accodata,
@@ -582,8 +586,8 @@ catalogo completo.
   dell'utente (2026-10-03), resta solo nell'intestazione di `RegularIssueCountryScreen`; ripeterla
   qui duplicava il testo con ABOUT THIS COIN. **DETAILS (Mint/Engraver/Designer) viene da Numista per (serie, taglio)**
   (`RegularIssueImage.zeccaFisicaRaw`/`incisoreRaw`/`disegnatoreRaw`, formattate da
-  `displayMint()`/`displayEngraver()`/`displayDesigner()` in `CoinCredits.kt`, stessa regola
-  "oltre 3 zecche uniche → N mints" delle commemorative): "—" dove Numista non ha il campo
+  `displayMint()`/`displayEngraver()`/`displayDesigner()` in `CoinCredits.kt`, zecca come
+  nome del paese della zecca come nelle commemorative, § Dettaglio moneta/DETAILS): "—" dove Numista non ha il campo
   (il disegnatore manca su 348 type su 381; l'incisore su 31) o non ha il type (Bulgaria). Prima
   era sempre vuota, ora no. **MINTAGES è dinamica** (§ omonima più sotto) e ora piena. **ABOUT THIS
   COIN** (`RegularIssueImage.descrizione`): descrizione del disegno nazionale di QUEL taglio,
@@ -592,8 +596,8 @@ catalogo completo.
   nessun disegno nuovo, per questo nessun mockup) e compare solo se il testo esiste. Il testo è
   Numista (verbatim, inglese, scritto da utenti: più ricco della BCE) o, dove Numista non ha il
   type, la pagina BCE del taglio (`descrizioneFonte` = "numista"/"ecb"; il testo BCE è uno per
-  paese e a volte descrive più serie insieme). Lussemburgo 2026 2 euro non ha nessun testo: né
-  Numista né BCE (che descriverebbe la serie precedente) — la card manca. `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
+  paese e a volte descrive più serie insieme). (Lussemburgo 2026 2 euro non aveva testo finché Numista non ha avuto il type, N#585823, ottobre 2026: né
+  Numista né BCE, che descriverebbe la serie precedente: la card mancava). `RegularDenominationDetailViewModel` rilegge reattivamente da `RegularIssueRepository.series`/
   `collectionItems` (come `RegularIssueCountryViewModel`), non un fetch singolo come
   `CoinDetailViewModel.getById`: qui non serve un id stabile per riga, il taglio è già una chiave
   dentro la serie. Building block riusati da `CoinDetailScreen.kt` (esportati, non più `private`):
@@ -677,7 +681,7 @@ catalogo completo.
     stessa scelta e stesso motivo di § dataset. Conseguenza visibile: a volte la circolazione di
     un anno finisce in `altro` (es. Italia 10 cent 2002, 1,14 miliardi con nota "Type A: small
     signature"), e in quella riga Standard compare "—". Non corretto a mano (regola 5 della
-    pipeline). Neanche le lettere di zecca per anno (`zecche_lettere`, 1572 righe) sono mostrate.
+    pipeline).
   - **Numeri a 10+ cifre** (verificato sul telefono, Germania 1 cent): la somma Standard arriva
     a 12.475.760.000 e in una colonna da un terzo andava a capo a metà cifra. `ValueLabel(...,
     shrinkToFit = true)` la tiene su una riga riducendo il corpo oltre 12 caratteri (le colonne
@@ -685,8 +689,44 @@ catalogo completo.
     1.5 contro 1 (`columnWeight`), BU/Proof per anno non superano il milione. Esempio di "—"
     che è il dato e non un bug: Vaticano serie 2 (Sede Vacante) 1 cent, 60.000 pezzi tutti in
     `altro` ("In Sets only").
+  - **Zecca per anno** (dal 2026-10-04; `RegularIssueImage.zecchePerAnno`, `RegularIssueYearMint`:
+    anno + zecche certe + zecche probabili; il file passa da 670 a ~855 KB). Viene dalla pipeline
+    (`zecche_anno`/`zecche_anno_probabili` per anno: lettera, marchio, commento, tabelle ufficiali
+    di banche centrali, regole nazionali; livello "probabile" da Wikipedia/inferenza dichiarata;
+    3731 combinazioni certe, 126 probabili, 63 senza zecca, tutte Lettonia) ed è nello stesso
+    `-ExcludeNumista` delle tirature: l'asset committato non la porta e la tabella resta com'era.
+    Un anno senza voce = zecca NON nota ("not known"), mai "nessuna zecca" (regola 7 della
+    pipeline: il probabile non va mai presentato come certo). **UI**: nella tabella "by year"
+    un'etichetta pillola `Mint · Finland` sopra il primo anno di ogni periodo con la stessa
+    zecca (`MintPeriodLabel`; layout B scelto dall'utente dopo mockup, scartata la zecca in
+    seconda riga sotto l'anno); probabile in corsivo con "?" e nota in fondo ("? Probable: from
+    Wikipedia or inferred from official data, not confirmed."); non noto spento con solo il bordo.
+    **Compare solo se la zecca varia** (`yearMintLabels()`, `RegularYearMints.kt`): più di un
+    paese noto negli anni, o almeno un anno non noto accanto a uno noto; con zecca unica
+    (Italia, Austria, Germania con le sue 5 zecche che per paese sono una) nessuna etichetta —
+    71 type su 381 (Andorra, Belgio, Cipro, Estonia, Grecia, Lussemburgo, Malta, Slovenia, 2 della
+    Lettonia). Il dettaglio per lettera (`per_zecca`) è usato solo per l'anno diviso qui sotto
+    (non per le 5 zecche tedesche). Il blocco DETAILS resta la lista delle zecche del type Numista
+    (`displayMint`), con l'etichetta "Mints" al plurale se sono più paesi: può non coincidere con
+    la tabella per anno (es. i type irlandesi elencano 6 zecche ma la regola nazionale della
+    pipeline dà la zecca irlandese certa per tutti gli anni: nessuna etichetta, DETAILS sì).
+  - **Anno diviso tra zecche** (`per_zecca` della pipeline → `RegularIssueYearMint.perZecca`,
+    `RegularIssueMintShare`; logica `yearMintParts()` in `RegularYearMints.kt`). Oggi **solo
+    Grecia 2002** (8 tagli): zecca nazionale più Parigi (1-10, 50 cent), Madrid (20 cent) o
+    Finlandia (1-2 euro) per i pezzi aggiuntivi, ognuna con le sue tirature. Nella tabella "by
+    year" la riga dell'anno resta il TOTALE (coerente con card compatta e somme) e sotto ci sono
+    le parti, una riga per paese, più piccole/spente/rientrate su fondo leggermente diverso
+    (variante X scelta dall'utente dopo mockup; scartata Y, anno come titolo senza totale).
+    **Regola: si divide solo con almeno due PAESI diversi, ognuno con un dato** — le 5 zecche
+    tedesche sono un solo paese, le due voci di Italia 2002/2026 e San Marino 2026 sono
+    entrambe Roma, "FI"/"Fi" della Finlandia 2022 sono la stessa zecca, i gruppi di Malta e
+    Slovenia 2007 senza zecca nota si ignorano: non direbbero niente. Lo script di export
+    applica un filtro grossolano (riconosce solo le zecche tedesche) e scrive `per_zecca` solo
+    dove passa; l'app riapplica la regola completa con `MintNames.kt`. Nota sotto la tabella
+    sugli anni divisi: i BU senza lettera sono contati con la zecca nazionale e comprendono
+    pezzi dei set (la pipeline segnala 5.000 BU "Dutch Mint - Set" per taglio in 2002).
   - **Buchi noti**: Bulgaria (nessun type Numista: tirature vuote, testo BCE), Francia 2022 2 euro
-    e Lussemburgo 2026 2 euro (type non ancora presente), Monaco serie 3 dei centesimi (Numista
+    (Lussemburgo 2026 2 euro ora presente, N#585823), Monaco serie 3 dei centesimi (Numista
     tiene i cent 2025 nel type della serie 2 e dice che cambiano solo 1/2 euro, la BCE dice tutti
     gli 8: conflitto della pipeline non risolto — le tirature 2025 dei cent restano alla serie 2,
     il testo della serie 3 è quello BCE). Un type può includere anni con dati pre-euro
@@ -727,7 +767,7 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   motivo di `Coin.stableKey` (`RegularIssueSeries.id` si rigenera a ogni reseed). `ordineCronologico`
   e non `numeroSerieIpotesi` perché quest'ultimo NON è univoco per paese (vedi sopra, Belgio).
 - **Tabella separata `regular_collection_items`** (`RegularCollectionItem`, chiave primaria
-  composita `seriesKey`+`taglio`+`anno`+`quality`, DB versione 7, `MIGRATION_6_7`): permette più
+  composita `seriesKey`+`taglio`+`anno`+`quality`+`variety` (quest'ultima dalla v9, `MIGRATION_6_7` la crea, `MIGRATION_8_9` la estende): permette più
   annate E più qualità sullo stesso taglio, mai duplicati sull'identico (anno, qualità). `paese` è
   una copia di quando la voce è stata salvata, stesso scopo "riconoscere un orfano" di
   `CollectionItem.anno/paese/tema`. `RegularIssueRepository.saveCollection(seriesKey, taglio,
@@ -766,9 +806,29 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   dopo il giro di fix su MINTAGES — i building block condivisi (`PriceField`/`sanitizePrice`)
   erano stati riesportati, ma lo stile della card non era mai stato risincronizzato quando è
   cambiato nell'originale.
+- **Varietà EFS della Grecia 2002** (`variety` nella chiave di `regular_collection_items`, DB
+  versione 9, `MIGRATION_8_9`). Le monete greche del 2002 coniate all'estero hanno una lettera
+  nella stella (E = Madrid sul 20 cent, F = Parigi su 1-2-5-10-50 cent, S = Finlandia su 1-2
+  euro) e sono diverse da quelle coniate ad Atene: stesso anno e qualità, due monete, e l'utente
+  può averle entrambe. `RegularCollectionItem.variety` è `""` per la moneta normale e `"EFS"`
+  (`VARIETY_EFS`) per la variante; sta nella chiave primaria, quindi la migrazione **ricostruisce
+  la tabella** (SQLite non cambia una chiave con ALTER: crea `_new`, copia con varietà `''`,
+  drop, rename) — verificata sul telefono installando sopra la v8 popolata (5 voci regolari e 96
+  commemorative intatte, `PRAGMA integrity_check` ok). **Dove si offre**: tabella FISSA in codice
+  (`RegularVarieties.kt`, `RegularIssueSeries.varietyFor(taglio, anno)`: Grecia, serie 1, 2002,
+  lettera per taglio), NON derivata da `zecchePerAnno`, che è dato Numista escluso dall'asset
+  committato: la funzione sparirebbe nell'app pubblica; un test sul dataset completo controlla che
+  le lettere coincidano con la zecca estera del dato. **UI** (variante A scelta dopo mockup,
+  scartata B: scelta a due stati su ogni riga 2002): nel pannello, sotto la riga dell'annata,
+  compare un `FilterChip` "EFS variety · letter S in the star" SOLO quando l'anno scritto è 2002
+  in quella serie; se l'anno cambia la varietà si azzera, e al salvataggio vale solo se l'anno la
+  offre. La card COLLECTION del dettaglio mostra "Standard · 2002 · EFS". Il conteggio "N years
+  owned" della lista del paese conta gli anni distinti (2002 normale + 2002 EFS = 1 anno), la
+  barra della home conta i tagli: invariati. `anno + qualità + varietà` sono la nuova unità: la
+  deduplicazione silenziosa (sotto) vale per quella tripla.
 - **Non ancora fatto** (vedi anche § Backlog): nessuna deduplicazione visibile se l'utente scrive
   lo stesso anno due volte nella stessa qualità (l'ultima riga sovrascrive silenziosamente
-  l'altra al salvataggio, per via della chiave primaria); prezzo non testato per anno diverso
+  l'altra al salvataggio, per via della chiave primaria); varietà EFS non nel backup Drive (come tutta la collezione regolare); prezzo non testato per anno diverso
   dello stesso taglio/qualità in scenari con più di 2-3 annate (il pannello può diventare alto,
   non ancora verificato uno scroll interno oltre `windowInsetsPadding`).
 
@@ -944,7 +1004,11 @@ crescente, anni con più qualità che si fondono in una riga sola, somma oltre `
 `regular_issues.json` vero con le stesse classi dell'app (se lo script cambia forma o un
 campo nuovo perde il default, il test lo dice prima del crash all'avvio sul telefono) e
 fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio a tre
-intervalli senza sovrapposizioni, Germania 4 miliardi, zecche deduplicate. Non ci sono test
+intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
+(Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
+`RegularYearMintsTest` e
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. Gli unit test che leggono gli
+asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
 (`lint-gradle` non è in cache): serve la rete.
@@ -1188,13 +1252,22 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     colonne sotto (nomi di persona, quasi sempre corti) — una sola riga in più rispetto
     alla griglia a 3, non il triplo. Engraver e Designer sono ruoli DISTINTI (chi ha
     inciso il conio contro chi ha ideato il soggetto), mai l'uno il ripiego dell'altro —
-    vedi § dataset. Zecche multiple unite dalla pipeline con "; " collassate a un
-    conteggio oltre le 3 uniche (`Coin.displayMint()` in `CoinCredits.kt`): la Germania
-    conia ogni moneta in tutte e 5 le zecche regionali (mintmark A/D/F/G/J), lo stesso
-    elenco fisso di 5 nomi lunghi si ripete identico su 33 monete e mostrarlo per intero
-    eccedeva sempre le righe della card — oltre le 3 zecche uniche mostra "N mints" ("5
-    mints" per la Germania); con 2-3 zecche (Lussemburgo, Malta, Estonia, Irlanda:
-    nessuna ha una zecca propria) restano elencate per intero. Il lato comune europeo
+    vedi § dataset. **Zecca = nome del paese della zecca** (`MintNames.kt`, `mintCountry()`:
+    "Rome" → "Italy", "Monnaie de Paris" → "France", "Royal Dutch Mint" → "Netherlands",
+    "Kremnica" → "Slovakia", "Royal Mint" → "United Kingdom"...), non il testo grezzo che
+    mescolava città, istituzioni e nomi lunghissimi. Scelto il nome del paese e non
+    l'aggettivo ("Italian"): prima implementato con gli aggettivi, poi cambiato su richiesta
+    (coerenza con `displayCountry()`); il prezzo è che "Germany" su una moneta lettone si
+    confonde col paese emittente, ma è la scelta dell'utente. Senza la parola "Mint" nel
+    valore: l'etichetta DETAILS già la dice. Risponde a "dove è stata coniata", non a chi ha
+    emesso: Vaticano e San Marino → "Italy", Lettonia → "Germany". Zecche multiple (unite
+    dalla pipeline con "; ") → paesi distinti dopo la mappatura, separati da ", ": le 5 zecche
+    regionali tedesche (mintmark A/D/F/G/J, su ogni moneta tedesca) collassano da sole in un
+    solo "Germany", per questo non esiste più il conteggio "N mints". **Le stringhe grezze
+    restano in `zeccaFisicaRaw` e nel dataset della pipeline** (la mappa agisce solo in
+    visualizzazione: servono per usi futuri, es. zecca per anno); una zecca non in tabella
+    compare grezza e `MintNamesTest`/`RegularIssuesAssetTest` falliscono finché non si aggiunge
+    una riga. Il lato comune europeo
     (incisore/disegnatore quasi sempre "Luc Luycx") resta fuori: valore quasi nullo
     ripetuto su 584 monete.
   - **COLLECTION** (`CollectionCard`): non posseduta = card bianca, messaggio
