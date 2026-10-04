@@ -111,6 +111,15 @@ fun seriesTextLabel(allForCountry: List<RegularIssueSeries>, series: RegularIssu
 }
 
 /**
+ * A-capo e righe vuote tra paragrafi: 163 testi dei tagli su 295 (BCE) sono scritti a paragrafi
+ * separati da `\n\n`. Nella card a 4 righe di `NotesCard` la quarta riga cadeva spesso sulla riga
+ * vuota e l'ellissi restava da sola ("…" su una riga), con uno spazio morto nel testo; le note
+ * commemorative sono invece un unico blocco. Si uniscono i paragrafi con uno spazio: leggono bene
+ * come prosa giustificata (nessun elenco: verificato su tutti i testi).
+ */
+private val LINE_BREAKS = Regex("""\s*[\r\n]+\s*""")
+
+/**
  * Descrizione del singolo taglio ("ABOUT THIS COIN") che finisce sempre con un punto. I testi
  * Numista, scritti da utenti, spesso si fermano senza ("…the twelve stars of Europe": 124 su 303
  * nell'export completo) e uno della BCE finisce con una parentesi: in una card di testo giustificato
@@ -119,7 +128,7 @@ fun seriesTextLabel(allForCountry: List<RegularIssueSeries>, series: RegularIssu
  * non ha testo. Solo in visualizzazione, il dato resta com'è.
  */
 fun RegularIssueImage.displayCoinDescription(): String? {
-    val text = descrizione?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val text = descrizione?.replace(LINE_BREAKS, " ")?.trim()?.takeIf { it.isNotEmpty() } ?: return null
     val closers = "\"”’)"
     val core = text.trimEnd { it in closers }
     return if (core.isNotEmpty() && core.last() in ".!?") text else "$text."

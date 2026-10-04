@@ -120,6 +120,21 @@ class CoinDescriptionEndingTest {
     }
 
     @Test
+    fun joinsParagraphsIntoOneBlock() {
+        // Senza questo l'ellissi della card a 4 righe finiva da sola sulla riga vuota tra due paragrafi.
+        assertEquals(
+            "First paragraph. Second one. Third.",
+            image("First paragraph.\n\nSecond one.\r\n\r\n  Third.").displayCoinDescription(),
+        )
+    }
+
+    @Test
+    fun noDescriptionInTheRealDatasetHasLineBreaks() {
+        val texts = series.flatMap { it.immagini }.mapNotNull { it.displayCoinDescription() }
+        assertTrue(texts.none { '\n' in it || '\r' in it })
+    }
+
+    @Test
     fun noTextMeansNoCard() {
         assertEquals(null, image(null).displayCoinDescription())
         assertEquals(null, image("   ").displayCoinDescription())
