@@ -57,3 +57,42 @@ class SeriesPeriodTest {
         assertEquals("Series 6", seriesChipLabel(6, SeriesPeriod(null, null)))
     }
 }
+
+class SeriesTextLabelTest {
+
+    private val all: List<RegularIssueSeries> = Json { ignoreUnknownKeys = true }
+        .decodeFromString<List<RegularIssueSeriesJson>>(File("src/main/assets/regular_issues.json").readText())
+        .map { it.toEntity() }
+
+    private fun label(paese: String, ordine: Int): String {
+        val forCountry = all.filter { it.paese == paese }
+        return seriesTextLabel(forCountry, forCountry.first { it.ordineCronologico == ordine })
+    }
+
+    @Test
+    fun sharedTextSaysWhichSeriesItCovers() {
+        assertEquals("ABOUT SERIES 1–3", label("Francia", 2))
+        assertEquals("ABOUT SERIES 1–3", label("Belgio", 3))
+        assertEquals("ABOUT SERIES 1–3", label("Spagna", 1))
+        assertEquals("ABOUT SERIES 1–2", label("Paesi Bassi", 2))
+        assertEquals("ABOUT SERIES 1–5", label("Città del Vaticano", 4))
+        assertEquals("ABOUT SERIES 1–2", label("Monaco", 1))
+    }
+
+    @Test
+    fun ownTextKeepsTheSingularLabel() {
+        assertEquals("ABOUT THIS SERIES", label("Città del Vaticano", 6))
+        assertEquals("ABOUT THIS SERIES", label("Monaco", 3))
+        assertEquals("ABOUT THIS SERIES", label("Lussemburgo", 2))
+        assertEquals("ABOUT THIS SERIES", label("San Marino", 1))
+        assertEquals("ABOUT THIS SERIES", label("Austria", 1)) // una sola serie
+    }
+
+    @Test
+    fun nonConsecutiveSeriesAreListed() {
+        val base = all.first { it.paese == "Austria" }
+        fun s(ordine: Int, text: String) = base.copy(ordineCronologico = ordine, descrizione = text)
+        val list = listOf(s(1, "A"), s(2, "B"), s(3, "A"))
+        assertEquals("ABOUT SERIES 1, 3", seriesTextLabel(list, list[2]))
+    }
+}

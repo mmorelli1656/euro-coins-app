@@ -70,3 +70,20 @@ fun seriesPeriod(allForCountry: List<RegularIssueSeries>, series: RegularIssueSe
 /** Titolo del chip: "Series 2 · 2022", solo "Series 2" se l'inizio non è noto. */
 fun seriesChipLabel(number: Int, period: SeriesPeriod): String =
     period.from?.let { "${seriesTitle(number)} · $it" } ?: seriesTitle(number)
+
+/**
+ * Etichetta della card della descrizione: "ABOUT THIS SERIES" se il testo è solo di [series],
+ * "ABOUT SERIES 1–3" se lo stesso testo compare identico su più serie dello stesso paese (Belgio,
+ * Francia, Spagna, Paesi Bassi, Vaticano 1-5, Monaco 1-2: la Commissione europea pubblica UN testo
+ * per paese e la pipeline lo copia su ogni serie). Senza questo, passando da un chip all'altro la
+ * stessa descrizione sembra un errore; con l'etichetta dice invece da sé di essere comune. I numeri
+ * sono le posizioni (1-based) nella lista del paese, come nei chip.
+ */
+fun seriesTextLabel(allForCountry: List<RegularIssueSeries>, series: RegularIssueSeries): String {
+    val ordered = allForCountry.sortedBy { it.ordineCronologico }
+    val text = series.displayDescription()
+    val numbers = ordered.mapIndexedNotNull { index, s -> (index + 1).takeIf { s.displayDescription() == text } }
+    if (numbers.size < 2) return "ABOUT THIS SERIES"
+    val consecutive = numbers.zipWithNext().all { (a, b) -> b == a + 1 }
+    return if (consecutive) "ABOUT SERIES ${numbers.first()}–${numbers.last()}" else "ABOUT SERIES ${numbers.joinToString(", ")}"
+}

@@ -62,6 +62,7 @@ import com.michele.eurocoins.data.displayDescription
 import com.michele.eurocoins.data.displayTextSource
 import com.michele.eurocoins.data.seriesChipLabel
 import com.michele.eurocoins.data.seriesPeriod
+import com.michele.eurocoins.data.seriesTextLabel
 import com.michele.eurocoins.data.seriesTitle
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.detail.NotesCard
@@ -119,7 +120,14 @@ fun RegularIssueCountryScreen(
                 SeriesChipRow(state.seriesList, state.selectedIndex, viewModel::onSelectSeries)
             }
             state.selectedSeries?.let { series ->
-                SeriesHeader(series, state.selectedIndex + 1, seriesPeriod(state.seriesList, series), scrollState) { viewport }
+                SeriesHeader(
+                    series = series,
+                    number = state.selectedIndex + 1,
+                    period = seriesPeriod(state.seriesList, series),
+                    textLabel = seriesTextLabel(state.seriesList, series),
+                    scrollState = scrollState,
+                    viewport = { viewport },
+                )
             }
             for (denom in state.denominations) {
                 key(denom.image.taglio) {
@@ -182,6 +190,7 @@ private fun SeriesHeader(
     series: RegularIssueSeries,
     number: Int,
     period: SeriesPeriod,
+    textLabel: String,
     scrollState: ScrollState,
     viewport: () -> Rect?,
 ) {
@@ -205,7 +214,7 @@ private fun SeriesHeader(
         val description = series.displayDescription()
         if (description.isNotBlank()) {
             Spacer(Modifier.height(4.dp))
-            NotesCard(description, scrollState, viewport, label = "ABOUT THIS SERIES")
+            NotesCard(description, scrollState, viewport, label = textLabel)
             // Fonte del testo sopra: EC per quasi tutte le serie, altrove la fonte che lo ha fornito
             // (BCL, CFN, Monaco Tribune). Qui e non nel dettaglio del taglio, dove questo testo non c'è.
             Text(
