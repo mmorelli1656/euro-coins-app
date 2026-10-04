@@ -77,7 +77,7 @@ fun SettingsScreen(
     val defaultTab by settingsViewModel.defaultTab.collectAsState()
     val rotateHomeCoins by settingsViewModel.rotateHomeCoins.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
-    val ownedCount by settingsViewModel.ownedCount.collectAsState()
+    val owned by settingsViewModel.ownedCounts.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
     var showProInfo by remember { mutableStateOf(false) }
 
@@ -159,7 +159,7 @@ fun SettingsScreen(
             }
 
             SectionHeader("Danger zone")
-            ResetRow(ownedCount = ownedCount, onClick = { confirmReset = true })
+            ResetRow(owned = owned, onClick = { confirmReset = true })
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -171,7 +171,7 @@ fun SettingsScreen(
             title = { DialogTitle("Reset collection?") },
             text = {
                 Text(
-                    "$ownedCount ${if (ownedCount == 1) "coin" else "coins"} will be removed from this device. " +
+                    "${owned.describe()} will be removed from this device. " +
                         "Your Google Drive backup will not be deleted automatically, but performing a new " +
                         "backup after reset will overwrite it.",
                 )
@@ -289,10 +289,10 @@ private fun ProBanner(onClick: () -> Unit) {
 
 /** Riga distruttiva: bordo e testo in colore d'errore; il tocco apre la conferma, non cancella. */
 @Composable
-private fun ResetRow(ownedCount: Int, onClick: () -> Unit) {
+private fun ResetRow(owned: OwnedCounts, onClick: () -> Unit) {
     val error = MaterialTheme.colorScheme.error
     val shape = RoundedCornerShape(14.dp)
-    val enabled = ownedCount > 0
+    val enabled = owned.total > 0
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -309,7 +309,7 @@ private fun ResetRow(ownedCount: Int, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Reset collection", style = MaterialTheme.typography.titleMedium, color = error)
             Text(
-                if (enabled) "Removes $ownedCount ${if (ownedCount == 1) "coin" else "coins"} from local storage" else "Collection is currently empty",
+                if (enabled) "Removes ${owned.describe()} from local storage" else "Collection is currently empty",
                 style = MaterialTheme.typography.bodyMedium,
                 color = error,
             )

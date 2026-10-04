@@ -29,6 +29,7 @@ class EuroCoinsApplication : Application() {
     val userSettings: UserSettings by lazy { UserSettings(this) }
 
     val backupService: BackupService by lazy {
-        BackupService(CoinDatabase.getInstance(this).collectionDao(), DriveBackupClient())
+        val db = CoinDatabase.getInstance(this)
+        BackupService(db.collectionDao(), db.regularCollectionDao(), DriveBackupClient())
     }
 }

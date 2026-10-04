@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -46,6 +47,15 @@ class RegularIssueRepository(
 
     /** Stesso discorso di [seriesNow] per la collezione. */
     val collectionNow: List<RegularCollectionItem>? get() = collectionItems.replayCache.firstOrNull()
+
+    /**
+     * Tagli distinti posseduti (in qualsiasi serie, anno e qualità): quelli che il reset toglie.
+     * Non è il conteggio della barra della Home, che conta le righe dentro le finestre delle serie.
+     */
+    val ownedCount: Flow<Int> = collectionItems.map { items -> items.map { it.seriesKey to it.taglio }.toSet().size }
+
+    /** Svuota la collezione Regular dell'utente; il catalogo `regular_issue_series` non viene toccato. */
+    suspend fun resetCollection() = collectionDao.deleteAll()
 
     /**
      * Salva in blocco le annate/qualità possedute di un taglio ([entries]): quelle non presenti

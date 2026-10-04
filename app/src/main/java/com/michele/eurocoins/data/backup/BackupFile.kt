@@ -2,6 +2,7 @@ package com.michele.eurocoins.data.backup
 
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.RegularCollectionItem
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -22,9 +23,18 @@ data class BackupFile(
     val schemaVersion: Int = SCHEMA_VERSION,
     val exportedAt: Long,
     val items: List<BackupItem>,
+    /**
+     * Collezione di Regular Issues (dalla versione 2). Default vuoto: un file della versione 1 si
+     * legge ancora, ma NON contiene questi dati, quindi il ripristino non deve toccare la
+     * collezione Regular locale (vedi [includesRegularIssues]).
+     */
+    val regularItems: List<RegularBackupItem> = emptyList(),
 ) {
+    /** I backup della versione 1 non sanno nulla di Regular Issues: ripristinarli non deve azzerarla. */
+    val includesRegularIssues: Boolean get() = schemaVersion >= 2
+
     companion object {
-        const val SCHEMA_VERSION = 1
+        const val SCHEMA_VERSION = 2
 
         private val json = Json {
             ignoreUnknownKeys = true
@@ -80,6 +90,49 @@ fun BackupItem.toCollectionItem(): CollectionItem? {
         anno = anno,
         paese = paese,
         tema = tema,
+        addedAt = addedAt,
+    )
+}
+
+/**
+ * Una voce della collezione Regular Issues: (serie, taglio, anno, qualità, varietà), agganciata a
+ * `RegularIssueSeries.stableKey` (paese + ordine cronologico), mai a `RegularIssueSeries.id`.
+ */
+@Serializable
+data class RegularBackupItem(
+    val seriesKey: String,
+    val taglio: String,
+    val anno: Int,
+    /** Nome dell'enum [CoinQuality] (`STANDARD`, `BU`, `PROOF`). */
+    val quality: String,
+    val variety: String = "",
+    val priceCents: Int? = null,
+    val paese: String,
+    val addedAt: Long,
+)
+
+fun RegularCollectionItem.toBackupItem() = RegularBackupItem(
+    seriesKey = seriesKey,
+    taglio = taglio,
+    anno = anno,
+    quality = quality.name,
+    variety = variety,
+    priceCents = priceCents,
+    paese = paese,
+    addedAt = addedAt,
+)
+
+/** Null se la qualità non è più riconosciuta (backup di una versione futura): la voce viene saltata. */
+fun RegularBackupItem.toCollectionItem(): RegularCollectionItem? {
+    val parsed = CoinQuality.entries.firstOrNull { it.name == quality } ?: return null
+    return RegularCollectionItem(
+        seriesKey = seriesKey,
+        taglio = taglio,
+        anno = anno,
+        quality = parsed,
+        variety = variety,
+        priceCents = priceCents,
+        paese = paese,
         addedAt = addedAt,
     )
 }

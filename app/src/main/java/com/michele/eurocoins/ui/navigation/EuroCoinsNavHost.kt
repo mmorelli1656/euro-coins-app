@@ -108,7 +108,7 @@ fun EuroCoinsNavHost(
                 factory = viewModelFactory { initializer { BackupViewModel(backupService, accountManager) } },
             )
             val settingsViewModel: SettingsViewModel = viewModel(
-                factory = viewModelFactory { initializer { SettingsViewModel(repository, userSettings, themePreference) } },
+                factory = viewModelFactory { initializer { SettingsViewModel(repository, regularIssueRepository, userSettings, themePreference) } },
             )
             SettingsScreen(
                 settingsViewModel = settingsViewModel,
