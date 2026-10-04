@@ -62,16 +62,20 @@ class RegularSeriesDenominationsTest {
     }
 
     @Test
-    fun seriesWithoutOwnImagesInheritsNothing() {
-        // Vaticano 2026: i tagli cambiano tutti, e non c'è ancora una foto
-        assertTrue(of("Città del Vaticano", 6).isEmpty())
+    fun seriesWithoutOwnImagesInheritsNothingButHasItsEightRows() {
+        // Vaticano 2026: i tagli cambiano tutti, e non c'è ancora una foto: 8 righe col segnaposto, non ereditate
+        val d = of("Città del Vaticano", 6)
+        assertEquals(REGULAR_DENOMINATIONS, d.map { it.image.taglio })
+        assertTrue(d.none { it.inherited })
+        assertTrue(d.all { it.series.ordineCronologico == 6 && it.image.urlImmagineFonte == null })
+        assertEquals(setOf(2026), d.map { it.image.annoInizio }.toSet()) // dalla fine della serie 5 (2025)
+        assertTrue(d.all { it.image.annoFine == null && it.image.tirature.isEmpty() })
     }
 
     @Test
     fun countriesThatAlreadyListEightDenominationsAreUntouched() {
         for (series in all) {
             val d = denominationsOf(all.filter { it.paese == series.paese }, series)
-            if (series.immagini.isEmpty()) continue
             assertEquals("${series.paese} #${series.ordineCronologico}", 8, d.size)
             assertEquals(8, d.map { it.image.taglio }.toSet().size)
             if (series.immagini.size == 8) assertTrue(d.none { it.inherited })

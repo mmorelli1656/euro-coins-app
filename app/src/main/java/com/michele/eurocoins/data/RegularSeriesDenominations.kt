@@ -43,11 +43,18 @@ data class SeriesDenomination(
  * guardata (la Francia 2022 ha ancora i 10-20-50 cent "seminatore", fino al 2023, ma non la serie
  * 2024). Vince la serie precedente più recente.
  *
- * **Serie senza immagini proprie** (Vaticano 2026, non ancora fotografata): non eredita niente. Lì
- * i tagli cambiano TUTTI, e mostrare quelli della serie precedente sarebbe sbagliato; senza un
- * inizio noto non c'è nemmeno un criterio per decidere.
+ * **Serie senza immagini proprie** (Vaticano 2026, non ancora fotografata): non eredita niente (lì i
+ * tagli cambiano TUTTI, mostrare quelli della serie precedente sarebbe sbagliato) ma ha comunque le
+ * 8 righe, con il segnaposto e [RegularIssueImage.annoInizio] = inizio della serie (da [seriesPeriod]).
  */
 fun denominationsOf(allForCountry: List<RegularIssueSeries>, selected: RegularIssueSeries): List<SeriesDenomination> {
+    if (selected.immagini.isEmpty()) {
+        // Serie senza foto (Vaticano 2026): le 8 monete esistono comunque, con il segnaposto e gli anni
+        // da quando la serie parte (se noto). Senza queste righe non si potrebbero spuntare e la barra
+        // del paese non arriverebbe mai al 100%.
+        val from = seriesPeriod(allForCountry, selected).from
+        return REGULAR_DENOMINATIONS.map { SeriesDenomination(selected, placeholderImage(it, from), inherited = false) }
+    }
     val start = selected.immagini.mapNotNull { it.annoInizio }.minOrNull()
         ?: return selected.immagini.map { SeriesDenomination(selected, it, inherited = false) }
     val end = allForCountry
@@ -89,3 +96,16 @@ fun denominationsOf(allForCountry: List<RegularIssueSeries>, selected: RegularIs
         }
     return own + inherited
 }
+
+/** I tagli di una serie completa, in ordine crescente (1 cent - 2 euro). */
+val REGULAR_DENOMINATIONS = listOf("1 cent", "2 cent", "5 cent", "10 cent", "20 cent", "50 cent", "1 euro", "2 euro")
+
+/** Immagine "vuota" di un taglio di una serie senza foto: solo il taglio e, se noto, l'anno di inizio. */
+private fun placeholderImage(taglio: String, from: Int?) = RegularIssueImage(
+    taglio = taglio,
+    taglioRaw = taglio,
+    urlImmagineFonte = null,
+    licenzaImmagine = "",
+    attribuzioneImmagineRaw = null,
+    annoInizio = from,
+)

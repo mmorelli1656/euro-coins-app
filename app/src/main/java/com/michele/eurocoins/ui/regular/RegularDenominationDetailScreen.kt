@@ -693,7 +693,8 @@ private fun DenominationCreditFooter(image: RegularIssueImage) {
         }
         image.numistaId?.let { add(SourceItem("Data", "Numista N#$it", numistaUrl(it))) }
     }
-    val license = listOfNotNull(
+    // Un taglio senza immagine (serie 2026 del Vaticano) non ha licenza da mostrare.
+    val license = if (image.licenzaImmagine.isBlank()) null else listOfNotNull(
         "License: ${image.displayImageLicense()}",
         image.attribuzioneImmagineRaw?.let { "Credit: $it" },
     ).joinToString(" · ")

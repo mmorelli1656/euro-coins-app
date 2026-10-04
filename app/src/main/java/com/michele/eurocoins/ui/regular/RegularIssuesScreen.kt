@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.theme.appBarColors
 
 /**
@@ -83,6 +84,8 @@ fun RegularIssuesScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 10.dp),
                     )
+                    // Stessa barra dritta di Years/Countries nelle commemorative: tagli distinti posseduti, non annate.
+                    CollectionProgressBar(progress = card.progress, modifier = Modifier.padding(top = 10.dp))
                 }
             }
         }

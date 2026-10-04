@@ -6,6 +6,7 @@ import com.michele.eurocoins.data.RegularCollectionEntry
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueRepository
+import com.michele.eurocoins.data.REGULAR_DENOMINATIONS
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.SeriesDenomination
 import com.michele.eurocoins.data.denominationsOf
@@ -125,6 +126,4 @@ class RegularIssueCountryViewModel(
  * fonte EC) finiscono in coda alla lista originale, non inseriti al posto giusto. Un taglio non
  * riconosciuto finisce in fondo invece di far fallire l'ordinamento.
  */
-private val DENOMINATION_ORDER = listOf("1 cent", "2 cent", "5 cent", "10 cent", "20 cent", "50 cent", "1 euro", "2 euro")
-
-private fun denominationOrder(taglio: String): Int = DENOMINATION_ORDER.indexOf(taglio).let { if (it < 0) Int.MAX_VALUE else it }
+private fun denominationOrder(taglio: String): Int = REGULAR_DENOMINATIONS.indexOf(taglio).let { if (it < 0) Int.MAX_VALUE else it }

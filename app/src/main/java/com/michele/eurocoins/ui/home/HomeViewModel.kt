@@ -7,7 +7,7 @@ import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.progress
-import com.michele.eurocoins.data.stableKey
+import com.michele.eurocoins.data.regularProgress
 import com.michele.eurocoins.ui.settings.UserSettings
 import java.time.LocalDate
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,11 +27,11 @@ data class HomeUiState(
     val nextShowcase: List<Coin> = emptyList(),
     /** URL dell'ultimo set mostrato per intero (ripiego per foto che non si caricano). */
     val lastShowcaseUrls: List<String> = emptyList(),
-    /** Statistiche della scheda Regular Issues: disegni di taglio noti, paesi e serie coperte. */
+    /** Statistiche della scheda Regular Issues: righe dei tagli (8 per serie, vedi `regularProgress`), paesi e serie coperte. */
     val regularIssueCoinsCount: Int = 0,
     val regularIssueCountries: Int = 0,
     val regularIssueSeriesCount: Int = 0,
-    /** Tagli distinti posseduti in almeno un'annata (su [regularIssueCoinsCount]), per la barra "collected". */
+    /** Righe possedute (su [regularIssueCoinsCount]), per la barra "collected": vedi `regularProgress`. */
     val regularIssueOwnedCount: Int = 0,
     /** Una foto per fascia di taglio crescente (§ dataset), null dove manca, per la fascia della scheda Regular Issues. */
     val regularIssueShowcase: List<String?> = emptyList(),
@@ -93,12 +93,9 @@ class HomeViewModel(
             // Niente mapNotNull qui: le posizioni contano (vedi UserSettings.saveRegularIssueShowcaseUrls).
             settings.saveRegularIssueShowcaseUrls(mapOf(today to regularIssueShowcase, today + 1 to regularIssueNextShowcase))
         }
-        // Tagli distinti posseduti (qualsiasi annata/qualità): coerente con `regularIssueCoinsCount`,
-        // che conta i disegni di taglio del catalogo, non le monete fisiche — vedi CLAUDE.md.
-        val ownedDenominations = regularCollection.map { it.seriesKey to it.taglio }.toSet()
-        val regularIssueOwned = regularIssueSeries.sumOf { series ->
-            series.immagini.count { (series.stableKey to it.taglio) in ownedDenominations }
-        }
+        // Le righe delle serie (8 per serie, anche i tagli invariati) e quelle possedute: lo stesso conto
+        // della barra di ogni paese, vedi `regularProgress` — e CLAUDE.md § Regular Issues.
+        val regularIssueProgress = regularIssueSeries.regularProgress(regularCollection)
         HomeUiState(
             progress = coins.progress(ownedKeys),
             countries = coins.map { it.paese }.distinct().size,
@@ -107,10 +104,10 @@ class HomeViewModel(
             showcase = showcase,
             nextShowcase = nextShowcase,
             lastShowcaseUrls = lastShowcaseUrls,
-            regularIssueCoinsCount = regularIssueSeries.sumOf { it.immagini.size },
+            regularIssueCoinsCount = regularIssueProgress.total,
             regularIssueCountries = regularIssueSeries.map { it.paese }.distinct().size,
             regularIssueSeriesCount = regularIssueSeries.size,
-            regularIssueOwnedCount = regularIssueOwned,
+            regularIssueOwnedCount = regularIssueProgress.owned,
             regularIssueShowcase = regularIssueShowcase,
             regularIssueNextShowcase = regularIssueNextShowcase,
             regularIssueLastShowcaseUrls = regularIssueLastShowcaseUrls,
