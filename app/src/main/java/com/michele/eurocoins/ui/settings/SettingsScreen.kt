@@ -54,6 +54,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.ui.backup.BackupSection
+import com.michele.eurocoins.data.backup.BackupStatus
+import com.michele.eurocoins.ui.backup.BackupUiState
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.backup.SettingsCard
 import com.michele.eurocoins.ui.browse.BrowseMode
@@ -81,6 +83,7 @@ fun SettingsScreen(
     val rotateHomeCoins by settingsViewModel.rotateHomeCoins.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val owned by settingsViewModel.ownedCounts.collectAsState()
+    val backupState by backupViewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
     var showProInfo by remember { mutableStateOf(false) }
 
@@ -177,11 +180,7 @@ fun SettingsScreen(
             onDismissRequest = { confirmReset = false },
             title = { DialogTitle("Reset collection?") },
             text = {
-                Text(
-                    "${owned.describe()} will be removed from this device. " +
-                        "Your Google Drive backup will not be deleted automatically, but performing a new " +
-                        "backup after reset will overwrite it.",
-                )
+                Text("${owned.describe()} will be removed from this device. " + resetBackupNote(backupState))
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -361,7 +360,7 @@ private fun ResetRow(owned: OwnedCounts, onClick: () -> Unit) {
 
 /** Riga con titolo, spiegazione e interruttore (stessa resa per tutte le opzioni on/off). */
 @Composable
-private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+internal fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
@@ -390,4 +389,20 @@ private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onCheck
             ),
         )
     }
+}
+
+/**
+ * Cosa dire sul backup nel dialog del Reset: se la collezione si potrà ripristinare e da quando.
+ * Il Reset non tocca Drive, ma il suo effetto dipende da quanto il backup è aggiornato.
+ */
+internal fun resetBackupNote(state: BackupUiState): String {
+    if (state.account == null) return "You're not signed in, so there is no backup to restore from."
+    val last = state.lastBackup ?: state.lastBackupLocal
+    val head = when {
+        state.localStatus == BackupStatus.UpToDate ->
+            "Your collection is backed up on Google Drive${last?.let { " ($it)" } ?: ""}, so you can restore it."
+        last != null -> "Anything added since your last backup ($last) can't be restored."
+        else -> "There is no backup on Google Drive yet, so this can't be undone."
+    }
+    return "$head Your backup isn't deleted by the reset, but backing up again replaces it (the previous version stays on Drive)."
 }

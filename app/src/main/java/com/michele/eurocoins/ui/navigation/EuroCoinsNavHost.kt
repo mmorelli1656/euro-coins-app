@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.RegularIssueRepository
+import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.GoogleAccountManager
 import com.michele.eurocoins.ui.settings.SettingsScreen
@@ -69,6 +70,7 @@ fun EuroCoinsNavHost(
     regularIssueRepository: RegularIssueRepository,
     backupService: BackupService,
     accountManager: GoogleAccountManager,
+    autoBackup: AutoBackup,
     themePreference: ThemePreference,
     userSettings: UserSettings,
 ) {
@@ -105,7 +107,7 @@ fun EuroCoinsNavHost(
         }
         composable(ROUTE_SETTINGS) {
             val backupViewModel: BackupViewModel = viewModel(
-                factory = viewModelFactory { initializer { BackupViewModel(backupService, accountManager) } },
+                factory = viewModelFactory { initializer { BackupViewModel(backupService, accountManager, autoBackup) } },
             )
             val settingsViewModel: SettingsViewModel = viewModel(
                 factory = viewModelFactory { initializer { SettingsViewModel(repository, regularIssueRepository, userSettings, themePreference) } },

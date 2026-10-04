@@ -4,7 +4,9 @@ import android.app.Application
 import com.michele.eurocoins.data.CoinDatabase
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.RegularIssueRepository
+import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupService
+import com.michele.eurocoins.data.backup.BackupSnapshotStore
 import com.michele.eurocoins.data.backup.DriveBackupClient
 import com.michele.eurocoins.data.backup.GoogleAccountManager
 import com.michele.eurocoins.ui.settings.UserSettings
@@ -30,6 +32,9 @@ class EuroCoinsApplication : Application() {
 
     val backupService: BackupService by lazy {
         val db = CoinDatabase.getInstance(this)
-        BackupService(db.collectionDao(), db.regularCollectionDao(), DriveBackupClient())
+        BackupService(db.collectionDao(), db.regularCollectionDao(), DriveBackupClient(), BackupSnapshotStore(this))
     }
+
+    /** Salvataggio automatico su Drive all'uscita dall'app (vedi [AutoBackup]); lo avvia `MainActivity.onStop`. */
+    val autoBackup: AutoBackup by lazy { AutoBackup(this, backupService, accountManager) }
 }

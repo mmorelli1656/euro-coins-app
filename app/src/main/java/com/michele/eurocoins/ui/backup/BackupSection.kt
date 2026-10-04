@@ -25,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -47,7 +48,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.backup.BackupStatus
 import com.michele.eurocoins.data.backup.GoogleAccount
+import com.michele.eurocoins.ui.settings.SwitchRow
 
 /**
  * Sezione "Account and backup" della schermata Impostazioni: senza accesso un invito a
@@ -84,9 +87,8 @@ fun BackupSection(viewModel: BackupViewModel) {
             else -> SettingsCard {
                 AccountRow(account, signOutEnabled = !state.busy, onSignOut = { viewModel.signOut(activity) })
                 StatusBox(
-                    lastBackup = state.lastBackup,
-                    busy = state.busy,
-                    checking = state.busy && !state.backupChecked && state.lastBackup == null,
+                    state = state,
+                    checking = state.busy && !state.backupChecked && state.lastBackup == null && !state.hasSnapshot,
                 )
                 state.message?.let { InlineNotice(it, isError = state.messageIsError()) }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
@@ -114,6 +116,13 @@ fun BackupSection(viewModel: BackupViewModel) {
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     ) { Text("Restore", maxLines = 1, softWrap = false) }
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                SwitchRow(
+                    title = "Back up automatically",
+                    subtitle = if (state.hasSnapshot) "When you leave the app" else "Starts after your first backup",
+                    checked = state.autoBackup,
+                    onCheckedChange = viewModel::setAutoBackup,
+                )
             }
         }
         // Con l'account l'esito sta dentro la card (InlineNotice); qui solo per gli stati senza card d'account.
@@ -147,10 +156,22 @@ fun BackupSection(viewModel: BackupViewModel) {
             onDismissRequest = { confirmRestore = false },
             title = { DialogTitle("Replace your collection?") },
             text = {
-                Text(
-                    "Your current collection on this phone will be replaced by the backup saved on Google Drive" +
-                        (state.lastBackup?.let { " ($it)" } ?: "") + ". Anything added since will be lost.",
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Your current collection on this phone will be replaced by the backup saved on Google Drive" +
+                            (state.lastBackup?.let { " ($it)" } ?: "") + ". Anything added since will be lost.",
+                    )
+                    // La rete di sicurezza: la copia di almeno un giorno prima, per un backup sovrascritto da una collezione sbagliata.
+                    state.previousBackup?.let { previous ->
+                        TextButton(
+                            onClick = {
+                                confirmRestore = false
+                                viewModel.restorePrevious(activity)
+                            },
+                            contentPadding = PaddingValues(horizontal = 0.dp),
+                        ) { Text("Restore the previous version ($previous) instead") }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -226,10 +247,48 @@ private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOu
     }
 }
 
-/** Stato del backup: icona, titolo, data; durante un'operazione mostra la barra di avanzamento. */
+/**
+ * Stato del backup: icona, titolo, data; durante un'operazione mostra la barra di avanzamento.
+ * Il titolo dice la verità che l'app conosce: "Up to date" e "N changes not backed up" solo se
+ * questo telefono ha un ultimo backup con cui confrontarsi ([BackupStatus]); altrimenti si limita a
+ * dire che esiste un backup su Drive e di quando.
+ */
 @Composable
-private fun StatusBox(lastBackup: String?, busy: Boolean, checking: Boolean) {
-    val saved = lastBackup != null
+private fun StatusBox(state: BackupUiState, checking: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    val last = state.lastBackup ?: state.lastBackupLocal
+    var icon = Icons.Filled.CloudDone
+    var tint = colors.primary
+    val title: String
+    val subtitle: String
+    when (val status = state.localStatus) {
+        BackupStatus.UpToDate -> {
+            title = "Up to date"
+            subtitle = "Last backup: ${last ?: "just now"}"
+        }
+        is BackupStatus.Pending -> {
+            title = "${status.changes} ${if (status.changes == 1) "change" else "changes"} not backed up"
+            val failed = state.autoError
+            if (failed != null) {
+                icon = Icons.Filled.CloudOff
+                tint = colors.error
+                subtitle = "Automatic backup failed: $failed"
+            } else {
+                icon = Icons.Filled.CloudUpload
+                tint = colors.secondary
+                subtitle = last?.let { "Last backup: $it" } ?: "Tap Back up now to save them to Google Drive."
+            }
+        }
+        BackupStatus.Unknown -> if (last != null) {
+            title = "Backup found"
+            subtitle = "Last backup: $last"
+        } else {
+            icon = Icons.Filled.CloudOff
+            tint = colors.secondary
+            title = "Not backed up yet"
+            subtitle = "Tap Back up now to save your collection to Google Drive."
+        }
+    }
     if (checking) {
         // Controllo iniziale su Drive: messaggio neutro e piccolo indicatore, niente titolo "Not backed up yet" che poi cambia.
         Row(
@@ -253,26 +312,18 @@ private fun StatusBox(lastBackup: String?, busy: Boolean, checking: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+            .background(tint.copy(alpha = 0.08f))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(
-                imageVector = if (saved) Icons.Filled.CloudDone else Icons.Filled.CloudOff,
-                contentDescription = null,
-                tint = if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
-                modifier = Modifier.size(28.dp),
-            )
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(28.dp))
             Column {
-                Text(if (saved) "Collection saved" else "Not backed up yet", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = lastBackup?.let { "Last backup: $it" } ?: "Tap Back up now to save your collection to Google Drive.",
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(text = subtitle, style = MaterialTheme.typography.bodyMedium)
             }
         }
-        if (busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        if (state.busy) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
     }
 }
 

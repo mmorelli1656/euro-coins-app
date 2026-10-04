@@ -5,8 +5,10 @@ import android.content.Intent
 import android.content.IntentSender
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupException
 import com.michele.eurocoins.data.backup.BackupService
+import com.michele.eurocoins.data.backup.BackupStatus
 import com.michele.eurocoins.data.backup.DriveAuthorization
 import com.michele.eurocoins.data.backup.GoogleAccount
 import com.michele.eurocoins.data.backup.GoogleAccountManager
@@ -17,10 +19,11 @@ import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class BackupAction { BACKUP, RESTORE, INFO }
+enum class BackupAction { BACKUP, RESTORE, RESTORE_PREVIOUS, INFO }
 
 /** Richiesta di conferma prima di sovrascrivere un backup già presente: sua data (se leggibile) e monete locali che lo sostituirebbero. */
 data class OverwritePrompt(val date: String?, val coins: Int)
@@ -32,6 +35,18 @@ data class BackupUiState(
     /** Ultimo esito da mostrare all'utente (successo o errore). */
     val message: String? = null,
     val lastBackup: String? = null,
+    /** Data della versione precedente su Drive (la copia di almeno un giorno prima), se esiste. */
+    val previousBackup: String? = null,
+    /** Collezione locale rispetto all'ultimo backup di questo telefono, calcolata in locale (vedi [BackupStatus]). */
+    val localStatus: BackupStatus = BackupStatus.Unknown,
+    /** Data dell'ultimo backup noto a questo telefono (formattata), anche se Drive non è stato interrogato. */
+    val lastBackupLocal: String? = null,
+    /** Interruttore del salvataggio automatico. */
+    val autoBackup: Boolean = false,
+    /** true se questo telefono ha già fatto un backup: senza, il salvataggio automatico non parte (vedi `AutoBackup`). */
+    val hasSnapshot: Boolean = false,
+    /** Ultimo errore del salvataggio automatico, solo se più recente dell'ultimo backup riuscito. */
+    val autoError: String? = null,
     /** true quando Drive è stato davvero interrogato: senza, `lastBackup` null vuol dire "non so", non "nessun backup". */
     val backupChecked: Boolean = false,
     /** Non null = la UI deve chiedere conferma prima di sovrascrivere il backup esistente. */
@@ -43,10 +58,35 @@ data class BackupUiState(
 class BackupViewModel(
     private val service: BackupService,
     private val accounts: GoogleAccountManager,
+    private val autoBackup: AutoBackup,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(BackupUiState(configured = accounts.isConfigured, account = accounts.currentAccount()))
     val state: StateFlow<BackupUiState> = _state.asStateFlow()
+
+    init {
+        // Stato e interruttore del salvataggio automatico seguono la collezione e l'ultimo backup, senza chiamare Drive.
+        viewModelScope.launch {
+            combine(
+                service.observeStatus(),
+                service.snapshots.snapshot,
+                autoBackup.enabled,
+                autoBackup.error,
+            ) { status, snapshot, auto, error ->
+                _state.update {
+                    it.copy(
+                        localStatus = status,
+                        lastBackupLocal = formatEpoch(snapshot?.exportedAt),
+                        hasSnapshot = snapshot != null,
+                        autoBackup = auto,
+                        autoError = error?.takeIf { e -> e.at > (snapshot?.exportedAt ?: 0L) }?.message,
+                    )
+                }
+            }.collect { }
+        }
+    }
+
+    fun setAutoBackup(value: Boolean) = autoBackup.setEnabled(value)
 
     /** Azione in attesa del consenso Drive, da riprendere quando l'utente risponde. */
     private var pendingAction: BackupAction? = null
@@ -59,7 +99,9 @@ class BackupViewModel(
 
     fun signOut(activity: Activity) = launchBusy {
         accounts.signOut(activity)
-        _state.update { it.copy(account = null, lastBackup = null, backupChecked = false, message = "Signed out. Your local collection is untouched.") }
+        // L'ultimo backup noto era di quell'account: con un altro non direbbe niente di vero.
+        service.forgetSnapshot()
+        _state.update { it.copy(account = null, lastBackup = null, previousBackup = null, backupChecked = false, message = "Signed out. Your local collection is untouched.") }
     }
 
     /** Silenziosa per INFO: se il consenso Drive non è ancora stato dato non lo chiede solo per mostrare una data. */
@@ -70,6 +112,9 @@ class BackupViewModel(
     fun backup(activity: Activity) = launchBusy { runAction(BackupAction.BACKUP, activity) }
 
     fun restore(activity: Activity) = launchBusy { runAction(BackupAction.RESTORE, activity) }
+
+    /** Ripristina la versione precedente del backup (la copia di almeno un giorno prima). */
+    fun restorePrevious(activity: Activity) = launchBusy { runAction(BackupAction.RESTORE_PREVIOUS, activity) }
 
     /** L'utente ha confermato il dialog di sovrascrittura: rifà il backup saltando il controllo. */
     fun confirmOverwrite(activity: Activity) = launchBusy {
@@ -130,7 +175,14 @@ class BackupViewModel(
                 val count = service.restore(token)
                 _state.update { it.copy(message = "Restored $count ${entries(count)} from Google Drive.") }
             }
-            BackupAction.INFO -> _state.update { it.copy(lastBackup = formatTime(service.lastBackupTime(token)), backupChecked = true) }
+            BackupAction.RESTORE_PREVIOUS -> {
+                val count = service.restore(token, usePrevious = true)
+                _state.update { it.copy(message = "Restored $count ${entries(count)} from the previous backup.") }
+            }
+            BackupAction.INFO -> {
+                val info = service.backupInfo(token)
+                _state.update { it.copy(lastBackup = formatTime(info.latest), previousBackup = formatTime(info.previous), backupChecked = true) }
+            }
         }
     }
 
@@ -155,6 +207,8 @@ class BackupViewModel(
     }
 
     private fun entries(count: Int) = if (count == 1) "entry" else "entries"
+
+    private fun formatEpoch(millis: Long?): String? = millis?.let { formatTime(Instant.ofEpochMilli(it).toString()) }
 
     private fun formatTime(iso: String?): String? = iso?.let {
         runCatching {

@@ -86,12 +86,12 @@ class GoogleAccountManager(context: Context) {
     }
 
     /** Chiede a Google un token per Drive appdata. Può richiedere il consenso dell'utente la prima volta. */
-    suspend fun authorizeDrive(activity: Activity): DriveAuthorization {
+    suspend fun authorizeDrive(context: Context): DriveAuthorization {
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(DRIVE_APPDATA_SCOPE)))
             .build()
         val result = suspendCancellableCoroutine { cont ->
-            Identity.getAuthorizationClient(activity).authorize(request)
+            Identity.getAuthorizationClient(context).authorize(request)
                 .addOnSuccessListener { cont.resume(it) }
                 .addOnFailureListener { cont.resumeWithException(BackupException("Google Drive authorization failed. Please check your connection and try again.", it)) }
         }
@@ -102,6 +102,14 @@ class GoogleAccountManager(context: Context) {
         val token = result.accessToken ?: throw BackupException("Google Drive did not return an access token.")
         return DriveAuthorization.Granted(token)
     }
+
+    /**
+     * Token per Drive SENZA interrompere l'utente (salvataggio automatico, in background): null se
+     * serve il consenso, che in background non si può chiedere. Il consenso resta quello già dato
+     * dal primo backup manuale.
+     */
+    suspend fun silentDriveToken(context: Context): String? =
+        (authorizeDrive(context) as? DriveAuthorization.Granted)?.accessToken
 
     /** Legge il token dall'esito della schermata di consenso lanciata con [DriveAuthorization.NeedsConsent]. */
     fun tokenFromConsent(context: Context, data: Intent?): String {

@@ -19,6 +19,13 @@ import com.michele.eurocoins.ui.theme.EuroCoinsTheme
 import com.michele.eurocoins.ui.theme.ThemeMode
 
 class MainActivity : ComponentActivity() {
+
+    /** L'utente lascia l'app: se la collezione è cambiata dall'ultimo backup parte il salvataggio automatico (se acceso). */
+    override fun onStop() {
+        super.onStop()
+        (application as EuroCoinsApplication).autoBackup.onAppLeft()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -55,6 +62,7 @@ class MainActivity : ComponentActivity() {
                         regularIssueRepository = app.regularIssueRepository,
                         backupService = app.backupService,
                         accountManager = app.accountManager,
+                        autoBackup = app.autoBackup,
                         themePreference = app.themePreference,
                         userSettings = app.userSettings,
                     )
