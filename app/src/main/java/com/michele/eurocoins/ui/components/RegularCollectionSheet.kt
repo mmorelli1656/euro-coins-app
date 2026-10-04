@@ -59,6 +59,7 @@ import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.YearOption
 import com.michele.eurocoins.data.defaultYearOption
 import com.michele.eurocoins.data.regularYearOptions
+import com.michele.eurocoins.data.seriesTitle
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.data.varietyFor
 import java.time.Year
@@ -89,7 +90,7 @@ private data class DraftKey(val year: Int, val variety: String, val quality: Coi
 fun RegularCollectionSheet(
     countryName: String,
     series: RegularIssueSeries,
-    /** Posizione (1-based) della serie nella lista del paese: vedi `seriesHeading` in `RegularIssueCountryScreen.kt`. */
+    /** Posizione (1-based) della serie nella lista del paese: vedi `seriesTitle` in `RegularIssueText.kt`. */
     seriesNumber: Int,
     denomination: RegularIssueImage,
     currentItems: List<RegularCollectionItem>,
@@ -141,7 +142,7 @@ fun RegularCollectionSheet(
                 modifier = Modifier.padding(top = 2.dp),
             )
             Text(
-                text = "$countryName · ${seriesHeadingForSheet(series, seriesNumber)}",
+                text = "$countryName · ${seriesTitle(seriesNumber)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -379,12 +380,3 @@ private fun YearCell(
     }
 }
 
-/**
- * "Series N" + intestazione, come `seriesHeading` in `RegularIssueCountryScreen.kt`: [number] è
- * la posizione (1-based) nella lista del paese, non `series.numeroSerieIpotesi` (può ripetersi,
- * vedi quella funzione).
- */
-private fun seriesHeadingForSheet(series: RegularIssueSeries, number: Int): String {
-    val base = "Series $number"
-    return series.intestazioneRaw?.let { "$base · $it" } ?: base
-}

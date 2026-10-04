@@ -52,14 +52,27 @@ class RegularIssueRepository(
      * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti (stessa (anno,
      * qualità, varietà)). Stesso pattern di `CoinRepository.saveCollection`, ma qui la chiave include
      * anche l'anno perché più annate dello stesso taglio possono coesistere.
+     *
+     * [window]: la serie guardata mostra (e quindi può cambiare) solo gli anni della sua finestra di
+     * tempo (vedi [denominationsOf]); un taglio rimasto invariato è la stessa moneta in più serie, e
+     * salvare dalla serie 2 non deve cancellare le annate della serie 1. Le voci FUORI finestra
+     * restano com'erano; senza finestra si sostituisce tutto, come prima.
      */
-    suspend fun saveCollection(seriesKey: String, taglio: String, paese: String, entries: List<RegularCollectionEntry>) {
-        val existing = collectionDao.itemsFor(seriesKey, taglio).associateBy { Triple(it.anno, it.quality, it.variety) }
+    suspend fun saveCollection(
+        seriesKey: String,
+        taglio: String,
+        paese: String,
+        entries: List<RegularCollectionEntry>,
+        window: SeriesDenomination? = null,
+    ) {
+        val all = collectionDao.itemsFor(seriesKey, taglio)
+        val kept = if (window == null) emptyList() else all.filterNot { window.contains(it.anno) }
+        val existing = all.associateBy { Triple(it.anno, it.quality, it.variety) }
         val now = System.currentTimeMillis()
         collectionDao.replaceForDenomination(
             seriesKey,
             taglio,
-            entries.map { entry ->
+            kept + entries.map { entry ->
                 RegularCollectionItem(
                     seriesKey = seriesKey,
                     taglio = taglio,

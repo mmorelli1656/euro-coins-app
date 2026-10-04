@@ -7,6 +7,8 @@ import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.SeriesDenomination
+import com.michele.eurocoins.data.denominationsOf
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.data.stableKey
@@ -17,12 +19,20 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Un taglio della serie selezionata più quante annate distinte l'utente possiede (0 = non posseduto). */
+/**
+ * Un taglio della serie selezionata più quante annate distinte l'utente possiede (0 = non posseduto).
+ * [denomination] porta la serie a cui il taglio APPARTIENE (diversa da quella selezionata per i tagli
+ * che non hanno cambiato disegno) e l'immagine già ritagliata alla finestra della serie guardata, vedi
+ * [denominationsOf]; [items] sono solo le annate DENTRO quella finestra.
+ */
 data class DenominationUiState(
-    val image: RegularIssueImage,
+    val denomination: SeriesDenomination,
     val ownedYears: Int,
     val items: List<RegularCollectionItem>,
-)
+) {
+    val series: RegularIssueSeries get() = denomination.series
+    val image: RegularIssueImage get() = denomination.image
+}
 
 data class RegularIssueCountryUiState(
     val countryName: String = "",
@@ -76,11 +86,13 @@ class RegularIssueCountryViewModel(
         val safeIndex = index.coerceIn(0, (forCountry.size - 1).coerceAtLeast(0))
         val selected = forCountry.getOrNull(safeIndex)
         val denominations = selected?.let { series ->
-            val key = series.stableKey
-            series.immagini.sortedBy { denominationOrder(it.taglio) }.map { image ->
-                val items = collection.filter { it.seriesKey == key && it.taglio == image.taglio }
+            denominationsOf(forCountry, series).sortedBy { denominationOrder(it.image.taglio) }.map { denomination ->
+                val key = denomination.series.stableKey
+                val items = collection.filter {
+                    it.seriesKey == key && it.taglio == denomination.image.taglio && denomination.contains(it.anno)
+                }
                 DenominationUiState(
-                    image = image,
+                    denomination = denomination,
                     ownedYears = items.map { it.anno }.distinct().size,
                     items = items,
                 )
@@ -99,8 +111,11 @@ class RegularIssueCountryViewModel(
         selectedIndex.value = index
     }
 
-    fun onSaveCollection(series: RegularIssueSeries, taglio: String, entries: List<RegularCollectionEntry>) {
-        viewModelScope.launch { repository.saveCollection(series.stableKey, taglio, series.paese, entries) }
+    fun onSaveCollection(denomination: SeriesDenomination, entries: List<RegularCollectionEntry>) {
+        val series = denomination.series
+        viewModelScope.launch {
+            repository.saveCollection(series.stableKey, denomination.image.taglio, series.paese, entries, window = denomination)
+        }
     }
 }
 

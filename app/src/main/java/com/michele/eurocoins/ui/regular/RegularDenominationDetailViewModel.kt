@@ -7,6 +7,8 @@ import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.SeriesDenomination
+import com.michele.eurocoins.data.denominationsOf
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +23,8 @@ data class RegularDenominationDetailUiState(
     /** Posizione (1-based) della serie nella lista del paese, come in `RegularIssueCountryScreen`. */
     val seriesNumber: Int = 0,
     val image: RegularIssueImage? = null,
+    /** Il taglio con la sua finestra di anni, per salvare senza toccare le annate di altre serie. */
+    val denomination: SeriesDenomination? = null,
     val items: List<RegularCollectionItem> = emptyList(),
 )
 
@@ -60,25 +64,29 @@ class RegularDenominationDetailViewModel(
     ): RegularDenominationDetailUiState {
         val forCountry = all.filter { it.paese == paese }
         val index = forCountry.indexOfFirst { it.ordineCronologico == ordineCronologico }
-        val series = forCountry.getOrNull(index)
-        val image = series?.immagini?.firstOrNull { it.taglio == taglio }
-        val items = if (series != null) {
-            val key = series.stableKey
-            collection.filter { it.seriesKey == key && it.taglio == taglio }
+        val viewed = forCountry.getOrNull(index)
+        // Il taglio come lo vede la serie guardata: se è rimasto invariato, `series` è quella di
+        // origine (chiave della collezione) e `image` è già ritagliata agli anni della serie guardata.
+        val denomination = viewed?.let { denominationsOf(forCountry, it) }?.firstOrNull { it.image.taglio == taglio }
+        val items = if (denomination != null) {
+            val key = denomination.series.stableKey
+            collection.filter { it.seriesKey == key && it.taglio == taglio && denomination.contains(it.anno) }
         } else {
             emptyList()
         }
         return RegularDenominationDetailUiState(
             countryName = forCountry.firstOrNull()?.displayCountry() ?: paese,
-            series = series,
+            series = denomination?.series,
             seriesNumber = index + 1,
-            image = image,
+            image = denomination?.image,
+            denomination = denomination,
             items = items,
         )
     }
 
     fun onSaveCollection(entries: List<RegularCollectionEntry>) {
-        val series = uiState.value.series ?: return
-        viewModelScope.launch { repository.saveCollection(series.stableKey, taglio, series.paese, entries) }
+        val denomination = uiState.value.denomination ?: return
+        val series = denomination.series
+        viewModelScope.launch { repository.saveCollection(series.stableKey, taglio, series.paese, entries, window = denomination) }
     }
 }
