@@ -164,6 +164,7 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularMintageSummary.kt # summarizeMintages()/groupMintagesByYear() — logica pura, testata
 │   ├── RegularYearMints.kt   # yearMintLabels(): etichette "Mint · …" per periodo (certa/probabile/non nota), logica pura, testata
 │   ├── RegularSeriesDenominations.kt # denominationsOf(): gli 8 tagli di una serie, quelli invariati ereditati dalla precedente, ritagliati alla finestra di anni della serie
+│   ├── RegularDenominationRows.kt # denominationRows(): le righe di un taglio in tutti i paesi (una per serie), per l'elenco di un taglio e le card Denominations
 │   ├── RegularIssueText.kt   # displayDescription() (senza la frase sul bordo esterno), seriesTitle()/seriesChipLabel()/seriesPeriod() — titoli e periodo delle serie
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
@@ -175,7 +176,7 @@ app/src/main/java/com/michele/eurocoins/
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
-    ├── regular/               # Regular Issues: griglia paesi + serie del paese + collezione per taglio
+    ├── regular/               # Regular Issues: schede Countries/Denominations + elenco di un taglio + serie del paese + collezione per taglio
     │                         # + RegularDenominationDetailScreen (dettaglio taglio, building
     │                         # block riusati da ui/detail/)
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
@@ -538,13 +539,35 @@ catalogo completo.
   `CoinRepository.ensureSeeded()`, asset `regular_issues.json`,
   SharedPreferences proprie `regular_issues_dataset`). Seeding avviato da
   `HomeViewModel` insieme a quello delle commemorative.
-- **Navigazione**: `HomeScreen` → `RegularIssuesScreen` (griglia paesi,
-  bandiera + nome + "N series", riuso visivo di `BrowseCard`/`CardGrid` di
-  `BrowseScreen.kt` duplicato localmente, non condiviso — stesso approccio
-  di `CommemorativeCard`/`RegularIssuesCard` in `HomeScreen.kt`) →
-  `RegularIssueCountryScreen` (route `regular-issues/{paese}`, `Uri.encode`
-  come per le commemorative). **Nessuna ricerca/filtro/ordinamento**: 25
-  paesi entrano in una griglia senza doverli cercare. **Ogni card ha la barra di avanzamento**
+- **Navigazione**: `HomeScreen` → `RegularIssuesScreen` → `RegularIssueCountryScreen` (route
+  `regular-issues/{paese}`, `Uri.encode` come per le commemorative) oppure
+  `RegularDenominationListScreen` (route `regular-denominations/{taglio}`, vedi sotto).
+- **`RegularIssuesScreen`: due schede, Countries / Denominations** (selettore segmentato come
+  Years / Countries / All di Browse) **con la stessa barra flottante di ricerca + FILTER delle
+  commemorative**, query/ordine/filtro propri di ogni scheda (`RegularGridPrefs`). Riusa i mattoni di
+  `BrowseScreen.kt` (`BrowseCard`, `CardGrid`, `CardFooter`, `Progress.matches`, `FloatingSearchBar`,
+  `FilterSheet`): resi `internal` invece di duplicarli (prima la griglia dei paesi aveva la sua
+  `CountryCard` copiata). **Countries**: la griglia dei paesi, ricerca per nome, FILTER = ordine
+  A→Z/Z→A + Collection (All/Incomplete/Complete). **Denominations**: 8 card (2 euro → 1 cent,
+  "41 coins" + barra "x / 41 collected", `headlineMedium` come l'anno in Years), ricerca per valore
+  ("2 euro", "euro", "cent": `matchesDenomination`, senza badare a maiuscole e spazi), FILTER = ordine
+  Largest/Smallest first + Collection. **Niente scheda "All"** (tutte le 328 righe in un elenco, come
+  in Commemorative): proposta e poi tolta dall'utente ("non verrebbe mai utilizzata", non ci sono
+  dati d'uso per decidere); l'elenco di un taglio ne è già una versione filtrata, quindi si aggiunge
+  senza rifare niente se servisse. **Niente "Years"**: l'anno non è un dato della moneta qui (una
+  serie copre decenni, l'anno lo sceglie l'utente al salvataggio). Mockup approvato prima del codice.
+  Senza risultati: messaggio senza il pulsante "Search all" di Commemorative (non c'è la scheda All).
+- **`RegularDenominationListScreen`**: un taglio in tutti i paesi, una riga per serie (41),
+  `denominationRows()` (`RegularDenominationRows.kt`, stesso conto di `regularProgress`: ordine per paese
+  e poi per serie, riga posseduta = almeno un'annata nella finestra della serie). **Il PAESE è il
+  titolo** ("🇧🇪 Belgium") e "Series 2 · 2008 – 2013" la riga piccola sopra: il taglio è già nella
+  barra in alto, ripeterlo 41 volte sarebbe rumore. Riga = `RegularCoinRow` (estratta da
+  `RegularIssueCountryScreen` in `RegularCoinRow.kt`, stessa 72 dp con stato/titolo parametrici): il
+  tocco apre il dettaglio taglio della serie GUARDATA, la casella il `RegularCollectionSheet` (chiave
+  = serie di origine, titolo = serie guardata, salvataggio con la finestra). Barra flottante:
+  ricerca per paese/serie/periodo, FILTER Collection All/Owned/Missing (`OwnershipFilter`).
+  `RegularDenominationRowsTest`.
+- **Ogni card paese ha la barra di avanzamento**
   (stessa `CollectionProgressBar` dritta di Years/Countries nelle commemorative, sotto "N series":
   "x / y collected"): `regularProgress()` (`CollectionProgress.kt`, usata anche dalla Home, un
   solo conto) = **le RIGHE che l'utente vede nelle schermate delle serie**, cioè ogni taglio di
@@ -564,8 +587,11 @@ catalogo completo.
   (`FilterChip`, riuso dello stesso componente di `FilterSheet`) sceglie
   quale mostrare — con una sola serie il selettore non compare.
   - **Titoli: chip "Series 2 · 2022", intestazione "Series 2" con il periodo sotto**
-    ("2022 – 2023", "2024 – today", solo "2005" se è un anno solo; 13 sp,
-    `onSurfaceVariant`). Variante A scelta dopo mockup, scartata B (tutto su una riga,
+    ("2022 – 2023", "2024 – today", solo "2005" se è un anno solo; `onSurfaceVariant`). **Dimensioni: titolo 20 sp Bold
+    (come i titoli di sezione delle Impostazioni), periodo 15 sp, 8 dp prima della prima card**:
+    a 16 / 13 sp il titolo non staccava dal testo delle card sotto (14 / 13 sp) ed era più piccolo del
+    titolo della barra (suggerito dall'utente guardando il telefono). Titolo ancora verdigris (non
+    c'è niente di cliccabile vicino), neutro se sembrasse un link. Variante A scelta dopo mockup, scartata B (tutto su una riga,
     "Series 2 · 2022 – 2023"): il periodo non deve competere col titolo. **Mai
     `intestazioneRaw`** ("2022 – second series 1 and 2 euro coins"...: lunga e disomogenea
     da paese a paese, l'utente non la voleva) e **mai l'anno da solo al posto del numero**:
@@ -864,7 +890,7 @@ catalogo completo.
   stesso pattern di `lastShownOwned` per Commemorative), **ora reale**: conta `regularIssueOwnedCount` (§
   Collezione su Regular Issues) su `regularIssueCoinsCount`.
 - **Fuori scope di questa prima versione** (vedi anche § Backlog):
-  ricerca/filtro/ordinamento nella griglia Countries; gestione di `possibileIncongruenza` in UI
+  gestione di `possibileIncongruenza` in UI
   (oggi sempre `false` nel dataset). La catena di ripiego/precaricamento della fascia Home è stata
   allineata a Commemorative (vedi sopra, § Impostazioni "Rotate home coins").
 
@@ -1135,7 +1161,7 @@ fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio 
 intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
 (Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
 `RegularYearMintsTest` e
-`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita ma ha le sue 8 righe, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `RegularProgressTest` i conti 24/24/48 e il totale 328; `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita ma ha le sue 8 righe, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `RegularProgressTest` i conti 24/24/48 e il totale 328; `RegularDenominationRowsTest` le righe per taglio (41 ciascuno, ordine, finestre, ricerca); `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
 asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
@@ -1529,8 +1555,8 @@ Nella **pipeline dati** (repo separato, va fatto lì):
 
 Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima):
-  ricerca/filtro/ordinamento nella griglia Countries; gestione di
-  `possibileIncongruenza` in UI.
+  gestione di `possibileIncongruenza` in UI; scheda "All" (vedi § omonima: tolta, da riconsiderare
+  se serve cercare una moneta precisa o il filtro Missing su tutto il catalogo).
 - **Collezione su Regular Issues** (§ omonima): export/backup su Drive non estesi a
   `regular_collection_items` (oggi solo `collection_items` delle commemorative, vedi § Backup su
   Google Drive). Il problema della deduplicazione dell'anno scritto a mano non esiste più (anno
