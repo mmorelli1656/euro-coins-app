@@ -275,7 +275,7 @@ private fun ModeSelector(
 }
 
 @Composable
-private fun CardGrid(
+internal fun CardGrid(
     resetScrollKey: Any,
     loaded: Boolean,
     hazeState: HazeState,
@@ -301,7 +301,7 @@ private fun CardGrid(
 }
 
 @Composable
-private fun BrowseCard(
+internal fun BrowseCard(
     onClick: () -> Unit,
     badge: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
@@ -345,7 +345,7 @@ private fun CommonIssueBadge() {
 }
 
 @Composable
-private fun CardFooter(progress: Progress) {
+internal fun CardFooter(progress: Progress) {
     Text(
         text = "${progress.total} coins",
         style = MaterialTheme.typography.labelMedium,

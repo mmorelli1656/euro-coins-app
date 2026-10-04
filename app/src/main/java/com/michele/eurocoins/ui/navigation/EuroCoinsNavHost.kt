@@ -34,6 +34,8 @@ import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
 import com.michele.eurocoins.ui.regular.RegularDenominationDetailScreen
 import com.michele.eurocoins.ui.regular.RegularDenominationDetailViewModel
+import com.michele.eurocoins.ui.regular.RegularDenominationListScreen
+import com.michele.eurocoins.ui.regular.RegularDenominationListViewModel
 import com.michele.eurocoins.ui.regular.RegularIssueCountryScreen
 import com.michele.eurocoins.ui.regular.RegularIssueCountryViewModel
 import com.michele.eurocoins.ui.regular.RegularIssuesScreen
@@ -48,6 +50,8 @@ private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
 private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
 private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
+// Un taglio in tutti i paesi (elenco), non il dettaglio di un taglio di una serie.
+private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
 private const val ARG_COIN_ID = "coinId"
@@ -179,6 +183,27 @@ fun EuroCoinsNavHost(
                 viewModel = viewModel,
                 // Uri.encode: stesso motivo delle commemorative, "Città del Vaticano" e "Paesi Bassi" hanno spazi/accenti.
                 onCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                onDenominationClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}") },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = ROUTE_REGULAR_DENOMINATION_LIST,
+            arguments = listOf(navArgument(ARG_TAGLIO) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val taglio = backStackEntry.arguments?.getString(ARG_TAGLIO) ?: return@composable
+            val viewModel: RegularDenominationListViewModel = viewModel(
+                key = "regular-denomination-list-$taglio",
+                factory = viewModelFactory { initializer { RegularDenominationListViewModel(regularIssueRepository, taglio) } },
+            )
+            RegularDenominationListScreen(
+                taglio = taglio,
+                viewModel = viewModel,
+                onRowClick = { series ->
+                    navController.navigate(
+                        "regular-issues/${Uri.encode(series.paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
+                    )
+                },
                 onBack = { navController.popBackStack() },
             )
         }

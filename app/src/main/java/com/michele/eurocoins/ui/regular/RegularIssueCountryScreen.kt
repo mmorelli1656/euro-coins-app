@@ -68,10 +68,7 @@ import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.detail.NotesCard
 import com.michele.eurocoins.ui.theme.appBarColors
 
-private val ThumbnailSize = 52.dp
 
-/** Cerchio lilla un po' più piccolo della foto (50 dp contro 52): stesso motivo di `CoinListScreen`. */
-private val PlaceholderSize = 50.dp
 
 /**
  * Serie divisionali (1 cent - 2 euro) di un singolo paese. Con più di una serie (cambio di
@@ -188,10 +185,12 @@ private fun SeriesChipRow(seriesList: List<RegularIssueSeries>, selectedIndex: I
  */
 @Composable
 private fun SeriesHeader(number: Int, period: SeriesPeriod) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+    // Titolo 20 sp Bold (come i titoli di sezione delle Impostazioni) e periodo 15 sp: a 16/13 sp il titolo
+    // non staccava dal testo delle card sotto (14/13 sp). 8 dp prima della prima card.
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)) {
         Text(
             seriesTitle(number),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = if (period.label == null) 4.dp else 0.dp),
         )
@@ -200,9 +199,9 @@ private fun SeriesHeader(number: Int, period: SeriesPeriod) {
         period.label?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 4.dp),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, bottom = 2.dp),
             )
         }
     }
@@ -236,132 +235,16 @@ private fun SeriesAbout(
     }
 }
 
-/**
- * Una card per taglio, altezza fissa 72 dp: stessa struttura di `CoinRow` in `CoinListScreen.kt`.
- * Il tocco sulla riga apre il dettaglio del taglio ([onClick]), come nell'elenco Commemorative;
- * la casella a destra resta un bersaglio separato per la collezione ([onEditCollection]).
- */
+/** La riga di un taglio nella serie: stato di possesso sopra, il taglio come titolo. */
 @Composable
 private fun DenominationRow(denom: DenominationUiState, onClick: () -> Unit, onEditCollection: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 3.dp)
-            .height(72.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(onClick = onClick)
-            .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(modifier = Modifier.size(ThumbnailSize).clip(CircleShape), contentAlignment = Alignment.Center) {
-            DenominationThumbnail(denom.image)
-        }
-        Column(
-            modifier = Modifier.padding(start = 8.dp, end = 12.dp, top = 2.dp, bottom = 2.dp).weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = if (denom.ownedYears == 0) "Not owned" else "${denom.ownedYears} ${if (denom.ownedYears == 1) "year" else "years"} owned",
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
-                fontWeight = if (denom.ownedYears > 0) FontWeight.Bold else FontWeight.Normal,
-                color = if (denom.ownedYears > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = denom.image.taglio,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        CollectionBox(owned = denom.ownedYears > 0, onClick = onEditCollection)
-    }
-}
-
-/** Casella accanto al taglio: piena con spunta se posseduto in almeno un'annata; un tocco apre il pannello. Stesso disegno di `CollectionBox` in `CoinListScreen.kt` (duplicata qui, non condivisa — stesso approccio di `BrowseCard`). */
-@Composable
-private fun CollectionBox(owned: Boolean, onClick: () -> Unit) {
-    val primary = MaterialTheme.colorScheme.primary
-    Box(
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(RoundedCornerShape(7.dp))
-                .background(if (owned) primary else Color.Transparent)
-                .border(
-                    2.dp,
-                    if (owned) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    RoundedCornerShape(7.dp),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (owned) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = "In your collection, tap to edit",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DenominationThumbnail(image: RegularIssueImage) {
-    if (image.urlImmagineFonte == null) {
-        DenominationPlaceholder()
-    } else {
-        val context = LocalContext.current
-        SubcomposeAsyncImage(
-            // RegularIssueImageTrim: il margine attorno alla moneta non è uniforme da file a
-            // file (vedi quella classe) — senza, la moneta appare più piccola del cerchio.
-            model = ImageRequest.Builder(context)
-                .data(image.urlImmagineFonte)
-                .transformations(RegularIssueImageTrim)
-                .build(),
-            contentDescription = image.taglio,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().clip(CircleShape),
-        ) {
-            // MAI painter.state.value: e' uno StateFlow, .value non sottoscrive la ricomposizione
-            // (vedi CLAUDE.md § Decisioni di prodotto, "Stato di SubcomposeAsyncImage").
-            when (painter.state.collectAsState().value) {
-                is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                is AsyncImagePainter.State.Error -> DenominationPlaceholder()
-                else -> PlaceholderCircle()
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlaceholderCircle(content: @Composable () -> Unit = {}) {
-    Box(
-        modifier = Modifier
-            .size(PlaceholderSize)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.secondaryContainer),
-        contentAlignment = Alignment.Center,
-    ) { content() }
-}
-
-@Composable
-private fun DenominationPlaceholder() {
-    PlaceholderCircle {
-        Icon(
-            imageVector = Icons.Filled.EuroSymbol,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.size(26.dp),
-        )
-    }
+    RegularCoinRow(
+        image = denom.image,
+        status = if (denom.ownedYears == 0) "Not owned" else "${denom.ownedYears} ${if (denom.ownedYears == 1) "year" else "years"} owned",
+        statusHighlight = denom.ownedYears > 0,
+        title = denom.image.taglio,
+        owned = denom.ownedYears > 0,
+        onClick = onClick,
+        onEditCollection = onEditCollection,
+    )
 }

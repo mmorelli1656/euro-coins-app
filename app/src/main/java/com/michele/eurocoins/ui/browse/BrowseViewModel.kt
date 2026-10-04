@@ -58,7 +58,7 @@ data class BrowseUiState(
     val countries: List<CountryCardData> = emptyList(),
 )
 
-private fun Progress.matches(filter: CompletionFilter): Boolean = when (filter) {
+internal fun Progress.matches(filter: CompletionFilter): Boolean = when (filter) {
     CompletionFilter.ALL -> true
     CompletionFilter.INCOMPLETE -> owned < total
     CompletionFilter.COMPLETE -> total > 0 && owned == total
