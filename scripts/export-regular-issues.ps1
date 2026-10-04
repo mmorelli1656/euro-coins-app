@@ -57,6 +57,23 @@ $StartOverrides = @{
 $NoEcbFallbackSources = @('bcl', 'vaticanstate_cfn')
 $NegInf = -9999
 $PosInf = 9999
+# Ultimo anno di una serie quando le monete datate si sovrappongono alla serie successiva: il
+# Vaticano ha coniato monete di Giovanni Paolo II ANCHE datate 2005 (type Numista 2002-2005),
+# oltre alla Sede Vacante 2005 (serie 2). Chiave "paese|ordine_cronologico".
+$EndOverrides = @{ "Citt$([char]0xE0) del Vaticano|1" = 2005 }
+
+# Primo anno con monete DATATE per paese (anno d'inizio della prima serie, per l'elenco degli anni
+# nel pannello di collezione): ingresso nell'euro, o il 1999 per chi ha coniato monete datate
+# prima del 2002 (Belgio, Finlandia, Francia, Paesi Bassi, Spagna; Monaco 2001). Fatti pubblici,
+# NON dati Numista (i valori sono stati confrontati coi type Numista, ma sono noti da sempre):
+# restano quindi anche con -ExcludeNumista. Bulgaria: nessun type Numista, ingresso nel 2026.
+$FirstDatedYear = @{
+    'Andorra' = 2014; 'Austria' = 2002; 'Belgio' = 1999; 'Bulgaria' = 2026; 'Cipro' = 2008; 'Croazia' = 2023
+    'Estonia' = 2011; 'Finlandia' = 1999; 'Francia' = 1999; 'Germania' = 2002; 'Grecia' = 2002; 'Irlanda' = 2002
+    'Italia' = 2002; 'Lettonia' = 2014; 'Lituania' = 2015; 'Lussemburgo' = 2002; 'Malta' = 2008; 'Monaco' = 2001
+    'Paesi Bassi' = 1999; 'Portogallo' = 2002; 'San Marino' = 2002; 'Slovacchia' = 2009; 'Slovenia' = 2007; 'Spagna' = 1999
+    "Citt$([char]0xE0) del Vaticano" = 2002
+}
 
 $series = @(Read-Jsonl 'ec_national_sides.jsonl')
 $numista = if ($ExcludeNumista) { @() } else { @(Read-Jsonl 'numista_divisional.jsonl') }
@@ -99,6 +116,18 @@ function Get-Participants([string]$paese, [string]$taglio) {
         $result += [pscustomobject]@{ Series = $part[$i]; Start = (Get-SeriesStart $part[$i]); End = $end }
     }
     return , $result
+}
+
+# Anni in cui un taglio di una serie esiste: dal primo anno della serie (il primo anno datato del paese
+# per la prima serie) fino all'anno prima della serie successiva; $null = serie ancora aperta.
+# Per il pannello di collezione: l'utente sceglie l'anno da questa lista invece di scriverlo.
+function Get-YearRange([string]$paese, [string]$taglio, [int]$ordine) {
+    $parts = Get-Participants $paese $taglio   # (assegnato, non in @(...): la funzione restituisce l'array avvolto)
+    $p = $parts | Where-Object { $_.Series.ordine_cronologico -eq $ordine } | Select-Object -First 1
+    if (-not $p) { throw "Serie $paese #$ordine senza intervallo per $taglio" }
+    $start = if ($p.Start -eq $NegInf) { [int]$FirstDatedYear[$paese] } else { [int]$p.Start }
+    $end = if ($EndOverrides.ContainsKey("$paese|$ordine")) { [int]$EndOverrides["$paese|$ordine"] } elseif ($p.End -eq $PosInf) { $null } else { [int]$p.End }
+    return @($start, $end)
 }
 
 # type -> serie assegnata, per (paese, taglio): chiave "paese|taglio" -> lista di {Type, Participant, Overlap}
@@ -234,6 +263,7 @@ foreach ($s in $series) {
             }
         }
 
+        $yearRange = Get-YearRange $s.paese $img.taglio $s.ordine_cronologico
         $extra = [ordered]@{
             descrizione      = $descrizione
             descrizione_fonte = $descFonte
@@ -244,6 +274,8 @@ foreach ($s in $series) {
             disegnatore_raw  = if ($main) { Clean $main.disegnatore_retro_raw } else { $null }
             tirature         = $tirature
             zecche_per_anno  = $zecchePerAnno
+            anno_inizio      = $yearRange[0]
+            anno_fine        = $yearRange[1]
         }
         foreach ($name in $extra.Keys) {
             $img | Add-Member -NotePropertyName $name -NotePropertyValue $extra[$name] -Force

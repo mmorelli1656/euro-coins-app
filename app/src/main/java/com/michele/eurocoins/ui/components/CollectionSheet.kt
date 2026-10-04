@@ -188,9 +188,12 @@ fun CollectionSheet(
  * 16 dp; il campo prezzo, quando è attivo, gestisce i propri tocchi (focus e
  * tastiera). Con il campo disattivato un tocco su di esso arriva alla card e
  * la spunta.
+ *
+ * Esportata (non più `private`): `RegularCollectionSheet` usa la stessa card per ogni finitura, così
+ * il pannello delle monete circolanti è quello delle commemorative con in più il selettore dell'anno.
  */
 @Composable
-private fun FinishCard(
+fun FinishCard(
     quality: CoinQuality,
     checked: Boolean,
     price: String,

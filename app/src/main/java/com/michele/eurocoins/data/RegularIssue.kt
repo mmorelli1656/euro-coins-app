@@ -87,6 +87,15 @@ data class RegularIssueImage(
      * etichette nella tabella "by year". Vedi [yearMintLabels].
      */
     val zecchePerAnno: List<RegularIssueYearMint> = emptyList(),
+    /**
+     * Primo e ultimo anno di QUESTO taglio in QUESTA serie, per l'elenco di anni del pannello di
+     * collezione (l'utente sceglie, non scrive): [annoInizio] è il primo anno datato (il 1999 per
+     * Belgio/Francia/..., per la prima serie), [annoFine] null = serie ancora aperta. Non vengono da
+     * Numista (intestazioni delle serie + anno d'ingresso nell'euro): ci sono anche nell'asset
+     * committato. Null (default) = asset vecchio: il pannello ripiega su 2002 .. anno corrente.
+     */
+    val annoInizio: Int? = null,
+    val annoFine: Int? = null,
 )
 
 /**

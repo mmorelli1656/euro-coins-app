@@ -163,7 +163,7 @@ app/src/main/java/com/michele/eurocoins/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
     ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
-    │                         # RegularCollectionSheet (qualità + annate multiple per le Regular Issues),
+    │                         # RegularCollectionSheet (come CollectionSheet + selettore anno a griglia, Regular Issues),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
@@ -759,7 +759,7 @@ catalogo completo.
 A differenza delle commemorative, dove `Coin.stableKey` (fonte + anno + paese + tema) identifica
 la moneta esatta perché l'anno è nel dataset, qui il dataset descrive solo il **disegno** di un
 taglio per una serie — non esiste un anno: lo stesso disegno viene coniato per anni, spesso
-decenni. "Moneta posseduta" qui è quindi (serie, taglio, **anno inserito dall'utente**[, qualità]),
+decenni. "Moneta posseduta" qui è quindi (serie, taglio, **anno scelto dall'utente da una lista**[, qualità]),
 e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 euro, sia 2018 sia
 2020) — non è un riuso di `CollectionItem`/`CollectionSheet`, serve un modello diverso.
 
@@ -787,25 +787,43 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   Anche la card COLLECTION di `RegularDenominationDetailScreen` (§ omonima più sopra) apre lo
   stesso pannello con "Add to collection"/"Edit collection": due punti di ingresso allo stesso
   pannello, come nelle commemorative.
-- **`RegularCollectionSheet`** (`ui/components/RegularCollectionSheet.kt`, non `CollectionSheet`
-  riusato tale e quale — la forma dei dati è diversa, ma stesso linguaggio visivo, `PriceField` e
-  `sanitizePrice` esportati da `CollectionSheet.kt` e riusati qui): tre card Standard/BU/Proof come
-  Commemorative, ma spuntare una qualità non mostra un solo campo prezzo — mostra una **lista di
-  annate** (`YearEntry`, identità stabile con un id incrementale per le chiavi di Compose): riga
-  anno (pillola 4 cifre, `sanitizeYear` — solo cifre, nessun separatore) + pillola prezzo (stessa
-  di Commemorative) + rimuovi, e "+ Add year" sotto l'ultima. Qualità non spuntata = card compatta,
-  nessuna annata visibile (dati non persi, solo nascosti finché non si tocca di nuovo la spunta —
-  come il prezzo di `CollectionSheet`). Alla prima apertura (nessuna voce esistente) Standard è
-  già spuntata con una riga vuota, come nelle commemorative. **Le righe con anno vuoto o
-  incompleto (meno di 4 cifre) vengono ignorate al salvataggio**, invece di bloccare "Save" con un
-  errore — un modo leggero di scartare bozze non finite di scrivere, scelto per non introdurre
-  validazione bloccante in un pannello che finora non ne aveva mai avuta. **Card spuntata: solo
-  bordo (2.5 dp pieno), mai fondo lilla pieno** — stesso trattamento di `FinishCard` in
-  `CollectionSheet.kt`. Era rimasta indietro rispetto a quel cambiamento (fondo
-  `secondaryContainer` e bordo 1.5 dp al 40%, lo stile vecchio): trovato e allineato dall'utente
-  dopo il giro di fix su MINTAGES — i building block condivisi (`PriceField`/`sanitizePrice`)
-  erano stati riesportati, ma lo stile della card non era mai stato risincronizzato quando è
-  cambiato nell'originale.
+- **`RegularCollectionSheet`** (`ui/components/RegularCollectionSheet.kt`): **il pannello delle
+  commemorative più UN selettore dell'anno** (riscritto il 2026-10-04 su richiesta: prima era una
+  lista di righe anno-più-prezzo da digitare, con "Add year" e rimozione, "troppo diversa" dall'altro
+  pannello). Le tre card Standard/BU/Proof con il prezzo a destra sono la STESSA `FinishCard`
+  (esportata da `CollectionSheet.kt`, non una copia: il campo prezzo squadrato a 12 dp è quello
+  vero, nel mockup avevo disegnato per sbaglio una pillola tonda). In cima "Year [2002 ▾]": una
+  pillola (controllo azionabile) che apre `YearGridDialog`.
+  - **L'anno si sceglie da una lista, non si scrive** (`regularYearOptions` in
+    `data/RegularYearOptions.kt`): dal primo anno del taglio nella serie fino all'ultimo, o all'anno
+    corrente se la serie è aperta. Niente anni impossibili né doppi (prima due righe con lo stesso
+    anno si sovrascrivevano in silenzio). Include anche gli anni GIÀ in collezione fuori
+    intervallo, per non perdere voci vecchie. L'intervallo viene da `RegularIssueImage.annoInizio`/
+    `annoFine` (scritti da `export-regular-issues.ps1`: intestazioni delle serie + tabella del primo
+    anno datato per paese `$FirstDatedYear` + `$EndOverrides` per il Vaticano 2005): **non sono
+    dati Numista**, restano nell'asset pubblico. Nella lista c'è anche un anno in cui quel taglio
+    non fu coniato (es. alcuni cent): il prezzo di non dipendere da Numista.
+  - **Default = il primo anno della serie** (scelta dell'utente), ma non prima del 2002: per Belgio,
+    Finlandia, Francia, Paesi Bassi, Spagna (e Monaco, 2001) l'elenco parte da 1999/2001 (monete
+    datate prima dell'ingresso in circolazione), il default no. Standard già spuntata alla prima
+    apertura, come nelle commemorative: aprire e premere Save sono due tocchi. Con qualcosa già in
+    collezione il pannello si apre sulla prima voce posseduta.
+  - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
+    cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
+    cambia nulla. Accanto alla pillola "also: 2008, 2011" riassume gli altri anni in bozza.
+  - **`YearGridDialog`: griglia in una finestra** (variante B dopo mockup; scartata A, riga di chip
+    scorrevole, e il menu a tendina standard di Material, provato e bocciato sul telefono: lista
+    lunga a una colonna, grigio fuori palette, anni lontani solo scorrendo). Finestra centrata come
+    gli altri dialog (`AlertDialog`, `DialogTitle`, fondo `surface`), 5 colonne, celle con angoli
+    morbidi da 10 dp (contenuto da scegliere, non pillole), anno scelto in lilla
+    (`secondaryContainer`), puntino verde sugli anni con finiture spuntate, legenda "marked as
+    owned" (la bozza non salvata conta: "already in your collection" era sbagliato).
+  - **La varietà EFS è una voce a parte dell'elenco**, non un controllo in più: il 2002 greco ha
+    due celle, "2002" e "2002 EFS" (due monete, l'utente può averle entrambe). Così il pannello
+    resta tre card per finitura anche lì. Prima era un `FilterChip` sotto la riga dell'annata.
+  - **Card spuntata: solo bordo (2.5 dp pieno)**, mai fondo lilla: viene da `FinishCard`, quindi
+    non può più restare indietro rispetto alle commemorative come era successo con la card
+    duplicata.
 - **Varietà EFS della Grecia 2002** (`variety` nella chiave di `regular_collection_items`, DB
   versione 9, `MIGRATION_8_9`). Le monete greche del 2002 coniate all'estero hanno una lettera
   nella stella (E = Madrid sul 20 cent, F = Parigi su 1-2-5-10-50 cent, S = Finlandia su 1-2
@@ -818,19 +836,15 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   (`RegularVarieties.kt`, `RegularIssueSeries.varietyFor(taglio, anno)`: Grecia, serie 1, 2002,
   lettera per taglio), NON derivata da `zecchePerAnno`, che è dato Numista escluso dall'asset
   committato: la funzione sparirebbe nell'app pubblica; un test sul dataset completo controlla che
-  le lettere coincidano con la zecca estera del dato. **UI** (variante A scelta dopo mockup,
-  scartata B: scelta a due stati su ogni riga 2002): nel pannello, sotto la riga dell'annata,
-  compare un `FilterChip` "EFS variety · letter S in the star" SOLO quando l'anno scritto è 2002
-  in quella serie; se l'anno cambia la varietà si azzera, e al salvataggio vale solo se l'anno la
-  offre. La card COLLECTION del dettaglio mostra "Standard · 2002 · EFS". Il conteggio "N years
-  owned" della lista del paese conta gli anni distinti (2002 normale + 2002 EFS = 1 anno), la
-  barra della home conta i tagli: invariati. `anno + qualità + varietà` sono la nuova unità: la
-  deduplicazione silenziosa (sotto) vale per quella tripla.
-- **Non ancora fatto** (vedi anche § Backlog): nessuna deduplicazione visibile se l'utente scrive
-  lo stesso anno due volte nella stessa qualità (l'ultima riga sovrascrive silenziosamente
-  l'altra al salvataggio, per via della chiave primaria); varietà EFS non nel backup Drive (come tutta la collezione regolare); prezzo non testato per anno diverso
-  dello stesso taglio/qualità in scenari con più di 2-3 annate (il pannello può diventare alto,
-  non ancora verificato uno scroll interno oltre `windowInsetsPadding`).
+  le lettere coincidano con la zecca estera del dato. **UI**: vedi `YearOption` sopra, una voce
+  "2002 · EFS variety" nell'elenco degli anni (con "letter S in the star" nell'accessibilità). La
+  card COLLECTION del dettaglio mostra "Standard · 2002 · EFS". Il conteggio "N years owned" della
+  lista del paese conta gli anni distinti (2002 normale + 2002 EFS = 1 anno), la barra della home
+  conta i tagli: invariati. `anno + qualità + varietà` è la chiave: il pannello non può più
+  produrre due voci uguali (una cella per anno, una spunta per finitura).
+- **Non ancora fatto** (vedi anche § Backlog): varietà EFS non nel backup Drive (come tutta la
+  collezione regolare); nessun "due esemplari dello stesso anno e finitura" (una voce per anno,
+  finitura e varietà, come per le commemorative).
 
 ## Lingua
 
@@ -1398,12 +1412,10 @@ Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima):
   ricerca/filtro/ordinamento nella griglia Countries; gestione di
   `possibileIncongruenza` in UI.
-- **Collezione su Regular Issues** (§ omonima): deduplicazione se l'utente
-  scrive lo stesso anno due volte nella stessa qualità (oggi l'ultima riga
-  sovrascrive silenziosamente); scroll interno del pannello non verificato
-  con molte annate insieme; export/backup su Drive non estesi a
-  `regular_collection_items` (oggi solo `collection_items` delle
-  commemorative, vedi § Backup su Google Drive).
+- **Collezione su Regular Issues** (§ omonima): export/backup su Drive non estesi a
+  `regular_collection_items` (oggi solo `collection_items` delle commemorative, vedi § Backup su
+  Google Drive). Il problema della deduplicazione dell'anno scritto a mano non esiste più (anno
+  scelto da lista).
 - **Regular Issues: spostare l'abbinamento nella pipeline.** Oggi l'unione dei tre file
   (type Numista → serie per anni, § MINTAGES) vive in `scripts/export-regular-issues.ps1`
   perché su questa macchina non c'è Python; è logica sui dati, quindi il posto giusto è la

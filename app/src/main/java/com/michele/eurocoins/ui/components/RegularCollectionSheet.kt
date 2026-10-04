@@ -1,21 +1,18 @@
 package com.michele.eurocoins.ui.components
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -23,46 +20,35 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.CoinQuality
@@ -70,48 +56,33 @@ import com.michele.eurocoins.data.RegularCollectionEntry
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
-import com.michele.eurocoins.data.RegularVariety
+import com.michele.eurocoins.data.YearOption
+import com.michele.eurocoins.data.defaultYearOption
+import com.michele.eurocoins.data.regularYearOptions
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.data.varietyFor
-import com.michele.eurocoins.ui.theme.PurpleFieldDark
-import com.michele.eurocoins.ui.theme.PurpleFieldFocusDark
-import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
-import com.michele.eurocoins.ui.theme.PurpleFieldLight
+import java.time.Year
 
-/** Sottotitolo di ogni finitura: stesso testo di `CollectionSheet`. */
-private val CoinQuality.descriptor: String
-    get() = when (this) {
-        CoinQuality.STANDARD -> "Circulation"
-        CoinQuality.BU -> "Brilliant Uncirculated"
-        CoinQuality.PROOF -> "Mirror finish"
-    }
-
-private val YearFieldHeight = 40.dp
-private val YearFieldWidth = 64.dp
-
-private var nextEntryId = 0L
-private fun newEntryId() = nextEntryId++
-
-/** Una riga di annata in fase di modifica: identità stabile ([id]) per le chiavi di Compose, testo mutabile. */
-private class YearEntry(val id: Long, year: String, price: String, variety: String = "") {
-    var year by mutableStateOf(year)
-    var price by mutableStateOf(price)
-    /** Codice della varietà spuntata (`VARIETY_EFS`) o vuoto; vale solo se l'anno ne offre una. */
-    var variety by mutableStateOf(variety)
-}
+/** Una casella della bozza: un anno (con varietà) in una finitura. Chiave delle mappe di spunte e prezzi. */
+private data class DraftKey(val year: Int, val variety: String, val quality: CoinQuality)
 
 /**
- * Pannello per registrare una moneta circolante posseduta: una card per qualità (Standard / BU /
- * Proof, riuso di [CoinQuality] come nelle commemorative), ma sotto ogni qualità spuntata una
- * LISTA di annate — a differenza delle commemorative, qui l'anno non è nel dataset (una
- * `RegularIssueSeries` copre più anni con lo stesso disegno): lo inserisce l'utente, e la stessa
- * qualità può avere più annate (es. Standard 2018 e Standard 2020).
+ * Pannello per registrare una moneta circolante posseduta. **Stesso pannello delle commemorative**
+ * ([CollectionSheet]: tre card Standard / BU / Proof con il prezzo a destra, riuso di
+ * [FinishCard]) più UN selettore dell'anno in cima: nelle commemorative l'anno è nel dataset, qui
+ * (una serie copre più anni con lo stesso disegno) lo sceglie l'utente. Prima c'era una lista di
+ * righe anno + prezzo da digitare, con "Add year" e rimozione: troppo diversa dall'altro pannello,
+ * lenta per chi vuole solo registrare una moneta, e l'anno scritto a mano permetteva anni
+ * impossibili o doppi.
  *
- * Stessa filosofia "bozza + Save" di `CollectionSheet`: chiudere senza salvare non cambia nulla.
- * Alla prima apertura (nessuna voce esistente) Standard è già spuntata con una riga vuota, come
- * nelle commemorative. Le righe con anno vuoto o incompleto (meno di 4 cifre) vengono ignorate al
- * salvataggio, invece di bloccare "Save" con un errore: un modo leggero di scartare bozze non
- * finite di scrivere.
+ * - **L'anno si sceglie da una lista** ([regularYearOptions]: dal primo anno della serie fino
+ *   all'ultimo o a oggi), mai scritto. Il 2002 greco ha due voci (normale ed EFS): sono due monete.
+ * - **Default = il primo anno della serie** (scelta dell'utente; non prima del 2002), con Standard
+ *   già spuntata alla prima apertura come nelle commemorative: aprire e premere Save sono due
+ *   tocchi. Se qualcosa è già in collezione si apre sulla prima voce posseduta.
+ * - **Bozza per anno + Save**: cambiare anno non perde le spunte e i prezzi inseriti, "Save" scrive
+ *   tutti gli anni insieme, chiudere senza salvare non cambia nulla (come [CollectionSheet]). Gli
+ *   anni con almeno una finitura in bozza hanno un ✓ nel menu e sono riassunti accanto al selettore.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,35 +97,25 @@ fun RegularCollectionSheet(
     onDismiss: () -> Unit,
 ) {
     val stateKey = "${series.stableKey}|${denomination.taglio}"
-    val itemsByQuality = remember(stateKey) { currentItems.groupBy { it.quality } }
+    val currentYear = remember { Year.now().value }
+    val owned = remember(stateKey) { currentItems.map { YearOption(it.anno, it.variety) }.distinct() }
+    val options = remember(stateKey) { regularYearOptions(series, denomination, owned, currentYear) }
+    val initial = remember(stateKey) { defaultYearOption(options, owned) }
+    var selected by remember(stateKey) { mutableStateOf(initial) }
 
     val checked = remember(stateKey) {
-        mutableStateMapOf<CoinQuality, Boolean>().apply {
-            CoinQuality.entries.forEach { quality ->
-                this[quality] = itemsByQuality.containsKey(quality) ||
-                    (currentItems.isEmpty() && quality == CoinQuality.STANDARD)
-            }
+        mutableStateMapOf<DraftKey, Boolean>().apply {
+            currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = true }
+            // prima apertura: Standard già spuntata sull'anno di default, come nelle commemorative
+            if (currentItems.isEmpty()) this[DraftKey(initial.year, initial.variety, CoinQuality.STANDARD)] = true
         }
     }
-    val years = remember(stateKey) {
-        mutableStateMapOf<CoinQuality, SnapshotStateList<YearEntry>>().apply {
-            CoinQuality.entries.forEach { quality ->
-                val existing = itemsByQuality[quality].orEmpty()
-                    .sortedWith(compareBy({ it.anno }, { it.variety }))
-                    .map { YearEntry(newEntryId(), it.anno.toString(), formatPrice(it.priceCents), it.variety) }
-                this[quality] = if (existing.isEmpty() && checked[quality] == true) {
-                    mutableStateListOf(YearEntry(newEntryId(), "", ""))
-                } else {
-                    existing.toMutableStateList()
-                }
-            }
+    val prices = remember(stateKey) {
+        mutableStateMapOf<DraftKey, String>().apply {
+            currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = formatPrice(it.priceCents) }
         }
     }
-
-    // varietà offerta dall'anno scritto in una riga (oggi solo Grecia 2002, EFS), null altrimenti
-    val varietyOf: (YearEntry) -> RegularVariety? = { entry ->
-        entry.year.takeIf { it.length == 4 }?.toIntOrNull()?.let { series.varietyFor(denomination.taglio, it) }
-    }
+    val withData: Set<YearOption> = checked.filterValues { it }.keys.map { YearOption(it.year, it.variety) }.toSet()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -186,30 +147,23 @@ fun RegularCollectionSheet(
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
 
+            YearSelector(
+                options = options,
+                selected = selected,
+                withData = withData,
+                varietyDetail = { series.varietyFor(denomination.taglio, it.year)?.detail },
+                onSelect = { selected = it },
+            )
+
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CoinQuality.entries.forEach { quality ->
-                    QualityCard(
+                    val key = DraftKey(selected.year, selected.variety, quality)
+                    FinishCard(
                         quality = quality,
-                        checked = checked[quality] == true,
-                        years = years[quality].orEmpty(),
-                        onCheckedChange = { isChecked ->
-                            checked[quality] = isChecked
-                            if (isChecked && years[quality].isNullOrEmpty()) {
-                                years[quality] = mutableStateListOf(YearEntry(newEntryId(), "", ""))
-                            }
-                        },
-                        varietyOf = varietyOf,
-                        onVarietyChange = { entry, isOn -> entry.variety = if (isOn) varietyOf(entry)?.code.orEmpty() else "" },
-                        onYearChange = { entry, value ->
-                            entry.year = sanitizeYear(value)
-                            // cambiando anno la varietà non vale più: niente EFS nascosto su un 2005
-                            if (varietyOf(entry) == null) entry.variety = ""
-                        },
-                        onPriceChange = { entry, value -> entry.price = sanitizePrice(value) },
-                        onAddYear = {
-                            years.getOrPut(quality) { mutableStateListOf() }.add(YearEntry(newEntryId(), "", ""))
-                        },
-                        onRemoveYear = { entry -> years[quality]?.remove(entry) },
+                        checked = checked[key] == true,
+                        price = prices[key].orEmpty(),
+                        onCheckedChange = { checked[key] = it },
+                        onPriceChange = { prices[key] = it },
                     )
                 }
             }
@@ -222,21 +176,16 @@ fun RegularCollectionSheet(
                 TextButton(onClick = onDismiss) { Text("Cancel") }
                 Button(
                     onClick = {
-                        val entries = CoinQuality.entries
-                            .filter { checked[it] == true }
-                            .flatMap { quality ->
-                                years[quality].orEmpty().mapNotNull { entry ->
-                                    val year = entry.year.takeIf { it.length == 4 }?.toIntOrNull() ?: return@mapNotNull null
-                                    RegularCollectionEntry(
-                                        anno = year,
-                                        quality = quality,
-                                        priceCents = parsePriceCents(entry.price),
-                                        // salvata solo se l'anno la offre (guardia in più al cambio anno)
-                                        variety = if (varietyOf(entry) != null) entry.variety else "",
-                                    )
-                                }
-                            }
-                        onSave(entries)
+                        onSave(
+                            checked.filterValues { it }.keys.map { key ->
+                                RegularCollectionEntry(
+                                    anno = key.year,
+                                    quality = key.quality,
+                                    priceCents = parsePriceCents(prices[key].orEmpty()),
+                                    variety = key.variety,
+                                )
+                            },
+                        )
                     },
                 ) { Text("Save") }
             }
@@ -244,191 +193,191 @@ fun RegularCollectionSheet(
     }
 }
 
-/** Card di una qualità: spunta + etichetta, e se spuntata la lista di annate sotto. */
+/**
+ * Riga "Year [2008 ▾]  also: 2011, 2015": la pillola (un controllo azionabile, come gli altri
+ * dell'app) apre [YearGridDialog]. A destra, gli ALTRI anni già in bozza in una riga sola con
+ * ellissi: dice a colpo d'occhio cosa verrà salvato senza aprire la finestra.
+ */
 @Composable
-private fun QualityCard(
-    quality: CoinQuality,
-    checked: Boolean,
-    years: List<YearEntry>,
-    onCheckedChange: (Boolean) -> Unit,
-    varietyOf: (YearEntry) -> RegularVariety?,
-    onVarietyChange: (YearEntry, Boolean) -> Unit,
-    onYearChange: (YearEntry, String) -> Unit,
-    onPriceChange: (YearEntry, String) -> Unit,
-    onAddYear: () -> Unit,
-    onRemoveYear: (YearEntry) -> Unit,
+private fun YearSelector(
+    options: List<YearOption>,
+    selected: YearOption,
+    withData: Set<YearOption>,
+    varietyDetail: (YearOption) -> String?,
+    onSelect: (YearOption) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(14.dp)
-    // Solo bordo, mai fondo pieno: stesso trattamento di FinishCard in CollectionSheet.kt (la
-    // spunta verde è già il segnale di stato, un fondo lilla a tutta card era ridondante e
-    // "pesante" secondo l'utente). Bordo pieno a 2.5 dp (non più 1.5 dp al 40% di opacità).
-    val borderColor by animateColorAsState(
-        targetValue = if (checked) (if (colors.surface.luminance() < 0.5f) PurpleFieldDark else PurpleFieldLight) else Color.Transparent,
-        animationSpec = tween(durationMillis = 150),
-        label = "qualityCardBorder",
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(colors.surface)
-            .border(2.5.dp, borderColor, shape)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+    var open by remember { mutableStateOf(false) }
+    val others = withData.filter { it != selected }.sortedWith(compareBy({ it.year }, { it.variety }))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Text(text = "Year", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = Color.Transparent,
+            border = BorderStroke(1.5.dp, colors.primary),
+            onClick = { open = true },
             modifier = Modifier
-                .fillMaxWidth()
                 .height(40.dp)
-                .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange),
+                .semantics { contentDescription = "Year: ${selected.label}. Choose another year" },
         ) {
-            Checkbox(checked = checked, onCheckedChange = null)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(text = quality.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
-                Text(
-                    text = quality.descriptor,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (checked) {
-            Column(
-                modifier = Modifier.padding(start = 40.dp, top = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 16.dp, end = 10.dp),
             ) {
-                years.forEach { entry ->
-                    key(entry.id) {
-                        YearRow(
-                            entry = entry,
-                            variety = varietyOf(entry),
-                            onVarietyChange = { onVarietyChange(entry, it) },
-                            onYearChange = { onYearChange(entry, it) },
-                            onPriceChange = { onPriceChange(entry, it) },
-                            onRemove = { onRemoveYear(entry) },
-                        )
-                    }
-                }
-                TextButton(onClick = onAddYear, contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Add year", style = MaterialTheme.typography.labelMedium)
-                }
+                Text(text = selected.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.width(2.dp))
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(20.dp))
             }
         }
+        if (others.isNotEmpty()) {
+            Text(
+                text = "also: " + others.joinToString(", ") { it.label.replace(" · EFS variety", " EFS") },
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+    if (open) {
+        YearGridDialog(
+            options = options,
+            selected = selected,
+            withData = withData,
+            varietyDetail = varietyDetail,
+            onSelect = {
+                onSelect(it)
+                open = false
+            },
+            onDismiss = { open = false },
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Colonne della griglia degli anni: 25 anni sono 5 righe piene, il Belgio (28 con le monete datate 1999-2001) una in più. */
+private const val YearGridColumns = 5
+
+/**
+ * Scelta dell'anno: una finestra centrata (come gli altri dialog dell'app, stessa palette) con
+ * TUTTI gli anni in una griglia a 5 colonne, senza scorrere una lista a colonna singola — il menu
+ * a tendina standard di Material, scartato dopo averlo visto sul telefono: lungo, di un grigio
+ * fuori palette, anni lontani irraggiungibili senza scorrere. Un tocco sceglie e chiude. L'anno
+ * scelto è lilla (la selezione dell'app), quelli già in collezione hanno un puntino verde; la
+ * varietà EFS è una cella a parte con "EFS" sotto l'anno. Celle con angoli morbidi, non pillole:
+ * sono contenuto da scegliere, non un controllo azionabile a sé.
+ */
 @Composable
-private fun YearRow(
-    entry: YearEntry,
-    /** Varietà offerta da questo anno (Grecia 2002: EFS), null per tutti gli altri. */
-    variety: RegularVariety?,
-    onVarietyChange: (Boolean) -> Unit,
-    onYearChange: (String) -> Unit,
-    onPriceChange: (String) -> Unit,
-    onRemove: () -> Unit,
+private fun YearGridDialog(
+    options: List<YearOption>,
+    selected: YearOption,
+    withData: Set<YearOption>,
+    varietyDetail: (YearOption) -> String?,
+    onSelect: (YearOption) -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            YearField(value = entry.year, onValueChange = onYearChange)
-            PriceField(value = entry.price, onValueChange = onPriceChange, enabled = true, description = "Price paid (€)")
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = "Remove this year",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+    val colors = MaterialTheme.colorScheme
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        title = { DialogTitle("Select year") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                options.chunked(YearGridColumns).forEach { row ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    ) {
+                        row.forEach { option ->
+                            YearCell(
+                                option = option,
+                                isSelected = option == selected,
+                                hasData = option in withData,
+                                description = varietyDetail(option)?.takeIf { option.variety.isNotEmpty() },
+                                onClick = { onSelect(option) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        // l'ultima riga incompleta tiene le celle della stessa larghezza delle altre
+                        repeat(YearGridColumns - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+                if (withData.isNotEmpty()) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                        Box(Modifier.size(8.dp).background(colors.primary, CircleShape))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "marked as owned",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun YearCell(
+    option: YearOption,
+    isSelected: Boolean,
+    hasData: Boolean,
+    description: String?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(10.dp)
+    val borderColor = if (isSelected) colors.onSecondaryContainer.copy(alpha = 0.6f) else colors.onSurfaceVariant.copy(alpha = 0.4f)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .heightIn(min = 44.dp)
+            .clip(shape)
+            .background(if (isSelected) colors.secondaryContainer else Color.Transparent)
+            .border(1.dp, borderColor, shape)
+            .clickable(onClick = onClick)
+            .semantics {
+                contentDescription = buildString {
+                    append(option.label)
+                    description?.let { append(", $it") }
+                    if (hasData) append(", marked as owned")
+                    if (isSelected) append(", selected")
+                }
+            },
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = option.year.toString(),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) colors.onSecondaryContainer else colors.onSurface,
+            )
+            if (option.variety.isNotEmpty()) {
+                Text(
+                    text = "EFS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) colors.onSecondaryContainer else colors.onSurfaceVariant,
                 )
             }
         }
-        // compare solo quando l'anno scritto ha una varietà: negli altri casi la riga non cambia
-        if (variety != null) {
-            val selected = entry.variety == variety.code
-            FilterChip(
-                selected = selected,
-                onClick = { onVarietyChange(!selected) },
-                label = {
-                    Text(variety.label, fontWeight = FontWeight.Medium)
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        variety.detail,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.padding(top = 4.dp),
+        if (hasData) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 5.dp, end = 5.dp)
+                    .size(6.dp)
+                    .background(colors.primary, CircleShape),
             )
         }
     }
 }
-
-/** Campo dell'anno: pillola a larghezza fissa (4 cifre), stesso linguaggio visivo di [PriceField]. */
-@Composable
-private fun YearField(value: String, onValueChange: (String) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val dark = colors.surface.luminance() < 0.5f
-    val fieldColor = if (dark) PurpleFieldDark else PurpleFieldLight
-    val focusColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
-    val interactionSource = remember { MutableInteractionSource() }
-    val focused by interactionSource.collectIsFocusedAsState()
-    val shape = RoundedCornerShape(10.dp)
-    val idleFill = if (dark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.55f)
-    val borderColor by animateColorAsState(
-        targetValue = if (focused) focusColor else fieldColor,
-        animationSpec = tween(durationMillis = 150),
-        label = "yearBorder",
-    )
-    val fillColor by animateColorAsState(
-        targetValue = if (focused) colors.surface else idleFill,
-        animationSpec = tween(durationMillis = 150),
-        label = "yearFill",
-    )
-    val textStyle = MaterialTheme.typography.bodyLarge.copy(
-        color = colors.onSurface,
-        fontWeight = FontWeight.Medium,
-        textAlign = TextAlign.Center,
-    )
-
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        singleLine = true,
-        interactionSource = interactionSource,
-        textStyle = textStyle,
-        cursorBrush = SolidColor(focusColor),
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        modifier = Modifier
-            .width(YearFieldWidth)
-            .height(YearFieldHeight)
-            .clip(shape)
-            .background(fillColor)
-            .border(1.5.dp, borderColor, shape)
-            .padding(horizontal = 8.dp)
-            .semantics { contentDescription = "Year" },
-        decorationBox = { inner ->
-            Box(modifier = Modifier.fillMaxHeight(), contentAlignment = Alignment.Center) {
-                if (value.isEmpty()) {
-                    Text(text = "Year", style = textStyle, color = colors.onSurfaceVariant)
-                }
-                inner()
-            }
-        },
-    )
-}
-
-/** Solo cifre, al massimo 4 (un anno a 4 cifre): nessun separatore, a differenza del prezzo. */
-private fun sanitizeYear(input: String): String = input.filter(Char::isDigit).take(4)
 
 /**
  * "Series N" + intestazione, come `seriesHeading` in `RegularIssueCountryScreen.kt`: [number] è
