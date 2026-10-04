@@ -578,6 +578,25 @@ catalogo completo.
     `verticalScroll`, non più una `LazyColumn`: `NotesCard` scorre la pagina per centrarsi in
     espansione e vuole uno `ScrollState`; i tagli sono al massimo 8, la lista lazy non
     risparmiava nulla. Senza descrizione né card né riga della fonte.
+    **Il testo è lo stesso per tutte le serie di un paese in 18 serie su 41** (Belgio 3, Francia 3,
+    Spagna 3, Paesi Bassi 2, Vaticano 1-5, Monaco 1-2): la Commissione europea pubblica UN testo
+    per paese e la pipeline lo copia su ogni serie (Francia: un unico testo che parla della prima
+    serie, dei 1-2 euro 2022 e dei 10-20-50 cent 2024, sotto ogni chip). Non è un bug dell'app.
+    Soluzione adottata (opzione A): `seriesTextLabel()` (`RegularIssueText.kt`) mette
+    "ABOUT SERIES 1–3" al posto di "ABOUT THIS SERIES" quando lo stesso testo (già passato da
+    `displayDescription()`) è identico su più serie del paese, con i numeri dei chip (elenco
+    "1, 3" se non consecutive); il testo proprio (Lussemburgo 2, San Marino, Monaco 3, Vaticano 6)
+    resta "ABOUT THIS SERIES". Scartate: la card unica sopra i chip (sbagliata per Monaco e Vaticano,
+    dove la serie nuova ha un testo suo) e lo spezzare il testo per serie nella pipeline (solo la
+    Francia ha paragrafi marcati; Belgio e Paesi Bassi sono narrativi, e sarebbe una correzione a
+    mano contro la regola 5 della pipeline). **Il rimedio vero sarebbe una fonte con un testo per
+    serie**: gli avvisi della Gazzetta ufficiale UE "New national sides of euro circulation
+    coins" (uno per serie, riuso con attribuzione; già usati dalla pipeline per il Belgio 2014,
+    ma i più recenti non sono indicizzati e il testo è breve) o Wikipedia (CC BY-SA, da
+    attribuire). Lavoro nella pipeline (scraper + abbinamento avviso → serie per paese e anno +
+    export che preferisce il testo per serie): nessuna modifica all'app, la card funziona già e
+    `seriesTextLabel` diventa il ripiego per le serie senza fonte propria. Copertura non ancora
+    verificata. Numista resta esclusa dall'asset pubblico.
     **`displayDescription()`** (`RegularIssueText.kt`) toglie la frase standard "The coin's outer
     ring depicts the 12 stars of the European flag." (identica in 7 serie su 41, uguale su tutte
     le monete: non dice niente della serie) SOLO in visualizzazione, `descrizione` resta com'è nel
@@ -1075,7 +1094,7 @@ fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio 
 intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
 (Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
 `RegularYearMintsTest` e
-`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni. Gli unit test che leggono gli
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
 asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
