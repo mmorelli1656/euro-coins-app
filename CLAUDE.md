@@ -229,11 +229,12 @@ di paesi diversi, con la STESSA rotazione giornaliera di Commemorative e la stes
 ("Rotate home coins" — vedi sotto), moneta disegnata (`RegularCoin`/`RegularCoins`, non più
 `FallbackCoins`: tematicamente sono proprio le monete circolanti) come ripiego se la foto manca o
 non carica; riga dati "**N** coins · **M** countries · **P** series" (in quest'ordine: "coins" qui
-sono i disegni di taglio noti, non le 4 monete della fascia — coerente con "584 coins" di
+sono le righe dei tagli di tutte le serie (8 per serie, anche i tagli invariati: la somma dei
+totali delle card dei paesi), non le 4 monete della fascia — coerente con "584 coins" di
 Commemorative, il totale del catalogo; terzo valore "series", non un intervallo di anni: nessuno
 è affidabile per le serie, vedi § dataset), e sotto la STESSA barra "liquido" di Commemorative,
-ora reale come quella di Commemorative: conta i tagli distinti posseduti in almeno un'annata
-su N (`HomeViewModel.regularIssueOwnedCount`, vedi § Regular Issues per il dettaglio). La home è anche dove parte il
+ora reale come quella di Commemorative: conta le righe possedute su N
+(`HomeViewModel.regularIssueOwnedCount`, `regularProgress`, vedi § Regular Issues per il dettaglio). La home è anche dove parte il
 seeding di ENTRAMBI i database (`HomeViewModel` chiama `repository.ensureSeeded()` e
 `regularIssueRepository.ensureSeeded()`; il Mutex in ciascun repository evita il doppio
 inserimento se più ViewModel lo chiamano). In alto
@@ -543,7 +544,21 @@ catalogo completo.
   di `CommemorativeCard`/`RegularIssuesCard` in `HomeScreen.kt`) →
   `RegularIssueCountryScreen` (route `regular-issues/{paese}`, `Uri.encode`
   come per le commemorative). **Nessuna ricerca/filtro/ordinamento**: 25
-  paesi entrano in una griglia senza doverli cercare.
+  paesi entrano in una griglia senza doverli cercare. **Ogni card ha la barra di avanzamento**
+  (stessa `CollectionProgressBar` dritta di Years/Countries nelle commemorative, sotto "N series":
+  "x / y collected"): `regularProgress()` (`CollectionProgress.kt`, usata anche dalla Home, un
+  solo conto) = **le RIGHE che l'utente vede nelle schermate delle serie**, cioè ogni taglio di
+  ogni serie (`denominationsOf`: 8 per serie, anche i tagli invariati): **Francia 24 (3 × 8),
+  Spagna 24, Vaticano 48** (6 serie, anche la 2026 senza foto, vedi sotto): 41 serie × 8 = **328**
+  in tutto. **Errore corretto il 2026-10-04**: la prima
+  versione contava i DISEGNI distinti (Francia 13, Spagna 18), un numero che non corrisponde a
+  niente di visibile — "dovrebbero essere 24 monete" (utente). Una riga è posseduta se il taglio
+  ha almeno un'annata in collezione DENTRO la finestra di quella serie (lo stesso criterio della
+  casella spuntata nella riga): il 5 cent francese del 2005 riempie la riga della serie 1,
+  quello del 2023 la riga della serie 2 (stessa moneta, finestre diverse). **Conta righe, non
+  annate**: un taglio con tre annate nella stessa serie conta 1, e la Germania (8 righe) arriva
+  al 100% con una moneta per taglio anche se mancano gli altri anni. Senza mockup: componente
+  esistente nella stessa posizione di `CardFooter` in `BrowseScreen.kt`. `RegularProgressTest`.
 - **`RegularIssueCountryScreen`**: con più di una serie per il paese (Belgio
   3, Monaco 3, Città del Vaticano 6...) un **selettore a chip** in cima
   (`FilterChip`, riuso dello stesso componente di `FilterSheet`) sceglie
@@ -640,7 +655,12 @@ catalogo completo.
     della serie 1 non spariscono salvando dalla 2). Il dettaglio taglio riceve la serie GUARDATA
     nella rotta (`ordine`) e risolve da lì serie di origine e finestra
     (`RegularDenominationDetailViewModel`). **Una serie senza immagini proprie NON eredita
-    niente** (Vaticano 2026: i tagli cambiano tutti e non c'è un inizio da cui partire).
+    niente** (Vaticano 2026: i tagli cambiano tutti) **ma ha comunque le sue 8 righe**
+    (`REGULAR_DENOMINATIONS`, immagine "vuota" con `urlImmagineFonte = null` e `annoInizio` = inizio
+    della serie da `seriesPeriod`, 2026): segnaposto `€` come ogni taglio senza foto, spuntabili. Senza
+    righe le 8 monete non si sarebbero potute registrare e la barra del paese non sarebbe mai
+    arrivata al 100% (l'utente contava 328 = 41 × 8; il primo conto dava 320 perché la serie 6 non
+    aveva righe). Il dettaglio di questi tagli non ha foto, tirature, testo né riga della licenza.
     Non segnalato in UI che un taglio viene da un'altra serie (la riga è identica alle altre):
     un "Series 1 design" nella riga di stato è un'opzione proposta, non decisa.
   Sotto, **una card per taglio** (non più una riga
@@ -659,9 +679,8 @@ catalogo completo.
   (MAI `.value`, vedi § Decisioni di prodotto) + icona
   `Icons.Filled.EuroSymbol` su cerchio lilla se l'URL manca o il
   caricamento fallisce. Quando `immagini` è vuota (Città del Vaticano,
-  serie 2026 non ancora fotografata dalla fonte) la lista di card non viene
-  mostrata affatto — non è un caso di "immagine che non carica", è
-  l'assenza della lista stessa, verificato in emulatore/telefono.
+  serie 2026 non ancora fotografata dalla fonte) la lista era VUOTA (verificato in
+  emulatore/telefono); dal 2026-10-04 mostra le 8 righe con il segnaposto, vedi sotto.
 - **`RegularDenominationDetailScreen`** (route `regular-issues/{paese}/{ordine}/{taglio}`,
   `ordineCronologico` e non `seriesKey` diretto — eviterebbe il separatore `|` in un argomento di
   rotta): il tocco sulla riga di un taglio (non più solo la casella) apre un dettaglio a schermo
@@ -826,10 +845,12 @@ catalogo completo.
     (Belgio/Finlandia/Spagna dal 1999): sono monete datate, non vengono tagliati.
 - **Scheda Home**: "**N** coins · **M** countries · **P** series" (`RegularIssuesStatsLine` in
   `HomeScreen.kt`, non il generico `StatsLine` di Commemorative: lì il terzo valore è un
-  intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = numero di
-  `RegularIssueImage` su tutte le serie (303 oggi), non le 4 monete della fascia — è il numero
-  più vicino a "quante monete diverse contiene il catalogo" che questo dataset permetta di
-  contare. Fascia con foto reali (BCE, sopra) e rotazione giornaliera come Commemorative (§
+  intervallo di anni senza etichetta, qui serve la parola "series"). "Coins" = le righe dei tagli
+  di tutte le serie, **8 per serie anche per i tagli rimasti invariati** (`regularProgress().total`:
+  328 = 41 serie × 8: le 303 immagini, 17 righe ereditate da Francia e Spagna e le 8 del Vaticano
+  2026 senza foto; era 303 = `RegularIssueImage`, cioè i disegni distinti, cambiato il 2026-10-04
+  perché la barra del paese deve dire 24 per la Francia e la Spagna, come le righe che si vedono),
+  non le 4 monete della fascia. Fascia con foto reali (BCE, sopra) e rotazione giornaliera come Commemorative (§
   Impostazioni "Rotate home coins"). **Ordine dei 4 tagli**: `1-5 cent · 1€ · 2€ · 10-50 cent`
   (`DENOMINATION_TIERS` in `HomeShowcase.kt`), non crescente — le due bimetalliche (1€/2€, "di
   pregio") stanno nelle due posizioni centrali più grandi di `BandRatios`, i centesimi monometallici
@@ -867,11 +888,11 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   paese, entries)` sostituisce in blocco le voci **di quel taglio** (`RegularCollectionDao
   .replaceForDenomination`, transazione), conserva `addedAt` delle voci esistenti — stesso pattern
   di `CoinRepository.saveCollection`/`CollectionDao.replaceForCoin`.
-- **Un taglio conta come "posseduto"** (casella piena nella card, `HomeViewModel
-  .regularIssueOwnedCount`) se ha almeno un'annata in una qualsiasi qualità — **conta i tagli
-  distinti, non le annate**: coerente con `regularIssueCoinsCount` ("N coins" in Home), che è già
-  un conteggio di disegni di taglio, non di monete fisiche. Un utente con 2 annate dello stesso
-  taglio fa avanzare la barra di 1, non di 2.
+- **Un taglio conta come "posseduto"** (casella piena nella card, `regularProgress`, barra della
+  Home e di ogni paese) se ha almeno un'annata in una qualsiasi qualità DENTRO la finestra della
+  serie guardata — **conta le righe, non le annate**: un utente con 2 annate dello stesso taglio
+  nella stessa serie fa avanzare la barra di 1, non di 2. Il totale ("N coins" in Home) sono le
+  righe di tutte le serie, non i disegni distinti (vedi § Regular Issues, Scheda Home).
 - **Punto di ingresso**: una casella a destra di ogni card taglio in `RegularIssueCountryScreen`
   (`CollectionBox`, duplicata da `CoinListScreen.kt` — stesso approccio di `BrowseCard`, non
   condivisa), stessa spunta verdigris di Commemorative. Sopra il titolo del taglio, una riga di
@@ -1114,7 +1135,7 @@ fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio 
 intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
 (Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
 `RegularYearMintsTest` e
-`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita ma ha le sue 8 righe, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `RegularProgressTest` i conti 24/24/48 e il totale 328; `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
 asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
