@@ -87,7 +87,7 @@ class RegularIssueCountryViewModel(
         val safeIndex = index.coerceIn(0, (forCountry.size - 1).coerceAtLeast(0))
         val selected = forCountry.getOrNull(safeIndex)
         val denominations = selected?.let { series ->
-            denominationsOf(forCountry, series).sortedBy { denominationOrder(it.image.taglio) }.map { denomination ->
+            denominationsOf(forCountry, series).sortedByDescending { denominationRank(it.image.taglio) }.map { denomination ->
                 val key = denomination.series.stableKey
                 val items = collection.filter {
                     it.seriesKey == key && it.taglio == denomination.image.taglio && denomination.contains(it.anno)
@@ -121,9 +121,12 @@ class RegularIssueCountryViewModel(
 }
 
 /**
- * Ordine crescente dei tagli (1 cent - 2 euro): `RegularIssueSeries.immagini` non è garantita in
- * quest'ordine — i tagli aggiunti dall'arricchimento BCE (es. Andorra 1 euro, mai pubblicato dalla
- * fonte EC) finiscono in coda alla lista originale, non inseriti al posto giusto. Un taglio non
- * riconosciuto finisce in fondo invece di far fallire l'ordinamento.
+ * Posizione di un taglio nell'elenco canonico (1 cent = 0 ... 2 euro = 7), da ordinare in modo
+ * DECRESCENTE: la schermata di una serie parte dal taglio più grande (2 euro) e scende fino all'1 cent,
+ * perché di solito i tagli grandi hanno i disegni più belli (richiesta dell'utente; non c'è un FILTER
+ * con l'ordinamento in questa schermata). `RegularIssueSeries.immagini` non è garantita in un ordine: i
+ * tagli aggiunti dall'arricchimento BCE (es. Andorra 1 euro, mai pubblicato dalla fonte EC) finiscono in
+ * coda alla lista originale. Un taglio non riconosciuto vale -1: in ordine decrescente finisce in fondo,
+ * invece di far fallire l'ordinamento.
  */
-private fun denominationOrder(taglio: String): Int = REGULAR_DENOMINATIONS.indexOf(taglio).let { if (it < 0) Int.MAX_VALUE else it }
+private fun denominationRank(taglio: String): Int = REGULAR_DENOMINATIONS.indexOf(taglio)
