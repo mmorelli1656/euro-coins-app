@@ -71,9 +71,11 @@ data class RegularIssuesUiState(
  */
 class RegularIssuesViewModel(
     private val repository: RegularIssueRepository,
+    /** Scheda che si apre per prima, scelta in Impostazioni: letta una volta alla creazione, come in `BrowseViewModel`. */
+    initialMode: RegularBrowseMode = RegularBrowseMode.COUNTRIES,
 ) : ViewModel() {
 
-    private val mode = MutableStateFlow(RegularBrowseMode.COUNTRIES)
+    private val mode = MutableStateFlow(initialMode)
     private val prefs = MutableStateFlow(RegularGridPrefs())
 
     val uiState: StateFlow<RegularIssuesUiState> = combine(

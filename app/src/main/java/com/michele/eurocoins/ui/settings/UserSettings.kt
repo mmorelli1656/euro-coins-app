@@ -2,6 +2,7 @@ package com.michele.eurocoins.ui.settings
 
 import android.content.Context
 import com.michele.eurocoins.ui.browse.BrowseMode
+import com.michele.eurocoins.ui.regular.RegularBrowseMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,22 +18,46 @@ import kotlinx.coroutines.flow.asStateFlow
 class UserSettings(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private val _hideMicrostates = MutableStateFlow(prefs.getBoolean(KEY_HIDE_MICROSTATES, false))
+    // La chiave `hide_microstates` esisteva prima della divisione per catalogo: ora vale per le commemorative.
+    private val _hideCommemorativeMicrostates = MutableStateFlow(prefs.getBoolean(KEY_HIDE_MICROSTATES, false))
+    private val _hideRegularMicrostates = MutableStateFlow(
+        resolveHideRegularMicrostates(
+            stored = if (prefs.contains(KEY_HIDE_REGULAR_MICROSTATES)) prefs.getBoolean(KEY_HIDE_REGULAR_MICROSTATES, false) else null,
+            commemorative = _hideCommemorativeMicrostates.value,
+        ),
+    )
     private val _defaultTab = MutableStateFlow(loadDefaultTab())
+    private val _defaultRegularTab = MutableStateFlow(parseRegularBrowseMode(prefs.getString(KEY_DEFAULT_REGULAR_TAB, null)))
     private val _rotateHomeCoins = MutableStateFlow(prefs.getBoolean(KEY_ROTATE_HOME_COINS, true))
 
-    /** true = nasconde ovunque monete e card di Andorra, Monaco, San Marino e Città del Vaticano. */
-    val hideMicrostates: StateFlow<Boolean> = _hideMicrostates.asStateFlow()
+    /** true = nasconde monete e card di Andorra, Monaco, San Marino e Città del Vaticano nelle commemorative. */
+    val hideCommemorativeMicrostates: StateFlow<Boolean> = _hideCommemorativeMicrostates.asStateFlow()
+
+    /** Come [hideCommemorativeMicrostates] per le Regular Issues: impostazione indipendente. */
+    val hideRegularMicrostates: StateFlow<Boolean> = _hideRegularMicrostates.asStateFlow()
 
     /** Scheda di Commemorative che si apre per prima. */
     val defaultTab: StateFlow<BrowseMode> = _defaultTab.asStateFlow()
 
+    /** Scheda di Regular Issues che si apre per prima (Countries o Denominations). */
+    val defaultRegularTab: StateFlow<RegularBrowseMode> = _defaultRegularTab.asStateFlow()
+
     /** true = le monete della Home cambiano ogni giorno; false = set fisso. Vale anche per le future Regular Issues. */
     val rotateHomeCoins: StateFlow<Boolean> = _rotateHomeCoins.asStateFlow()
 
-    fun setHideMicrostates(value: Boolean) {
+    fun setHideCommemorativeMicrostates(value: Boolean) {
         prefs.edit().putBoolean(KEY_HIDE_MICROSTATES, value).apply()
-        _hideMicrostates.value = value
+        _hideCommemorativeMicrostates.value = value
+    }
+
+    fun setHideRegularMicrostates(value: Boolean) {
+        prefs.edit().putBoolean(KEY_HIDE_REGULAR_MICROSTATES, value).apply()
+        _hideRegularMicrostates.value = value
+    }
+
+    fun setDefaultRegularTab(mode: RegularBrowseMode) {
+        prefs.edit().putString(KEY_DEFAULT_REGULAR_TAB, mode.name).apply()
+        _defaultRegularTab.value = mode
     }
 
     /**
@@ -108,6 +133,8 @@ class UserSettings(context: Context) {
         const val PREFS_NAME = "settings"
         const val KEY_HIDE_MICROSTATES = "hide_microstates"
         const val KEY_DEFAULT_TAB = "default_tab"
+        const val KEY_HIDE_REGULAR_MICROSTATES = "hide_regular_microstates"
+        const val KEY_DEFAULT_REGULAR_TAB = "default_regular_tab"
         const val KEY_ROTATE_HOME_COINS = "rotate_home_coins"
         const val KEY_LAST_SHOWCASE = "last_showcase"
         const val KEY_SHOWCASE_DAY_PREFIX = "showcase_day_"
@@ -119,3 +146,14 @@ class UserSettings(context: Context) {
         const val SHOWCASE_SEPARATOR = "\n"
     }
 }
+
+/**
+ * Valore iniziale dell'interruttore dei microstati di Regular Issues. Finché l'utente non lo ha mai
+ * toccato ([stored] nullo) eredita quello delle commemorative: chi aveva "Hide microstates" acceso
+ * prima della divisione per catalogo non vede cambiare niente.
+ */
+internal fun resolveHideRegularMicrostates(stored: Boolean?, commemorative: Boolean): Boolean = stored ?: commemorative
+
+/** Scheda iniziale di Regular Issues: valore assente o sconosciuto (prima installazione, enum rinominato) = Countries. */
+internal fun parseRegularBrowseMode(name: String?): RegularBrowseMode =
+    RegularBrowseMode.entries.firstOrNull { it.name == name } ?: RegularBrowseMode.COUNTRIES

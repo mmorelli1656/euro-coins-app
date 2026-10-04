@@ -57,6 +57,7 @@ import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.backup.SettingsCard
 import com.michele.eurocoins.ui.browse.BrowseMode
+import com.michele.eurocoins.ui.regular.RegularBrowseMode
 import com.michele.eurocoins.ui.theme.PurpleFieldDark
 import com.michele.eurocoins.ui.theme.PurpleFieldFocusLight
 import com.michele.eurocoins.ui.theme.ThemeMode
@@ -73,8 +74,10 @@ fun SettingsScreen(
     backupViewModel: BackupViewModel,
     onBack: () -> Unit,
 ) {
-    val hideMicrostates by settingsViewModel.hideMicrostates.collectAsState()
+    val hideCommemorativeMicrostates by settingsViewModel.hideCommemorativeMicrostates.collectAsState()
+    val hideRegularMicrostates by settingsViewModel.hideRegularMicrostates.collectAsState()
     val defaultTab by settingsViewModel.defaultTab.collectAsState()
+    val defaultRegularTab by settingsViewModel.defaultRegularTab.collectAsState()
     val rotateHomeCoins by settingsViewModel.rotateHomeCoins.collectAsState()
     val themeMode by settingsViewModel.themeMode.collectAsState()
     val owned by settingsViewModel.ownedCounts.collectAsState()
@@ -105,40 +108,44 @@ fun SettingsScreen(
             Spacer(Modifier.height(12.dp))
             ProBanner(onClick = { showProInfo = true })
 
-            SectionHeader("Catalog and display")
-            SettingsCard {
-                SwitchRow(
-                    title = "Hide microstates",
-                    subtitle = "Andorra, Monaco, San Marino, Vatican City",
-                    checked = hideMicrostates,
-                    onCheckedChange = settingsViewModel::setHideMicrostates,
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Default tab", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Opens first in Commemorative",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    SegmentedChoice(
-                        options = BrowseMode.entries,
-                        selected = defaultTab,
-                        label = {
-                            when (it) {
-                                BrowseMode.YEARS -> "Years"
-                                BrowseMode.COUNTRIES -> "Countries"
-                                BrowseMode.ALL -> "All"
-                            }
-                        },
-                        onSelect = settingsViewModel::setDefaultTab,
-                    )
-                }
-            }
+            // Una sezione per catalogo, ciascuna con le sue due impostazioni (interruttore, poi selettore):
+            // i microstati si nascondono in modo indipendente e la scheda iniziale è quella del catalogo.
+            SectionHeader("Commemorative")
+            CatalogCard(
+                catalogName = "Commemorative",
+                hideMicrostates = hideCommemorativeMicrostates,
+                onHideMicrostatesChange = settingsViewModel::setHideCommemorativeMicrostates,
+                options = BrowseMode.entries,
+                selected = defaultTab,
+                label = {
+                    when (it) {
+                        BrowseMode.YEARS -> "Years"
+                        BrowseMode.COUNTRIES -> "Countries"
+                        BrowseMode.ALL -> "All"
+                    }
+                },
+                onSelect = settingsViewModel::setDefaultTab,
+            )
+
+            SectionHeader("Regular Issues")
+            CatalogCard(
+                catalogName = "Regular Issues",
+                hideMicrostates = hideRegularMicrostates,
+                onHideMicrostatesChange = settingsViewModel::setHideRegularMicrostates,
+                options = RegularBrowseMode.entries,
+                selected = defaultRegularTab,
+                label = {
+                    when (it) {
+                        RegularBrowseMode.COUNTRIES -> "Countries"
+                        RegularBrowseMode.DENOMINATIONS -> "Denominations"
+                    }
+                },
+                onSelect = settingsViewModel::setDefaultRegularTab,
+            )
 
             SectionHeader("Appearance")
             SettingsCard {
-                // Stesso ordine di "Catalog and display": prima l'interruttore, poi il selettore a segmenti.
+                // Stesso ordine delle sezioni dei cataloghi: prima l'interruttore, poi il selettore a segmenti.
                 SwitchRow(
                     title = "Rotate home coins",
                     subtitle = "Shows a different set of coins on the home screen every day.",
@@ -211,6 +218,40 @@ private fun SectionHeader(
         color = MaterialTheme.colorScheme.onSurface,
         modifier = Modifier.padding(start = 4.dp, top = if (first) 4.dp else 24.dp, bottom = 8.dp),
     )
+}
+
+/**
+ * Card di un catalogo (Commemorative o Regular Issues): interruttore dei microstati e scheda che si
+ * apre per prima. Le due card sono identiche nella forma, cambiano solo le opzioni del selettore.
+ */
+@Composable
+private fun <T> CatalogCard(
+    catalogName: String,
+    hideMicrostates: Boolean,
+    onHideMicrostatesChange: (Boolean) -> Unit,
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+) {
+    SettingsCard {
+        SwitchRow(
+            title = "Hide microstates",
+            subtitle = "Andorra, Monaco, San Marino, Vatican City",
+            checked = hideMicrostates,
+            onCheckedChange = onHideMicrostatesChange,
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Default tab", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Opens first in $catalogName",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SegmentedChoice(options = options, selected = selected, label = label, onSelect = onSelect)
+        }
+    }
 }
 
 @Composable

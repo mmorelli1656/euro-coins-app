@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.ui.browse.BrowseMode
+import com.michele.eurocoins.ui.regular.RegularBrowseMode
 import com.michele.eurocoins.ui.theme.ThemeMode
 import com.michele.eurocoins.ui.theme.ThemePreference
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,8 +22,10 @@ class SettingsViewModel(
     private val themePreference: ThemePreference,
 ) : ViewModel() {
 
-    val hideMicrostates: StateFlow<Boolean> = settings.hideMicrostates
+    val hideCommemorativeMicrostates: StateFlow<Boolean> = settings.hideCommemorativeMicrostates
+    val hideRegularMicrostates: StateFlow<Boolean> = settings.hideRegularMicrostates
     val defaultTab: StateFlow<BrowseMode> = settings.defaultTab
+    val defaultRegularTab: StateFlow<RegularBrowseMode> = settings.defaultRegularTab
     val rotateHomeCoins: StateFlow<Boolean> = settings.rotateHomeCoins
     val themeMode: StateFlow<ThemeMode> = themePreference.mode
 
@@ -33,8 +36,10 @@ class SettingsViewModel(
     val ownedCounts: StateFlow<OwnedCounts> = combine(repository.ownedCount, regularIssueRepository.ownedCount, ::OwnedCounts)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OwnedCounts(0, 0))
 
-    fun setHideMicrostates(value: Boolean) = settings.setHideMicrostates(value)
+    fun setHideCommemorativeMicrostates(value: Boolean) = settings.setHideCommemorativeMicrostates(value)
+    fun setHideRegularMicrostates(value: Boolean) = settings.setHideRegularMicrostates(value)
     fun setDefaultTab(mode: BrowseMode) = settings.setDefaultTab(mode)
+    fun setDefaultRegularTab(mode: RegularBrowseMode) = settings.setDefaultRegularTab(mode)
     fun setRotateHomeCoins(value: Boolean) = settings.setRotateHomeCoins(value)
     fun setThemeMode(mode: ThemeMode) = themePreference.set(mode)
 

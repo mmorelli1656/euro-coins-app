@@ -177,7 +177,7 @@ fun EuroCoinsNavHost(
         }
         composable(ROUTE_REGULAR_ISSUES) {
             val viewModel: RegularIssuesViewModel = viewModel(
-                factory = viewModelFactory { initializer { RegularIssuesViewModel(regularIssueRepository) } },
+                factory = viewModelFactory { initializer { RegularIssuesViewModel(regularIssueRepository, userSettings.defaultRegularTab.value) } },
             )
             RegularIssuesScreen(
                 viewModel = viewModel,
