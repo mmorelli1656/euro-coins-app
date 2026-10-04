@@ -570,7 +570,12 @@ catalogo completo.
     serie) e con più di 2 serie per paese può ripetersi — bug reale, trovato
     sul telefono (due chip del Belgio dicevano entrambi "Series 1").
   - **La descrizione della serie è una card espandibile** ("ABOUT THIS SERIES"), non più un
-    muro di testo che spingeva i tagli fuori schermo: è `NotesCard` di Commemorative tale e
+    muro di testo che spingeva i tagli fuori schermo, **e sta SOTTO la lista dei tagli** (con
+    la sua riga della fonte): qui si usano i tagli e le caselle, il testo è contesto da leggere
+    una volta, come ABOUT THIS COIN nel dettaglio (ultima card dopo dati e collezione); in
+    cima restano chip, titolo e periodo, e il primo taglio parte subito. Spostata su
+    richiesta senza mockup (componente invariato). Costo noto: sta a ~650 dp dal titolo, sotto
+    la piega. È `NotesCard` di Commemorative tale e
     quale (4 righe + "Show more", giustificato, animazione a mano — nessun disegno nuovo,
     per questo senza mockup), come ABOUT THIS COIN nel dettaglio taglio. **La fonte ("Series
     text: European Commission") sta FUORI dalla card**, sempre visibile anche a card chiusa:
@@ -600,7 +605,15 @@ catalogo completo.
     **`displayDescription()`** (`RegularIssueText.kt`) toglie la frase standard "The coin's outer
     ring depicts the 12 stars of the European flag." (identica in 7 serie su 41, uguale su tutte
     le monete: non dice niente della serie) SOLO in visualizzazione, `descrizione` resta com'è nel
-    dato e nel database (nessun ripopolamento). Non tocca la frase belga "not in the outer
+    dato e nel database (nessun ripopolamento). **Toglie anche la frase GENERICA sul bordo del
+    2 euro** ("The edge lettering on the €2 coin is ‘2**’ repeated six times, alternately upright
+    and inverted", in tutte le sue 8 forme di scrittura: 22 serie su 41, uguale su quasi tutte le
+    monete). **Le iscrizioni SPECIFICHE restano** (12 serie: Germania, Grecia, Finlandia, Lettonia,
+    Lituania, Bulgaria, Paesi Bassi, Portogallo, Slovenia, Estonia, Austria — "EINIGKEIT UND RECHT
+    UND FREIHEIT", "SUOMI FINLAND ***"...): sono parte dell'identità della moneta, e il bordo è già
+    nel testo di 30 dei 2 euro nel dettaglio taglio. Nel testo di San Marino 2017 la frase è la
+    coda di una frase più lunga dopo un punto e virgola: si toglie lasciando il punto. Non tocca
+    la frase belga "not in the outer
     ring" né quella spagnola sulle dodici stelle (un'altra frase, e descrive una scelta di
     disegno): da aggiungere alla stessa regola se l'utente le vuole togliere.
   - **Ogni serie mostra sempre tutti e 8 i tagli** (`denominationsOf`,
@@ -666,7 +679,14 @@ catalogo completo.
   COIN** (`RegularIssueImage.descrizione`): descrizione del disegno nazionale di QUEL taglio,
   dopo COLLECTION, **riusa `NotesCard` di Commemorative tale e quale**
   (esportata, etichetta parametrica: 4 righe + "Show more", giustificato, animazione a mano —
-  nessun disegno nuovo, per questo nessun mockup) e compare solo se il testo esiste. Il testo è
+  nessun disegno nuovo, per questo nessun mockup) e compare solo se il testo esiste. **Finisce
+  sempre con un punto** (`displayCoinDescription()`, `RegularIssueText.kt`): 124 testi Numista su
+  303 nell'export completo si fermano senza ("…the twelve stars of Europe"; scritti da utenti) e
+  uno BCE finisce con una parentesi. Si aggiunge "." dove manca ".", "!" o "?", anche se seguito da
+  una chiusura di virgolette/parentesi; solo in visualizzazione, come le altre pulizie. Le
+  commemorative hanno 2 note su 584 senza punto (Portogallo 2021 finisce con un'iscrizione tra
+  virgolette, Malta 2022 si ferma a "…are the inscriptions": troncata dalla fonte): non toccate.
+  Il testo è
   Numista (verbatim, inglese, scritto da utenti: più ricco della BCE) o, dove Numista non ha il
   type, la pagina BCE del taglio (`descrizioneFonte` = "numista"/"ecb"; il testo BCE è uno per
   paese e a volte descrive più serie insieme). (Lussemburgo 2026 2 euro non aveva testo finché Numista non ha avuto il type, N#585823, ottobre 2026: né
@@ -1311,7 +1331,12 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     intero sotto (`titleMedium` Bold, centrato, 2-3 righe). Scartati: titolo con
     ellissi + espansione con freccia (complessità inutile) e titolo fuori dalla card.
   - **Etichette di sezione** identiche: `MINTAGES`, `COLLECTION`,
-    `HISTORICAL NOTES` (`SectionLabel`: `labelLarge` Bold, maiuscolo, `linkColor()`).
+    `ABOUT THIS COIN` (`SectionLabel`: `labelLarge` Bold, maiuscolo, `linkColor()`). **Si chiamava
+    "HISTORICAL NOTES", rinominata il 2026-10-04** per uniformarla alle Regular Issues: il testo
+    BCE di una commemorativa descrive il disegno e le iscrizioni ("The design shows a
+    CARABINIER…"), lo stesso genere dei testi Numista dei tagli, non storia; il nome veniva dal
+    campo `noteStoriche`. Stessa etichetta nel dettaglio taglio; la serie è "ABOUT THIS SERIES" o
+    "ABOUT SERIES 1–3".
   - **Tipografia solo sans** in questa schermata: `titleMedium` era serif
     e `labelSmall` monospace: `sansTitleMedium()` e `.copy(fontFamily = FontFamily.Default)` lo
     imponevano localmente; ora il tema è già sans su quegli stili e restano solo ridondanti.
@@ -1376,7 +1401,7 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     la card letta e quella modificabile hanno finalmente la stessa forma. Scartati: sfondo
     verde pieno (alternava colori tra le card), righe non possedute tratteggiate,
     pulsante Edit a tutta larghezza.
-  - **HISTORICAL NOTES**: `bodyMedium` 14 sp / 20 sp, `TextAlign.Justify` con
+  - **ABOUT THIS COIN** (già HISTORICAL NOTES): `bodyMedium` 14 sp / 20 sp, `TextAlign.Justify` con
     `LineBreak.Paragraph` e `Hyphens.Auto` (bordo destro regolare; la sillabazione
     spezza anche "Croa-tia", dizionario di sistema). 4 righe con ellissi e "Show
     more ∨" / "Show less ∧" centrato in fondo, visibile solo se il testo è
