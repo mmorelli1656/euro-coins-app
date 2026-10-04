@@ -100,7 +100,12 @@ interamente nella pipeline.
    l'app sul telefono con i dati completi si rilancia lo script SENZA
    `-ExcludeNumista`, si installa, e prima di committare si rigenera con
    `-ExcludeNumista` (o `git checkout app/src/main/assets/regular_issues.json`):
-   **mai committare l'export completo**. Il codice dell'app per tirature, DETAILS
+   **mai committare l'export completo**. **Errore già fatto più volte: installare
+   sul telefono l'APK costruita con l'asset committato** (ridotto) — tirature, zecche
+   per anno e testi Numista non compaiono e sembra che manchino. Per ogni prova sul
+   telefono: script completo → build → install, e prima di committare
+   `git checkout` dell'asset (poi rilanciare i test sullo stato committato: i 7 test
+   Numista saltano, è normale). Il codice dell'app per tirature, DETAILS
    e "Source: Numista" resta nel repo ed è inerte senza i dati (card "—", niente
    riga Numista); `RegularIssuesAssetTest` salta i test sui dati Numista se
    l'asset è quello ridotto.
@@ -158,6 +163,8 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularCollectionDao.kt
 │   ├── RegularMintageSummary.kt # summarizeMintages()/groupMintagesByYear() — logica pura, testata
 │   ├── RegularYearMints.kt   # yearMintLabels(): etichette "Mint · …" per periodo (certa/probabile/non nota), logica pura, testata
+│   ├── RegularSeriesDenominations.kt # denominationsOf(): gli 8 tagli di una serie, quelli invariati ereditati dalla precedente, ritagliati alla finestra di anni della serie
+│   ├── RegularIssueText.kt   # displayDescription() (senza la frase sul bordo esterno), seriesTitle()/seriesChipLabel()/seriesPeriod() — titoli e periodo delle serie
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
@@ -540,24 +547,71 @@ catalogo completo.
 - **`RegularIssueCountryScreen`**: con più di una serie per il paese (Belgio
   3, Monaco 3, Città del Vaticano 6...) un **selettore a chip** in cima
   (`FilterChip`, riuso dello stesso componente di `FilterSheet`) sceglie
-  quale mostrare — con una sola serie il selettore non compare. Sotto,
-  intestazione "Series N" + `intestazioneRaw` se presente (es. "Series 1 ·
-  2002") e `descrizione` **per intero** (nessun troncamento/"Show more" in
-  questa prima versione — a differenza di HISTORICAL NOTES nel dettaglio
-  commemorative, ma stesso testo giustificato con sillabazione,
-  `TextAlign.Justify` + `LineBreak.Paragraph` + `Hyphens.Auto`, per lo
-  stesso motivo: senza, il bordo destro era irregolare). **Il numero "Series
-  N" del chip e dell'intestazione è la posizione (1-based) della serie
-  nella lista del paese** (`seriesHeading(series, number)`, `number` passato
-  dal chiamante), NON `RegularIssueSeries.numeroSerieIpotesi`: quel campo
-  raggruppa varianti minori sotto lo stesso numero (Belgio: 2002 e 2008 sono
-  entrambe "1" nel dataset, un ritocco minore non classificato come nuova
-  serie) e con più di 2 serie per paese può ripetersi — bug reale, trovato
-  sul telefono (due chip del Belgio dicevano entrambi "Series 1", anche
-  con l'anno già aggiunto per disambiguare). Lo stesso `number` è passato a
-  `RegularCollectionSheet` per il sottotitolo del pannello, così resta
-  coerente.
-  Sotto la descrizione, **una card per taglio** (non più una riga
+  quale mostrare — con una sola serie il selettore non compare.
+  - **Titoli: chip "Series 2 · 2022", intestazione "Series 2" con il periodo sotto**
+    ("2022 – 2023", "2024 – today", solo "2005" se è un anno solo; 13 sp,
+    `onSurfaceVariant`). Variante A scelta dopo mockup, scartata B (tutto su una riga,
+    "Series 2 · 2022 – 2023"): il periodo non deve competere col titolo. **Mai
+    `intestazioneRaw`** ("2022 – second series 1 and 2 euro coins"...: lunga e disomogenea
+    da paese a paese, l'utente non la voleva) e **mai l'anno da solo al posto del numero**:
+    due serie del Vaticano partono entrambe nel 2005, i chip direbbero lo stesso. Il testo
+    sta in `RegularIssueText.kt` (`seriesTitle`, `seriesChipLabel`, `seriesPeriod`), usato
+    anche dal sottotitolo di `RegularCollectionSheet` ("Paese · Series N", senza anno).
+    **Periodo** (`seriesPeriod`): inizio = primo anno delle immagini, mai prima del 2002
+    (le monete datate 1999-2001 di Belgio/Francia/Monaco non fanno partire una serie), senza
+    immagini (Vaticano 2026) l'anno dopo la fine della precedente; fine = la più tarda tra le
+    fini esplicite se TUTTE le immagini ne hanno una, altrimenti la vigilia della serie
+    successiva (Francia 1: 2021, perché i 5 cent non sono mai cambiati) o aperta.
+    **Il numero "Series
+    N" è la posizione (1-based) della serie nella lista del paese**, NON
+    `RegularIssueSeries.numeroSerieIpotesi`: quel campo
+    raggruppa varianti minori sotto lo stesso numero (Belgio: 2002 e 2008 sono
+    entrambe "1" nel dataset, un ritocco minore non classificato come nuova
+    serie) e con più di 2 serie per paese può ripetersi — bug reale, trovato
+    sul telefono (due chip del Belgio dicevano entrambi "Series 1").
+  - **La descrizione della serie è una card espandibile** ("ABOUT THIS SERIES"), non più un
+    muro di testo che spingeva i tagli fuori schermo: è `NotesCard` di Commemorative tale e
+    quale (4 righe + "Show more", giustificato, animazione a mano — nessun disegno nuovo,
+    per questo senza mockup), come ABOUT THIS COIN nel dettaglio taglio. **La fonte ("Series
+    text: European Commission") sta FUORI dalla card**, sempre visibile anche a card chiusa:
+    l'attribuzione non deve dipendere da un tocco. La pagina è una `Column` con
+    `verticalScroll`, non più una `LazyColumn`: `NotesCard` scorre la pagina per centrarsi in
+    espansione e vuole uno `ScrollState`; i tagli sono al massimo 8, la lista lazy non
+    risparmiava nulla. Senza descrizione né card né riga della fonte.
+    **`displayDescription()`** (`RegularIssueText.kt`) toglie la frase standard "The coin's outer
+    ring depicts the 12 stars of the European flag." (identica in 7 serie su 41, uguale su tutte
+    le monete: non dice niente della serie) SOLO in visualizzazione, `descrizione` resta com'è nel
+    dato e nel database (nessun ripopolamento). Non tocca la frase belga "not in the outer
+    ring" né quella spagnola sulle dodici stelle (un'altra frase, e descrive una scelta di
+    disegno): da aggiungere alla stessa regola se l'utente le vuole togliere.
+  - **Ogni serie mostra sempre tutti e 8 i tagli** (`denominationsOf`,
+    `RegularSeriesDenominations.kt`), anche quelli che non ha cambiato: la Francia 2022 cambia
+    solo 1 e 2 euro e la 2024 solo 10-20-50 cent, la Spagna 2015 solo 1 e 2 euro, ma nel
+    portafoglio c'è sempre il set intero (prima la serie francese 2 aveva 2 monete). Un taglio
+    non cambiato viene dalla serie precedente più recente in cui è ancora in circolazione
+    (`annoFine` vuoto o ≥ inizio della serie guardata: i 10-20-50 cent francesi a "seminatore"
+    finiscono nel 2023, quindi sono nella serie 2022 ma non nella 2024). Il dato c'era già:
+    `annoInizio`/`annoFine` per immagine.
+    **Non è una copia ma la STESSA moneta**: stessa chiave di collezione (`SeriesDenomination.series`
+    = serie di ORIGINE), stesso conteggio in Home, nessun dato doppio. **Ogni serie è però una
+    FINESTRA di tempo** — dal suo primo anno alla vigilia della serie successiva che ha
+    immagini — e tutto si ferma ai suoi confini: il 5 cent francese è 1999-2021 nella serie 1,
+    2022-2023 nella 2 e 2024-oggi nella 3 (errore reale trovato sul telefono: nella serie 2
+    partiva dal 1999, con tirature e zecche della serie 1). `denominationsOf` restituisce
+    l'immagine GIÀ ritagliata alla finestra (`annoInizio`/`annoFine`, `tirature` e
+    `zecchePerAnno` filtrate), quindi elenco anni del pannello, somme e tabella "by year" sono
+    giusti senza che ogni schermata ci pensi. Un'immagine ancora aperta finisce alla vigilia della
+    serie successiva; una con fine esplicita la mantiene (il Vaticano 2005 appartiene sia alla
+    serie 1 sia alla 2: tagliarla sull'inizio della successiva perderebbe l'annata).
+    **Salvataggio** (`RegularIssueRepository.saveCollection(..., window)`): il pannello vede solo gli
+    anni della finestra, quindi sostituisce solo quelli e lascia le voci fuori finestra (le annate
+    della serie 1 non spariscono salvando dalla 2). Il dettaglio taglio riceve la serie GUARDATA
+    nella rotta (`ordine`) e risolve da lì serie di origine e finestra
+    (`RegularDenominationDetailViewModel`). **Una serie senza immagini proprie NON eredita
+    niente** (Vaticano 2026: i tagli cambiano tutti e non c'è un inizio da cui partire).
+    Non segnalato in UI che un taglio viene da un'altra serie (la riga è identica alle altre):
+    un "Series 1 design" nella riga di stato è un'opzione proposta, non decisa.
+  Sotto, **una card per taglio** (non più una riga
   orizzontale scorrevole dentro un'unica card di serie — cambiato su
   richiesta, riusa la struttura di `CoinRow` in `CoinListScreen.kt`: card ad
   altezza fissa 72 dp, miniatura 52 dp/segnaposto lilla 50 dp, testo,
@@ -1021,7 +1075,7 @@ fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio 
 intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
 (Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
 `RegularYearMintsTest` e
-`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. Gli unit test che leggono gli
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni. Gli unit test che leggono gli
 asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
