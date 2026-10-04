@@ -463,7 +463,9 @@ private fun MintageCard(coin: Coin) {
 fun DetailsSection(mint: String, engraver: String, designer: String) {
     ValueLabel(
         value = mint,
-        label = "Mint",
+        // "Mints" con più paesi ("Finland, Netherlands"): sono le zecche usate nel tempo, non
+        // quelle di ogni singola moneta — nessun nome di paese contiene una virgola
+        label = if (mint.contains(", ")) "Mints" else "Mint",
         modifier = Modifier.fillMaxWidth(),
     )
     Spacer(Modifier.height(14.dp))

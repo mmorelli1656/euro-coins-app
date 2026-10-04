@@ -26,7 +26,7 @@
     serie la cui fonte è più recente della BCE (bcl = Lussemburgo 2026): lì meglio nessun testo che
     quello della serie precedente.
 
-    -ExcludeNumista: esporta solo ciò che non viene da Numista (testo BCE, niente tirature/zecca/
+    -ExcludeNumista: esporta solo ciò che non viene da Numista (testo BCE, niente tirature/zecca (anche per anno)/
     incisore/disegnatore). Il gate sulla ridistribuzione di Numista è descritto in CLAUDE.md
     (§ Backlog) e in NOTES.md della pipeline: serve questo interruttore se andrà ripreso.
 #>
@@ -163,6 +163,29 @@ foreach ($s in $series) {
         }
         $tirature = @($tirature | Sort-Object anno, @{ Expression = { $qualityOrder.IndexOf($_.quality) } })
 
+        # zecca per anno: solo per gli anni con una tiratura (sono quelli della tabella "by year"),
+        # una voce per anno con le zecche certe (zecche_anno) e/o probabili (zecche_anno_probabili);
+        # senza voce = zecca non nota. Campi vuoti omessi (il default dell'app è la lista vuota).
+        $zecchePerAnno = @()
+        $seenYears = @{}
+        $tirYears = @{}
+        foreach ($t in $tirature) { $tirYears[[int]$t.anno] = $true }
+        foreach ($m in $mine) {
+            foreach ($row in $m.Type.tirature_per_anno) {
+                $anno = [int]$row.anno
+                if (-not $tirYears.ContainsKey($anno) -or $seenYears.ContainsKey($anno)) { continue }
+                $cert = @($row.zecche_anno | Where-Object { $_ } | Select-Object -Unique)
+                $prob = @($row.zecche_anno_probabili | Where-Object { $_ } | Select-Object -Unique)
+                if ($cert.Count -eq 0 -and $prob.Count -eq 0) { continue }
+                $seenYears[$anno] = $true
+                $entry = [ordered]@{ anno = $anno }
+                if ($cert.Count -gt 0) { $entry['zecche'] = $cert }
+                if ($prob.Count -gt 0) { $entry['probabili'] = $prob }
+                $zecchePerAnno += [pscustomobject]$entry
+            }
+        }
+        $zecchePerAnno = @($zecchePerAnno | Sort-Object anno)
+
         # type principale: più anni nella serie, a parità il più recente
         $main = $null
         if ($mine.Count -gt 0) {
@@ -190,6 +213,7 @@ foreach ($s in $series) {
             incisore_raw     = if ($main) { Clean $main.incisore_retro_raw } else { $null }
             disegnatore_raw  = if ($main) { Clean $main.disegnatore_retro_raw } else { $null }
             tirature         = $tirature
+            zecche_per_anno  = $zecchePerAnno
         }
         foreach ($name in $extra.Keys) {
             $img | Add-Member -NotePropertyName $name -NotePropertyValue $extra[$name] -Force
@@ -199,7 +223,7 @@ foreach ($s in $series) {
             Serie = "$($s.paese) #$($s.ordine_cronologico)"; Taglio = $img.taglio
             Types = ($mine | ForEach-Object { "N#$($_.Type.numista_id)" }) -join ' '
             Righe = $tirature.Count; Desc = $descFonte
-            Zecca = [bool]$extra.zecca_fisica_raw; Inc = [bool]$extra.incisore_raw; Dis = [bool]$extra.disegnatore_raw
+            ZecchePerAnno = $zecchePerAnno.Count; Zecca = [bool]$extra.zecca_fisica_raw; Inc = [bool]$extra.incisore_raw; Dis = [bool]$extra.disegnatore_raw
         }
     }
 }

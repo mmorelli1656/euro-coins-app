@@ -45,6 +45,8 @@ data class RegularIssueImageJson(
     @SerialName("zecca_fisica_raw") val zeccaFisicaRaw: String? = null,
     @SerialName("incisore_raw") val incisoreRaw: String? = null,
     @SerialName("disegnatore_raw") val disegnatoreRaw: String? = null,
+    /** Zecca per anno (stessa forma dell'entity: `anno`/`zecche`/`probabili`), vedi RegularIssueYearMint. */
+    @SerialName("zecche_per_anno") val zecchePerAnno: List<RegularIssueYearMint> = emptyList(),
 )
 
 @Serializable
@@ -79,6 +81,7 @@ fun RegularIssueSeriesJson.toEntity(): RegularIssueSeries = RegularIssueSeries(
             zeccaFisicaRaw = it.zeccaFisicaRaw,
             incisoreRaw = it.incisoreRaw,
             disegnatoreRaw = it.disegnatoreRaw,
+            zecchePerAnno = it.zecchePerAnno,
         )
     },
     possibileIncongruenza = possibileIncongruenza,

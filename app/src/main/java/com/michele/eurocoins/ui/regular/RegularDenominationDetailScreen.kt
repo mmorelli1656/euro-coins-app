@@ -60,6 +60,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,6 +70,7 @@ import coil3.compose.SubcomposeAsyncImageContent
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.data.CoinQuality
+import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
@@ -77,7 +79,9 @@ import com.michele.eurocoins.data.displayEngraver
 import com.michele.eurocoins.data.displayImageLicense
 import com.michele.eurocoins.data.displayMint
 import com.michele.eurocoins.data.displaySourceName
+import com.michele.eurocoins.data.YearMintLabel
 import com.michele.eurocoins.data.numistaUrl
+import com.michele.eurocoins.data.yearMintLabels
 import com.michele.eurocoins.data.formatApproxTotal
 import com.michele.eurocoins.data.groupMintagesByYear
 import com.michele.eurocoins.data.summarizeMintages
@@ -353,6 +357,23 @@ private fun RegularMintageHistorySheet(
     onDismiss: () -> Unit,
 ) {
     val rows = remember(denomination) { groupMintagesByYear(denomination.tirature) }
+    // etichetta "Mint · …" a ogni cambio di zecca; mappa vuota (nessuna etichetta) per i tagli a
+    // zecca unica o senza dati — vedi yearMintLabels
+    val mintLabels = remember(denomination) {
+        yearMintLabels(denomination.zecchePerAnno, rows.map { it.first })
+    }
+    val entries = remember(rows, mintLabels) {
+        buildList {
+            var previous: YearMintLabel? = null
+            rows.forEach { (year, values) ->
+                val label = mintLabels[year]
+                if (label != null && label.sameAs != previous?.sameAs) add(YearTableEntry.Mint(year, label))
+                previous = label
+                add(YearTableEntry.Row(year, values))
+            }
+        }
+    }
+    val hasProbable = mintLabels.values.any { it.level == MintLevel.PROBABLE }
     val numberFormat = remember { NumberFormat.getIntegerInstance(Locale.ENGLISH) }
 
     ModalBottomSheet(
@@ -389,36 +410,99 @@ private fun RegularMintageHistorySheet(
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
             LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
-                items(rows, key = { it.first }) { (year, values) ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = year.toString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.weight(0.6f),
-                        )
-                        CoinQuality.entries.forEach { quality ->
-                            Text(
-                                text = values[quality]?.let(numberFormat::format) ?: NO_VALUE,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1,
-                                softWrap = false,
-                                modifier = Modifier.weight(quality.columnWeight()),
-                            )
+                items(entries, key = { it.key }) { entry ->
+                    when (entry) {
+                        is YearTableEntry.Mint -> MintPeriodLabel(entry.label)
+                        is YearTableEntry.Row -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = entry.year.toString(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.weight(0.6f),
+                                )
+                                CoinQuality.entries.forEach { quality ->
+                                    Text(
+                                        text = entry.values[quality]?.let(numberFormat::format) ?: NO_VALUE,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
+                                        fontWeight = FontWeight.Medium,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier.weight(quality.columnWeight()),
+                                    )
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                 }
+            }
+            if (hasProbable) {
+                Text(
+                    text = "? Probable: from Wikipedia or inferred from official data, not confirmed.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
             TextButton(onClick = onDismiss, modifier = Modifier.align(Alignment.End).padding(top = 8.dp)) {
                 Text("Close")
             }
         }
+    }
+}
+
+/** Righe della tabella "by year": una per anno, più l'etichetta di zecca dove cambia. */
+private sealed interface YearTableEntry {
+    val key: String
+
+    class Mint(val year: Int, val label: YearMintLabel) : YearTableEntry {
+        override val key get() = "m$year"
+    }
+
+    class Row(val year: Int, val values: Map<CoinQuality, Long>) : YearTableEntry {
+        override val key get() = "y$year"
+    }
+
+}
+
+/**
+ * "Mint · Finland" sopra il primo anno di ogni periodo con la stessa zecca. Pillola (etichetta,
+ * non azione) nel colore `primary` come le etichette di sezione; il probabile resta in corsivo
+ * col "?" (mai uguale al certo), il non noto è spento con solo il bordo.
+ */
+@Composable
+private fun MintPeriodLabel(label: YearMintLabel) {
+    val colors = MaterialTheme.colorScheme
+    val unknown = label.level == MintLevel.UNKNOWN
+    val textColor = if (unknown) colors.onSurfaceVariant else colors.primary
+    val shape = RoundedCornerShape(50)
+    Row(
+        modifier = Modifier
+            .padding(top = 10.dp, bottom = 2.dp)
+            .clip(shape)
+            .then(
+                if (unknown) Modifier.border(1.dp, colors.outline.copy(alpha = 0.6f), shape)
+                else Modifier.background(colors.primary.copy(alpha = 0.14f)),
+            )
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+    ) {
+        Text(
+            text = "Mint · ",
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.onSurfaceVariant,
+        )
+        Text(
+            text = label.text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            fontStyle = if (label.level == MintLevel.PROBABLE) FontStyle.Italic else FontStyle.Normal,
+            color = textColor,
+        )
     }
 }
 

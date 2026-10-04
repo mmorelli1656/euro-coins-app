@@ -79,6 +79,27 @@ data class RegularIssueImage(
     /** Lato nazionale (campo `obverse` di Numista: la convenzione è invertita, vedi NOTES.md della pipeline). */
     val incisoreRaw: String? = null,
     val disegnatoreRaw: String? = null,
+    /**
+     * Zecca per anno (un elemento per anno con tirature e almeno una zecca nota o probabile; un
+     * anno senza elemento = zecca NON nota, mai "nessuna zecca"). Lista vuota di default come i
+     * campi sopra, e vuota anche nell'asset committato (export `-ExcludeNumista`): niente
+     * etichette nella tabella "by year". Vedi [yearMintLabels].
+     */
+    val zecchePerAnno: List<RegularIssueYearMint> = emptyList(),
+)
+
+/**
+ * Zecca di un anno di un taglio, con i due livelli di affidabilità della pipeline: [zecche]
+ * certe (lettera, marchio, commento, fonte ufficiale o regola nazionale documentata) e
+ * [probabili] (Wikipedia o inferenza dichiarata, usate solo dove non c'è nulla di certo).
+ * Stringhe grezze di Numista ("Royal Dutch Mint"): si mostrano con [mintCountry]. Più zecche
+ * nello stesso anno sono possibili (Germania: 5, Grecia 2002: due).
+ */
+@Serializable
+data class RegularIssueYearMint(
+    val anno: Int,
+    val zecche: List<String> = emptyList(),
+    val probabili: List<String> = emptyList(),
 )
 
 /**
