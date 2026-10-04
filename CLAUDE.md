@@ -721,8 +721,10 @@ catalogo completo.
   orizzontale scorrevole dentro un'unica card di serie — cambiato su
   richiesta, riusa la struttura di `CoinRow` in `CoinListScreen.kt`: card ad
   altezza fissa 80 dp, miniatura 64 dp/segnaposto lilla 62 dp, testo,
-  casella a destra), **ordinate per valore** (`RegularIssueCountryViewModel`,
-  elenco canonico 1 cent → 2 euro): `RegularIssueSeries.immagini` non è
+  casella a destra), **ordinate per valore DECRESCENTE, dal 2 euro all'1 cent** (`RegularIssueCountryViewModel`,
+  `denominationRank`; richiesta dell'utente il 2026-10-04: "di solito i tagli più grossi hanno disegni più
+  belli", e non c'è un FILTER con l'ordinamento in questa schermata; coerente con la scheda Denominations,
+  che parte da "Largest first"; prima 1 cent → 2 euro): `RegularIssueSeries.immagini` non è
   garantita in quest'ordine — i tagli aggiunti dal secondo arricchimento BCE
   (es. Andorra 1 euro, mai pubblicato dalla fonte EC, vedi sotto) restano in
   coda alla lista originale invece di essere inseriti al posto giusto — bug
