@@ -432,13 +432,49 @@ alto a destra nella home; la vecchia schermata Backup è stata assorbita): login
 collezione su Drive.
 
 - **UI** (`BackupSection`): senza accesso una card d'invito + "Sign in with
-  Google"; con l'accesso l'email, una card di stato in evidenza ("Collection
-  saved" + data dell'ultimo backup, o "Not backed up yet", con barra di
-  avanzamento durante le operazioni) con "Last backup: <data>", "Back up now"
+  Google"; con l'accesso l'email, una card di stato in evidenza (barra di
+  avanzamento durante le operazioni), "Back up now"
   (2/3 della riga, pieno) e "Restore" (1/3, a contorno: è quello che
-  sovrascrive). "Sign out" è un TextButton nel colore primario a destra
-  dell'email, sulla stessa riga. Lo stato non dice "up to date": confrontare backup e collezione locale non è
-  implementato, quindi non lo si afferma.
+  sovrascrive), sotto un filetto l'interruttore "Back up automatically". "Sign out" è un TextButton nel colore primario a destra
+  dell'email, sulla stessa riga.
+- **Stato del backup, calcolato in locale** (ottobre 2026, `BackupStatus`/`backupStatus()`): l'app
+  tiene una copia dell'ultimo file caricato o ripristinato (`BackupSnapshotStore`, `filesDir/
+  backup_snapshot.json`, nel formato del backup; `exportedAt` = data dell'ultimo backup da questo
+  telefono) e la confronta con le voci attuali, senza chiamare Drive e quindi anche offline. Tre
+  stati: **"Up to date"** (coincidono), **"N changes not backed up"** (voci aggiunte, tolte o
+  modificate: una voce = una finitura, o anno+finitura+varietà nelle Regular; un reset compare come
+  "tutte tolte"), e **non verificabile** (nessuna istantanea: titolo "Backup found" + data, o "Not
+  backed up yet"). Un'istantanea v1 non conteneva Regular Issues, quindi tutte le righe Regular
+  locali risultano "non salvate": non si afferma mai "aggiornato" per dati che su Drive non ci sono.
+  Il ripristino della versione precedente cancella l'istantanea (la collezione locale non
+  coincide con l'attuale su Drive); la disconnessione pure (appartiene all'account). Scartato un
+  pallino sull'ingranaggio della Home: con il backup automatico il caso "dimenticato per
+  settimane" quasi non esiste.
+- **Salvataggio automatico** (`AutoBackup`, ottobre 2026): quando l'utente esce dall'app
+  (`MainActivity.onStop`) e la collezione è cambiata (`Pending`), carica in silenzio il backup
+  (token Drive senza schermate: `GoogleAccountManager.silentDriveToken`; se serve il consenso non
+  parte e mostra l'errore). Solo gli stati **Pending**: con "non verificabile" questo telefono non
+  ha mai fatto un backup e non sovrascrive in silenzio quello di un altro telefono (lì decide
+  l'utente col backup manuale e la sua conferma). **Mai una collezione vuota** (dopo un Reset
+  caricherebbe il niente sopra un backup buono: il caso da cui è nato tutto questo). Almeno 15
+  minuti tra un tentativo e l'altro, anche dopo un errore (`AUTO_BACKUP_MIN_INTERVAL_MS`; l'avevo
+  proposto "qualche ora", ma il file è di pochi KB e un backup che aspetta ore lascia le modifiche
+  esposte). **Interruttore**: se l'utente non lo ha mai toccato è acceso solo per chi ha già un
+  backup da questo telefono (`resolveAutoBackupEnabled`); la sua scelta vince sempre; con
+  l'interruttore acceso ma senza backup precedente la scritta dice "Starts after your first backup"
+  (altrimenti "When you leave the app": sottotesti corti, stanno su una riga). L'errore dell'ultimo tentativo si mostra nella card ("Automatic backup failed:
+  …", icona e tinta d'errore) solo se è più recente dell'ultimo backup riuscito. **Senza WorkManager**:
+  non è nella cache Gradle offline (andrebbe scaricato con la rete) e non serve la regolarità di un
+  lavoro periodico; il limite è che il sistema può fermare il processo subito dopo `onStop`, ma il
+  salvataggio dura un secondo e riparte alla prossima uscita.
+- **Versione precedente su Drive** (`DriveBackupClient.upload`): oltre al file attuale
+  (`euro-coins-collection.json`) c'è `euro-coins-collection-previous.json`. Prima di sovrascrivere,
+  l'attuale diventa "precedente" SOLO se ha almeno 24 ore (`shouldRotatePrevious`) o se la
+  precedente non esiste: così salvataggi ravvicinati, anche automatici, non cancellano subito la
+  copia buona (un reset seguito da pochi acquisti non porta via la collezione di prima: chi se ne
+  accorge ha un giorno). Il dialog di "Restore" offre "Restore the previous version (data)
+  instead" se esiste. Limite: dopo 24 ore la precedente è quella dell'ultimo salvataggio di più di
+  un giorno fa, non una cronologia.
 - **Banner "Go Pro"** (rimozione pubblicità; card neutra come le altre, sotto quella del
   backup, senza titolo di sezione; l'accento è solo la corona nel viola `PurpleField*` su
   un cerchio `secondaryContainer`, non più il bronzo): oggi solo
@@ -1199,7 +1235,10 @@ lingua da servire.
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
 `BackupFileTest` copre il formato v2 (andata e ritorno con varietà e prezzo, un v1 che si legge
 ma non porta Regular, un v2 con Regular vuota che invece sostituisce, qualità sconosciuta saltata,
-versione più nuova rifiutata).
+versione più nuova rifiutata). `BackupStatusTest` copre il confronto con l'ultimo backup (ordine
+irrilevante, aggiunte/tolte/modificate, finiture, chiave delle Regular, reset, istantanea v1) e la
+rotazione della versione precedente; `AutoBackupPolicyTest` le regole del salvataggio automatico
+(mai vuota, solo `Pending`, intervallo minimo, interruttore predefinito).
 `MicrostatesTest` legge il `coins.json` vero e controlla che i nomi in
 `MICROSTATE_PAESI` esistano (24 paesi -> 20 nascondendoli) e che `stableKey` sia
 unica. `RegularMintageSummaryTest` copre `summarizeMintages()`/`groupMintagesByYear()`
@@ -1671,7 +1710,11 @@ Nell'**app**:
   logica del rischio già accettato). Per le divisionali il piano B è già pronto:
   `scripts/export-regular-issues.ps1 -ExcludeNumista` — **ed è quello committato**: `euro-coins-app` è un repo pubblico, quindi `regular_issues.json` su GitHub non contiene dati Numista (`coins.json` sì, già pushato in precedenza: da ridecidere). Nell'app restano visibili "Source:
   Numista N#…" e il link (§4 dei Termini API).
-- Confronto backup ↔ collezione locale (oggi lo stato non dice "up to date").
+- Backup: fatto il confronto con la collezione locale ("Up to date"), il salvataggio automatico e
+  la versione precedente su Drive (§ Backup su Google Drive). Non verificati end-to-end con un account
+  Drive reale; il salvataggio automatico in particolare dipende dal sistema che lascia vivere il
+  processo qualche secondo dopo l'uscita dall'app. Il Reset mostra nel dialog se la collezione è
+  ripristinabile e da quando (`resetBackupNote`).
 - Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
   segnaposto "Go Pro".
 
