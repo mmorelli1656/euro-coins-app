@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.backup.BackupStatus
+import com.michele.eurocoins.data.backup.EMPTY_COLLECTION_MESSAGE
 import com.michele.eurocoins.data.backup.GoogleAccount
 import com.michele.eurocoins.ui.settings.SwitchRow
 
@@ -261,7 +262,17 @@ private fun StatusBox(state: BackupUiState, checking: Boolean) {
     var tint = colors.primary
     val title: String
     val subtitle: String
-    when (val status = state.localStatus) {
+    if (state.localEmpty) {
+        // Niente da salvare, qualunque sia lo stato (anche dopo un reset: "N modifiche non salvate" sarebbe
+        // vero ma inutile, e "Back up now" rifiuta di caricare un backup vuoto sopra uno buono).
+        if (last != null) {
+            title = "Collection is empty"
+            subtitle = "Your last backup ($last) is still on Google Drive."
+        } else {
+            title = "Nothing to back up yet"
+            subtitle = "Add coins to your collection first."
+        }
+    } else when (val status = state.localStatus) {
         BackupStatus.UpToDate -> {
             title = "Up to date"
             subtitle = "Last backup: ${last ?: "just now"}"
@@ -328,7 +339,9 @@ private fun StatusBox(state: BackupUiState, checking: Boolean) {
 }
 
 private fun BackupUiState.messageIsError() =
-    message?.let { !(it.startsWith("Backed up") || it.startsWith("Restored") || it.startsWith("Signed out")) } ?: false
+    message?.let {
+        !(it.startsWith("Backed up") || it.startsWith("Restored") || it.startsWith("Signed out") || it == EMPTY_COLLECTION_MESSAGE)
+    } ?: false
 
 /** Avviso integrato nella card: errori in tinta d'errore con icona, esiti positivi neutri. */
 @Composable

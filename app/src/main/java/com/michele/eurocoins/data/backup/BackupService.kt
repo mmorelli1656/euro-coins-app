@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/** Messaggio quando non c'è niente da salvare: la collezione locale è vuota. */
+const val EMPTY_COLLECTION_MESSAGE = "Your collection is empty, so there's nothing to back up."
+
 /** Date (ISO-8601) del backup attuale e della versione precedente su Drive; null = non esiste. */
 data class BackupInfo(val latest: String?, val previous: String?)
 
@@ -34,6 +37,8 @@ class BackupService(
     suspend fun backup(token: String): Int = mutex.withLock {
         val items = collectionDao.getAll()
         val regularItems = regularCollectionDao.getAll()
+        // Un backup vuoto non serve a niente e sovrascriverebbe quello buono: vale per il manuale come per l'automatico.
+        if (items.isEmpty() && regularItems.isEmpty()) throw BackupException(EMPTY_COLLECTION_MESSAGE)
         val file = BackupFile(
             exportedAt = System.currentTimeMillis(),
             items = items.map { it.toBackupItem() },
@@ -79,6 +84,12 @@ class BackupService(
 
     /** True se non c'è niente da salvare: il salvataggio automatico non carica mai una collezione vuota. */
     suspend fun isLocalEmpty(): Boolean = collectionDao.getAll().isEmpty() && regularCollectionDao.getAll().isEmpty()
+
+    /** Come [isLocalEmpty] ma aggiornato a ogni modifica della collezione. */
+    fun observeIsEmpty(): Flow<Boolean> = combine(
+        collectionDao.observeAll(),
+        regularCollectionDao.observeAll(),
+    ) { items, regularItems -> items.isEmpty() && regularItems.isEmpty() }
 
     /** Rapporto attuale tra collezione locale e ultimo backup, calcolato una volta. */
     suspend fun currentStatus(): BackupStatus =

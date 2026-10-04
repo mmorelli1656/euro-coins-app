@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupException
+import com.michele.eurocoins.data.backup.EMPTY_COLLECTION_MESSAGE
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.BackupStatus
 import com.michele.eurocoins.data.backup.DriveAuthorization
@@ -39,6 +40,8 @@ data class BackupUiState(
     val previousBackup: String? = null,
     /** Collezione locale rispetto all'ultimo backup di questo telefono, calcolata in locale (vedi [BackupStatus]). */
     val localStatus: BackupStatus = BackupStatus.Unknown,
+    /** true se non c'è nessuna moneta in collezione: non c'è niente da salvare e la card lo dice invece di invitare al backup. */
+    val localEmpty: Boolean = false,
     /** Data dell'ultimo backup noto a questo telefono (formattata), anche se Drive non è stato interrogato. */
     val lastBackupLocal: String? = null,
     /** Interruttore del salvataggio automatico. */
@@ -69,13 +72,15 @@ class BackupViewModel(
         viewModelScope.launch {
             combine(
                 service.observeStatus(),
+                service.observeIsEmpty(),
                 service.snapshots.snapshot,
                 autoBackup.enabled,
                 autoBackup.error,
-            ) { status, snapshot, auto, error ->
+            ) { status, empty, snapshot, auto, error ->
                 _state.update {
                     it.copy(
                         localStatus = status,
+                        localEmpty = empty,
                         lastBackupLocal = formatEpoch(snapshot?.exportedAt),
                         hasSnapshot = snapshot != null,
                         autoBackup = auto,
@@ -150,6 +155,9 @@ class BackupViewModel(
     private suspend fun execute(action: BackupAction, token: String, confirmed: Boolean = false) {
         when (action) {
             BackupAction.BACKUP -> {
+                // Prima di tutto: con la collezione vuota non c'è niente da salvare, e il dialog di
+                // sovrascrittura chiederebbe conferma per cancellare un backup buono con un backup vuoto.
+                if (service.isLocalEmpty()) throw BackupException(EMPTY_COLLECTION_MESSAGE)
                 // Un backup già presente si sovrascrive solo dopo conferma: su un telefono nuovo la
                 // collezione locale è vuota e cancellerebbe quella salvata. Il controllo sta qui, non
                 // nella UI, perché solo qui c'è il token (e il consenso Drive potrebbe non esserci ancora).
