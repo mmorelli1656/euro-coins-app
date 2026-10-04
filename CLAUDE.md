@@ -449,7 +449,15 @@ collezione su Drive.
   Il ripristino della versione precedente cancella l'istantanea (la collezione locale non
   coincide con l'attuale su Drive); la disconnessione pure (appartiene all'account). Scartato un
   pallino sull'ingranaggio della Home: con il backup automatico il caso "dimenticato per
-  settimane" quasi non esiste.
+  settimane" quasi non esiste. **Collezione vuota** (`BackupUiState.localEmpty`): la card non
+  invita a fare un backup (che non avrebbe senso, errore trovato dall'utente: "che senso ha farmi
+  fare il backup se non ci sono monete?") ma dice "Nothing to back up yet" / "Add coins to your
+  collection first.", o, se c'è un backup, "Collection is empty" + "Your last backup (data) is
+  still on Google Drive." (vale anche dopo un reset, al posto di "N changes not backed up").
+  "Back up now" a collezione vuota NON carica niente (`EMPTY_COLLECTION_MESSAGE`, controllato prima
+  del dialog di sovrascrittura e di nuovo in `BackupService.backup`): un backup vuoto non serve e
+  cancellerebbe quello buono. Conseguenza accettata: non si può svuotare di proposito il backup su
+  Drive dall'app.
 - **Salvataggio automatico** (`AutoBackup`, ottobre 2026): quando l'utente esce dall'app
   (`MainActivity.onStop`) e la collezione è cambiata (`Pending`), carica in silenzio il backup
   (token Drive senza schermate: `GoogleAccountManager.silentDriveToken`; se serve il consenso non
