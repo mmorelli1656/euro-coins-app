@@ -268,7 +268,15 @@ private fun <T> SegmentedChoice(
             SegmentedButton(
                 // Larghezza in proporzione all'etichetta, con un minimo: con tre segmenti uguali "Denominations"
                 // andava a capo, mentre "Years / Countries / All" e "System / Light / Dark" restano quasi pari.
-                modifier = Modifier.weight(label(option).length.coerceAtLeast(8).toFloat()),
+                // SIMMETRICA (il più largo tra un segmento e il suo opposto): con pesi diversi sui due lati
+                // il segmento di mezzo non sta al centro della barra.
+                modifier = Modifier.weight(
+                    maxOf(
+                        label(option).length,
+                        label(options[options.lastIndex - index]).length,
+                        8,
+                    ).toFloat(),
+                ),
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
