@@ -587,7 +587,14 @@ catalogo completo.
   sostituisce quelle URL con le pagine BCE per taglio (`coins/2euro`,
   `coins/1euro`, ...), uniformi a 540×540: **295 immagini su 303 sono ora
   `ecb`, le 8 del Lussemburgo restano `bcl`** (il Granduca Guglielmo non è
-  ancora sulla BCE). Per questo `RegularIssueImage` ha un proprio
+  ancora sulla BCE; **le immagini BCL sono 3 file di gruppo e quella di 1 e 2 euro,
+  `1-2-euro.png`, ha DUE monete affiancate (417×211)**: ritagliata a cerchio mostrava un pezzo di
+  ciascuna. Non esiste di meglio — la pagina BCE del Lussemburgo descrive ancora il Granduca Enrico,
+  Numista non è usabile —, quindi `RegularIssueImages.kt` (`withUsableImages`, applicata in lettura
+  in `RegularIssueRepository.series`, non al seeding: l'asset non cambia e non ripopolerebbe) toglie
+  quell'URL e mette il segnaposto generico, con anche fonte/licenza/credito dell'immagine vuoti
+  perché i crediti non accreditino una foto che non c'è. I centesimi della stessa serie sono monete
+  singole e restano. Da togliere quando la BCE pubblica le immagini vere). Per questo `RegularIssueImage` ha un proprio
   `fonteDati` (default `""`, vedi lezione sopra), distinto da quello della
   serie: testo (`RegularIssueSeries.fonteDati`, sempre dalla fonte EC) e
   immagini di una stessa sezione possono avere provenienza diversa. Il
@@ -1259,7 +1266,7 @@ fissa le scelte di abbinamento: Vaticano 2005 diviso tra le serie 1 e 2, Belgio 
 intervalli senza sovrapposizioni, Germania 4 miliardi, zecche come paese e deduplicate, zecca per anno
 (Lussemburgo/Slovenia con etichette, Italia/Germania/Austria senza; Grecia 2002 divisa, solo quella).
 `RegularYearMintsTest` e
-`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita ma ha le sue 8 righe, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `RegularProgressTest` i conti 24/24/48 e il totale 328; `RegularDenominationRowsTest` le righe per taglio (41 ciascuno, ordine, finestre, ricerca); `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
+`MintNamesTest` coprono `yearMintLabels()` e la mappa zecca → paese; `RegularVarietiesTest` la tabella EFS. `RegularSeriesDenominationsTest` (+ `RegularSeriesWindowTest`, nello stesso file) fissa gli 8 tagli di Francia serie 2/3 e Spagna serie 3, il Vaticano 2026 che non eredita ma ha le sue 8 righe, e le finestre senza sovrapposizioni (5 cent francese 1999-2021 / 2022-2023 / 2024-oggi); `SeriesPeriodTest` i periodi dei titoli; `RegularIssueTextTest` la frase tolta dalle descrizioni; `RegularIssueImagesTest` il segnaposto del Lussemburgo 1/2 euro (solo quelle due immagini cambiano nel catalogo); `RegularProgressTest` i conti 24/24/48 e il totale 328; `RegularDenominationRowsTest` le righe per taglio (41 ciascuno, ordine, finestre, ricerca); `SeriesTextLabelTest` (nello stesso file di `SeriesPeriodTest`) le etichette "ABOUT SERIES 1–3". Gli unit test che leggono gli
 asset non si rilanciano da soli se cambia l'asset: `:app:cleanTestDebugUnitTest`. Non ci sono test
 di UI
 né di backup (serve un account Google reale). Il lint non gira offline
