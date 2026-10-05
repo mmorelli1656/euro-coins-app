@@ -1115,8 +1115,8 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   lista di righe anno-più-prezzo da digitare, con "Add year" e rimozione, "troppo diversa" dall'altro
   pannello). Le tre card Standard/BU/Proof con il prezzo a destra sono la STESSA `FinishCard`
   (esportata da `CollectionSheet.kt`, non una copia: il campo prezzo squadrato a 12 dp è quello
-  vero, nel mockup avevo disegnato per sbaglio una pillola tonda). In cima "Year [2002 ▾]": una
-  pillola (controllo azionabile) che apre `YearGridDialog`.
+  vero, nel mockup avevo disegnato per sbaglio una pillola tonda). In cima "Year" e una STRISCIA di
+  chip degli anni (`YearStrip`, vedi sotto).
   - **L'anno si sceglie da una lista, non si scrive** (`regularYearOptions` in
     `data/RegularYearOptions.kt`): dal primo anno del taglio nella serie fino all'ultimo, o all'anno
     corrente se la serie è aperta. Niente anni impossibili né doppi (prima due righe con lo stesso
@@ -1133,17 +1133,19 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
     collezione il pannello si apre sulla prima voce posseduta.
   - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
     cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
-    cambia nulla. Accanto alla pillola "also: 2008, 2011" riassume gli altri anni in bozza.
-  - **`YearGridDialog`: griglia in una finestra** (variante B dopo mockup; scartata A, riga di chip
-    scorrevole, e il menu a tendina standard di Material, provato e bocciato sul telefono: lista
-    lunga a una colonna, grigio fuori palette, anni lontani solo scorrendo). Finestra centrata come
-    gli altri dialog (`AlertDialog`, `DialogTitle`, fondo `surface`), 5 colonne, celle con angoli
-    morbidi da 10 dp (contenuto da scegliere, non pillole), anno scelto in lilla
-    (`secondaryContainer`), puntino verde sugli anni con finiture spuntate, legenda "marked as
-    owned" (la bozza non salvata conta: "already in your collection" era sbagliato).
+    cambia nulla.
+  - **`YearStrip`: striscia di chip scorrevole nel pannello** (ottobre 2026, scelta dopo quattro
+    mockup; sostituisce `YearGridDialog`, la finestra con la griglia a 5 colonne, che era una finestra
+    sopra un pannello, un tocco in più e celle piccole). Stessi `FilterChip` della card COLLECTION del
+    dettaglio (rettangoli con angoli morbidi, scelto in lilla), un tocco per cambiare anno, il
+    pannello non cresce; puntino verde DAVANTI all'anno se ha finiture spuntate (la bozza non salvata
+    conta); si centra sull'anno scelto (`LazyRow` + `animateScrollToItem`) e attraversa il margine
+    laterale del pannello per far capire che scorre. Scartate: decenni + griglia nel pannello (+70 dp),
+    stepper con frecce, elenco verticale con le finiture. Prima ancora, scartati il menu a tendina
+    standard di Material (lista lunga, grigio fuori palette) e una riga di chip senza bordi.
   - **La varietà EFS è una voce a parte dell'elenco**, non un controllo in più: il 2002 greco ha
-    due celle, "2002" e "2002 EFS" (due monete, l'utente può averle entrambe). Così il pannello
-    resta tre card per finitura anche lì. Prima era un `FilterChip` sotto la riga dell'annata.
+    due chip, "2002" e "2002 EFS" subito dopo (due monete, l'utente può averle entrambe). Così il
+    pannello resta tre card per finitura anche lì.
   - **Card spuntata: solo bordo (2.5 dp pieno)**, mai fondo lilla: viene da `FinishCard`, quindi
     non può più restare indietro rispetto alle commemorative come era successo con la card
     duplicata.

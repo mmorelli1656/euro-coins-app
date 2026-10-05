@@ -7,6 +7,16 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -83,7 +93,7 @@ private data class DraftKey(val year: Int, val variety: String, val quality: Coi
  *   tocchi. Se qualcosa è già in collezione si apre sulla prima voce posseduta.
  * - **Bozza per anno + Save**: cambiare anno non perde le spunte e i prezzi inseriti, "Save" scrive
  *   tutti gli anni insieme, chiudere senza salvare non cambia nulla (come [CollectionSheet]). Gli
- *   anni con almeno una finitura in bozza hanno un ✓ nel menu e sono riassunti accanto al selettore.
+ *   anni con almeno una finitura in bozza hanno un puntino verde sul chip ([YearStrip]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,7 +167,7 @@ fun RegularCollectionSheet(
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
             )
 
-            YearSelector(
+            YearStrip(
                 options = options,
                 selected = selected,
                 withData = withData,
@@ -165,6 +175,7 @@ fun RegularCollectionSheet(
                 onSelect = { selected = it },
             )
 
+            Spacer(Modifier.height(8.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CoinQuality.entries.forEach { quality ->
                     val key = DraftKey(selected.year, selected.variety, quality)
@@ -207,12 +218,17 @@ fun RegularCollectionSheet(
 }
 
 /**
- * Riga "Year [2008 ▾]  also: 2011, 2015": la pillola (un controllo azionabile, come gli altri
- * dell'app) apre [YearGridDialog]. A destra, gli ALTRI anni già in bozza in una riga sola con
- * ellissi: dice a colpo d'occhio cosa verrà salvato senza aprire la finestra.
+ * Scelta dell'anno: una STRISCIA di chip scorrevole di lato, direttamente nel pannello (prima una pillola
+ * "Year" che apriva una finestra con una griglia a 5 colonne: una finestra sopra un pannello, un tocco in
+ * più per cambiare anno e celle piccole; scelta dell'utente dopo quattro mockup). Stessi chip della card
+ * COLLECTION del dettaglio (`FilterChip`: rettangoli con angoli morbidi, scelto in lilla). Un puntino
+ * verde davanti all'anno dice che ha già finiture spuntate (la bozza non salvata conta, come nella
+ * griglia). La varietà EFS del 2002 greco è un chip a parte subito dopo il 2002 ("2002 EFS"): sono due
+ * monete diverse. La striscia si centra sull'anno scelto e arriva fino ai bordi del pannello (i chip
+ * escono di lato invece di fermarsi sul margine), così si capisce che scorre.
  */
 @Composable
-private fun YearSelector(
+private fun YearStrip(
     options: List<YearOption>,
     selected: YearOption,
     withData: Set<YearOption>,
@@ -220,175 +236,57 @@ private fun YearSelector(
     onSelect: (YearOption) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    var open by remember { mutableStateOf(false) }
-    val others = withData.filter { it != selected }.sortedWith(compareBy({ it.year }, { it.variety }))
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-    ) {
-        Text(text = "Year", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = Color.Transparent,
-            border = BorderStroke(1.5.dp, colors.primary),
-            onClick = { open = true },
-            modifier = Modifier
-                .height(40.dp)
-                .semantics { contentDescription = "Year: ${selected.label}. Choose another year" },
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 16.dp, end = 10.dp),
-            ) {
-                Text(text = selected.label, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.width(2.dp))
-                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(20.dp))
-            }
-        }
-        if (others.isNotEmpty()) {
-            Text(
-                text = "also: " + others.joinToString(", ") { it.label.replace(" · EFS variety", " EFS") },
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
+    val listState = rememberLazyListState()
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val density = LocalDensity.current
+    // Centra l'anno scelto quando cambia (e alla prima apertura, appena il layout ha una larghezza).
+    LaunchedEffect(selected) {
+        snapshotFlow { listState.layoutInfo.viewportEndOffset }.first { it > 0 }
+        val info = listState.layoutInfo
+        val viewport = info.viewportEndOffset - info.viewportStartOffset
+        val itemWidth = info.visibleItemsInfo.firstOrNull { it.index == selectedIndex }?.size
+            ?: with(density) { 72.dp.roundToPx() }
+        listState.animateScrollToItem(selectedIndex, scrollOffset = -(viewport / 2 - itemWidth / 2))
     }
-    if (open) {
-        YearGridDialog(
-            options = options,
-            selected = selected,
-            withData = withData,
-            varietyDetail = varietyDetail,
-            onSelect = {
-                onSelect(it)
-                open = false
-            },
-            onDismiss = { open = false },
-        )
-    }
-}
-
-/** Colonne della griglia degli anni: 25 anni sono 5 righe piene, il Belgio (28 con le monete datate 1999-2001) una in più. */
-private const val YearGridColumns = 5
-
-/**
- * Scelta dell'anno: una finestra centrata (come gli altri dialog dell'app, stessa palette) con
- * TUTTI gli anni in una griglia a 5 colonne, senza scorrere una lista a colonna singola — il menu
- * a tendina standard di Material, scartato dopo averlo visto sul telefono: lungo, di un grigio
- * fuori palette, anni lontani irraggiungibili senza scorrere. Un tocco sceglie e chiude. L'anno
- * scelto è lilla (la selezione dell'app), quelli già in collezione hanno un puntino verde; la
- * varietà EFS è una cella a parte con "EFS" sotto l'anno. Celle con angoli morbidi, non pillole:
- * sono contenuto da scegliere, non un controllo azionabile a sé.
- */
-@Composable
-private fun YearGridDialog(
-    options: List<YearOption>,
-    selected: YearOption,
-    withData: Set<YearOption>,
-    varietyDetail: (YearOption) -> String?,
-    onSelect: (YearOption) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val colors = MaterialTheme.colorScheme
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = colors.surface,
-        title = { DialogTitle("Select year") },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                options.chunked(YearGridColumns).forEach { row ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    ) {
-                        row.forEach { option ->
-                            YearCell(
-                                option = option,
-                                isSelected = option == selected,
-                                hasData = option in withData,
-                                description = varietyDetail(option)?.takeIf { option.variety.isNotEmpty() },
-                                onClick = { onSelect(option) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        // l'ultima riga incompleta tiene le celle della stessa larghezza delle altre
-                        repeat(YearGridColumns - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
-                if (withData.isNotEmpty()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
-                        Box(Modifier.size(8.dp).background(colors.primary, CircleShape))
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "marked as owned",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
-    )
-}
-
-@Composable
-private fun YearCell(
-    option: YearOption,
-    isSelected: Boolean,
-    hasData: Boolean,
-    description: String?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(10.dp)
-    val borderColor = if (isSelected) colors.onSecondaryContainer.copy(alpha = 0.6f) else colors.onSurfaceVariant.copy(alpha = 0.4f)
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .heightIn(min = 44.dp)
-            .clip(shape)
-            .background(if (isSelected) colors.secondaryContainer else Color.Transparent)
-            .border(1.dp, borderColor, shape)
-            .clickable(onClick = onClick)
-            .semantics {
-                contentDescription = buildString {
-                    append(option.label)
-                    description?.let { append(", $it") }
-                    if (hasData) append(", marked as owned")
-                    if (isSelected) append(", selected")
-                }
+    Text(text = "Year", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+    LazyRow(
+        state = listState,
+        contentPadding = PaddingValues(horizontal = StripEdge),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+            // Esce di StripEdge per lato: il pannello ha 16 dp di margine e i chip devono arrivare al bordo.
+            .layout { measurable, constraints ->
+                val edge = StripEdge.roundToPx()
+                val width = constraints.maxWidth + 2 * edge
+                val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+                layout(constraints.maxWidth, placeable.height) { placeable.place(-edge, 0) }
             },
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = option.year.toString(),
-                style = MaterialTheme.typography.bodyMedium.copy(fontFeatureSettings = "tnum"),
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) colors.onSecondaryContainer else colors.onSurface,
-            )
-            if (option.variety.isNotEmpty()) {
-                Text(
-                    text = "EFS",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) colors.onSecondaryContainer else colors.onSurfaceVariant,
-                )
-            }
-        }
-        if (hasData) {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 5.dp, end = 5.dp)
-                    .size(6.dp)
-                    .background(colors.primary, CircleShape),
+        items(options, key = { "${it.year}|${it.variety}" }) { option ->
+            val hasData = option in withData
+            val isSelected = option == selected
+            val description = varietyDetail(option)?.takeIf { option.variety.isNotEmpty() }
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(option) },
+                label = { Text(if (option.variety.isEmpty()) "${option.year}" else "${option.year} ${option.variety}") },
+                leadingIcon = if (hasData) {
+                    { Box(Modifier.size(8.dp).background(colors.primary, CircleShape)) }
+                } else null,
+                modifier = Modifier.semantics {
+                    contentDescription = buildString {
+                        append(option.label)
+                        description?.let { append(", $it") }
+                        if (hasData) append(", marked as owned")
+                        if (isSelected) append(", selected")
+                    }
+                },
             )
         }
     }
 }
 
+/** Margine laterale del pannello che la striscia dei chip attraversa. */
+private val StripEdge = 16.dp
