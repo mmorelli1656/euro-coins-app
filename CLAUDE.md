@@ -178,7 +178,7 @@ app/src/main/java/com/michele/eurocoins/
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
-    ├── regular/               # Regular Issues: schede Countries/Denominations/All + elenco di un taglio + serie del paese + collezione per taglio
+    ├── regular/               # Regular Issues: schede Denominations/Countries/All + elenco di un taglio + serie del paese + collezione per taglio
     │                         # + RegularDenominationDetailScreen (dettaglio taglio, building
     │                         # block riusati da ui/detail/)
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
@@ -381,7 +381,7 @@ regge un pulsante pieno):
   (`UserSettings.defaultTab`, letto alla creazione del `BrowseViewModel`).
   Scartato il riordino completo dei segmenti: i segmenti restano Years /
   Countries / All. **Anche Regular Issues ha la sua** (`UserSettings.defaultRegularTab`, chiave
-  `default_regular_tab`, Countries / Denominations / All, predefinito Countries, letta alla creazione di
+  `default_regular_tab`, Denominations / Countries / All, predefinito Countries, letta alla creazione di
   `RegularIssuesViewModel`: cambiarla da Impostazioni vale dalla prossima apertura della schermata,
   come per Commemorative). `UserSettingsTest` copre ereditarietà e valore di ripiego.
 - **Rotate home coins** (sezione Appearance, interruttore, **acceso di default**;
@@ -632,7 +632,7 @@ catalogo completo.
 - **Navigazione**: `HomeScreen` → `RegularIssuesScreen` → `RegularIssueCountryScreen` (route
   `regular-issues/{paese}`, `Uri.encode` come per le commemorative) oppure
   `RegularDenominationListScreen` (route `regular-denominations/{taglio}`, vedi sotto).
-- **`RegularIssuesScreen`: tre schede, Countries / Denominations / All** (selettore segmentato come
+- **`RegularIssuesScreen`: tre schede, Denominations / Countries / All** (nell'ordine di Years / Countries / All di Commemorative: Denominations occupa il posto di Years, Countries resta in mezzo; il predefinito è comunque Countries; selettore segmentato come
   Years / Countries / All di Browse) **con la stessa barra flottante di ricerca + FILTER delle
   commemorative**, query/ordine/filtro propri di ogni scheda (`RegularGridPrefs`). Riusa i mattoni di
   `BrowseScreen.kt` (`BrowseCard`, `CardGrid`, `CardFooter`, `Progress.matches`, `FloatingSearchBar`,

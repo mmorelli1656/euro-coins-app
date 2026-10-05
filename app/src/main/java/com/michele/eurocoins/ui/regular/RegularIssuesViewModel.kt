@@ -32,7 +32,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class RegularBrowseMode { COUNTRIES, DENOMINATIONS, ALL }
+/** L'ordine è quello dei segmenti: Denominations al posto di Years, come in Commemorative (Years / Countries / All). */
+enum class RegularBrowseMode { DENOMINATIONS, COUNTRIES, ALL }
 
 /** [paese] è la chiave stabile usata per navigare, [name] il nome mostrato. */
 data class RegularIssueCountryCardData(
