@@ -354,7 +354,7 @@ regge un pulsante pieno):
 - **`SegmentedButton`** (Default tab, Theme): selezionato `secondaryContainer` (lilla),
   inattivo trasparente, bordo `onSurfaceVariant` al 40% — l'`outline` del tema scuro
   (`34351F`) è quasi uguale alla card e il bordo spariva —, `icon = {}` (la spunta di
-  default spostava l'etichetta e sbilanciava le larghezze) e larghezza in proporzione all'etichetta, SIMMETRICA (`weight(max(8, lunghezza propria, lunghezza del segmento opposto))`: con tre segmenti uguali "Denominations" andava a capo nelle Impostazioni, con pesi diversi sui due lati quello di mezzo non stava al centro; i selettori con etichette corte restano quasi pari). **Stessa
+  default spostava l'etichetta e sbilanciava le larghezze) e larghezza = testo MISURATO (`rememberTextMeasurer`, minimo 64 dp) + padding, SIMMETRICA (il più largo tra il segmento e il suo opposto): con tre segmenti uguali "Denominations" andava a capo nelle Impostazioni, con pesi diversi sui due lati quello di mezzo non stava al centro, e contando i caratteri "Countries" di mezzo andava a capo a sua volta; i selettori con etichette corte restano pari). **Stessa
   scelta nei selettori di Browse (Years / Countries / All) e di Regular Issues** (`icon = {}`): con
   la spunta "Years" risultava visibilmente decentrato; il segmento selezionato si riconosce già dal
   lilla.

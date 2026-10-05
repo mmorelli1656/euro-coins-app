@@ -51,7 +51,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.data.backup.BackupStatus
@@ -263,19 +265,20 @@ private fun <T> SegmentedChoice(
 ) {
     // L'outline del tema scuro (34351F) è quasi uguale alla card: il bordo dei segmenti usa onSurfaceVariant attenuato.
     val border = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+    // Larghezza di ogni segmento = larghezza MISURATA del testo (stile e dimensione carattere dell'utente) più il
+    // padding del segmento, con un minimo di 64 dp di testo: con tre segmenti uguali "Denominations" andava a
+    // capo, mentre i selettori con etichette corte (System / Light / Dark) restano pari. SIMMETRICA (il più
+    // largo tra un segmento e il suo opposto): con pesi diversi sui due lati il segmento di mezzo non sta al
+    // centro della barra. Contare i caratteri non bastava: "Countries" di mezzo andava a capo a sua volta.
+    val measurer = rememberTextMeasurer()
+    val textStyle = MaterialTheme.typography.labelLarge
+    val density = LocalDensity.current
+    val textWidths = options.map { with(density) { measurer.measure(label(it), textStyle, maxLines = 1).size.width.toDp() } }
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             SegmentedButton(
-                // Larghezza in proporzione all'etichetta, con un minimo: con tre segmenti uguali "Denominations"
-                // andava a capo, mentre "Years / Countries / All" e "System / Light / Dark" restano quasi pari.
-                // SIMMETRICA (il più largo tra un segmento e il suo opposto): con pesi diversi sui due lati
-                // il segmento di mezzo non sta al centro della barra.
                 modifier = Modifier.weight(
-                    maxOf(
-                        label(option).length,
-                        label(options[options.lastIndex - index]).length,
-                        8,
-                    ).toFloat(),
+                    maxOf(textWidths[index], textWidths[options.lastIndex - index], 64.dp).value + 2 * 12f,
                 ),
                 selected = option == selected,
                 onClick = { onSelect(option) },
