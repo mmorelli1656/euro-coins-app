@@ -594,7 +594,18 @@ catalogo completo.
   in `RegularIssueRepository.series`, non al seeding: l'asset non cambia e non ripopolerebbe) toglie
   quell'URL e mette il segnaposto generico, con anche fonte/licenza/credito dell'immagine vuoti
   perché i crediti non accreditino una foto che non c'è. I centesimi della stessa serie sono monete
-  singole e restano. Da togliere quando la BCE pubblica le immagini vere). Per questo `RegularIssueImage` ha un proprio
+  singole e restano. Da togliere quando la BCE pubblica le immagini vere). **Una sola immagine BCE ha lo sfondo NERO**,
+  `France_1euro_2022.jpg` (1 euro della serie 2022 e, per eredità, della 2024; segnalata dall'utente
+  come "strano riquadro nero" nel dettaglio; scansionati gli angoli di tutti i 295 URL BCE: le altre
+  hanno lo sfondo bianco o sono ritagliate a filo): sulla card bianca del dettaglio era un quadrato
+  nero (nell'elenco non si vede perché la miniatura è un cerchio). `RegularIssueImageTrim` rileva i
+  quattro angoli scuri (`hasDarkBackground`, `CoinDiscDetection.kt`), ricava il disco della moneta
+  (`findCoinDisc`: diametro = lato più lungo dei pixel non scuri, perché il bordo in alto e in basso è
+  più scuro: 537 px in larghezza e 527 in altezza) e lo ridisegna come cerchio anti-aliasing su fondo
+  TRASPARENTE (raggio −1,5 px: il jpeg sfuma verso il nero e lascerebbe un filo scuro); vale anche per
+  la fascia Home. Verificato sul telefono. `CoinDiscDetectionTest` copre la logica sui pixel; il
+  rendering con `Bitmap` non è testabile in JVM. Per questo `RegularIssueImage` ha un proprio
+
   `fonteDati` (default `""`, vedi lezione sopra), distinto da quello della
   serie: testo (`RegularIssueSeries.fonteDati`, sempre dalla fonte EC) e
   immagini di una stessa sezione possono avere provenienza diversa. Il
