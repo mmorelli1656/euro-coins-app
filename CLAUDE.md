@@ -312,7 +312,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   resterebbero orfane; per questo ogni voce conserva anche anno/paese/tema di
   quando è stata salvata. Soluzione definitiva: un id stabile emesso dalla
   pipeline dati.
-- **Migrazioni Room esplicite** (DB versione 9, `CoinDatabase.kt`), mai
+- **Migrazioni Room esplicite** (DB versione 10, `CoinDatabase.kt`), mai
   `fallbackToDestructiveMigration`: distruggerebbe anche la collezione
   dell'utente. `MIGRATION_1_2` (tabella `collection_items`), `MIGRATION_2_3`
   (`coins.emissioneComune`), `MIGRATION_3_4` (`coins.tiraturaNumista{Standard,Bu,Proof}`,
@@ -323,7 +323,9 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   (`CREATE TABLE regular_collection_items`, § Regular Issues — collezione
   utente sulle monete circolanti, stesso motivo), `MIGRATION_7_8` (`coins.numistaId`, nullable:
   il N# per i crediti Numista), `MIGRATION_8_9` (`regular_collection_items.variety` nella chiave primaria:
-  tabella ricostruita, vedi § Collezione su Regular Issues). **Una migrazione che aggiunge una colonna che il JSON già
+  tabella ricostruita, vedi § Collezione su Regular Issues), `MIGRATION_9_10` (`purchasedOn INTEGER`
+  nullable su `collection_items` e `regular_collection_items`, due ALTER senza DEFAULT: le voci
+  esistenti restano senza data; verificata sul telefono installando sopra la v9 popolata). **Una migrazione che aggiunge una colonna che il JSON già
   contiene (come la 8) NON cambia `coins.json`, quindi l'hash non farebbe ripopolare**:
   `CoinRepository.SEED_VERSION` entra nella chiave salvata (`hash:v2`) e va incrementata in
   quei casi. Ogni migrazione aggiunta va accodata,
@@ -334,8 +336,23 @@ nella card COLLECTION), così c'è un solo modo di registrare.
   far coincidere lo schema SQLite con l'entity Kotlin nel frattempo. Il SQL
   di ogni migrazione deve coincidere con quello generato da Room
   (`build/generated/ksp/.../CoinDatabase_Impl.kt`).
-- Non ancora fatto: note libere, data di acquisto, valuta diversa
-  dall'euro, export CSV.
+- **Data di acquisto** (ottobre 2026, `purchasedOn`, `PurchaseDates.kt`, `PurchaseDateButton`):
+  facoltativa e **vuota di default** (chi registra la collezione che ha già non ricorda quando ha
+  comprato: "oggi" sarebbe un dato sbagliato). Giorni dall'epoca (`LocalDate.toEpochDay()`), senza
+  ora né fuso. **UI = variante B dopo mockup**: un pulsante di SOLO TESTO con l'icona del calendario
+  ("Add date" verdigris, oppure la data in colore normale con una piccola ✕ che la toglie) sulla
+  riga che c'è già, così il pannello NON diventa più alto: sul sottotitolo "Paese · Anno" nelle
+  commemorative, sulla riga "Year" dopo la pillola nelle Regular. Scartate la riga intera sotto le
+  card (+32 px, sempre presente) e la data per ogni finitura (rendeva più alte tutte le card:
+  "appesantisce troppo il box", parere dell'utente). **Una sola data per moneta** (per annata e
+  varietà nelle Regular), valida per tutte le finiture spuntate; nel database è però salvata
+  PER VOCE, così un futuro modello a più esemplari (funzione Pro, non costruita: nessuna
+  domanda reale, Play Billing assente) potrà dare una data a ciascuno senza migrare. Il selettore
+  è quello di Material (`DatePickerDialog` con fondo `surface`): dal 1° gennaio 1999 a oggi, niente
+  date future. Nel dettaglio una riga sotto le finiture ("Bought 12 Mar 2026"; "Bought on 2
+  different dates" se differiscono; nelle Regular una riga per annata con data, "2002 EFS ·
+  Bought …"). La data conta come modifica per lo stato del backup e viaggia nel backup v3.
+  `PurchaseDatesTest`. Non ancora fatto: note libere, valuta diversa dall'euro, export CSV.
 
 ### Impostazioni
 
@@ -514,7 +531,10 @@ collezione su Drive.
 - **Formato**: un unico JSON versionato (`BackupFile`, `schemaVersion`) con
   le voci di `collection_items`, agganciate a `coinKey` (= `stableKey`) —
   mai il catalogo. JSON e non CSV perché deve poter crescere (note, data di
-  acquisto) senza rompere i backup vecchi. **Versione 2** (ottobre 2026): aggiunge
+  acquisto) senza rompere i backup vecchi. **Versione 3** (ottobre 2026): aggiunge `purchasedOn`
+  (facoltativo, default vuoto) a entrambi i tipi di voce; i file v1 e v2 si leggono ancora, con le voci
+  senza data, e un file v3 non si apre con un'app più vecchia (rifiutato come "più nuovo", meglio che
+  perdere le date in silenzio). **Versione 2** (ottobre 2026): aggiunge
   `regularItems` (`RegularBackupItem`: `seriesKey`, taglio, anno, qualità, varietà, prezzo,
   paese, `addedAt`), cioè `regular_collection_items`; prima Regular Issues non era nel backup e
   perdere il telefono voleva dire perdere tutte le righe. **Un file v1 si legge ancora ma NON
@@ -606,7 +626,6 @@ catalogo completo.
   TRASPARENTE (raggio −1,5 px: il jpeg sfuma verso il nero e lascerebbe un filo scuro); vale anche per
   la fascia Home. Verificato sul telefono. `CoinDiscDetectionTest` copre la logica sui pixel; il
   rendering con `Bitmap` non è testabile in JVM. Per questo `RegularIssueImage` ha un proprio
-
   `fonteDati` (default `""`, vedi lezione sopra), distinto da quello della
   serie: testo (`RegularIssueSeries.fonteDati`, sempre dalla fonte EC) e
   immagini di una stessa sezione possono avere provenienza diversa. Il
@@ -1729,7 +1748,7 @@ Nell'**app**:
 - **Regular Issues: righe "per anno" ancora non mostrate**: bucket `altro` di Numista (quasi
   sempre "In sets") e lettere di zecca per anno; il blocco DETAILS mostra la zecca del type
   principale, non quella di ogni anno.
-- Note libere e data di acquisto sulla collezione; valuta diversa dall'euro;
+- Note libere sulla collezione; valuta diversa dall'euro;
   export CSV.
 - **Data di emissione (mese) nel dettaglio**: oggi non c'è (non è salvata in nessun
   campo, vedi § dataset) e "zecca" nei dati coincide con il paese: per mostrarla

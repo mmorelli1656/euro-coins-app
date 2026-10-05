@@ -17,6 +17,8 @@ data class CollectionItem(
     val quality: CoinQuality,
     /** Prezzo pagato in centesimi di euro, se l'utente lo ha inserito. */
     val priceCents: Int? = null,
+    /** Giorno di acquisto (`LocalDate.toEpochDay()`), se l'utente lo ha inserito: vedi `PurchaseDates.kt`. */
+    val purchasedOn: Long? = null,
     val anno: Int,
     val paese: String,
     val tema: String,

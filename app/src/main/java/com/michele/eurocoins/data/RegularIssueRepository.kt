@@ -94,6 +94,7 @@ class RegularIssueRepository(
                     quality = entry.quality,
                     variety = entry.variety,
                     priceCents = entry.priceCents,
+                    purchasedOn = entry.purchasedOn,
                     paese = paese,
                     addedAt = existing[Triple(entry.anno, entry.quality, entry.variety)]?.addedAt ?: now,
                 )

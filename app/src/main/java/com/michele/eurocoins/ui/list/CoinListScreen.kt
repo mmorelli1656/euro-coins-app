@@ -139,8 +139,8 @@ fun CoinListContent(
         CollectionSheet(
             coin = coin,
             currentItems = state.collection[coin.stableKey].orEmpty(),
-            onSave = { entries ->
-                viewModel.onSaveCollection(coin, entries)
+            onSave = { entries, purchasedOn ->
+                viewModel.onSaveCollection(coin, entries, purchasedOn)
                 editing = null
             },
             onDismiss = { editing = null },

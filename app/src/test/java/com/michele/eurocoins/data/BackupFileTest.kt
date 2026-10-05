@@ -39,9 +39,29 @@ class BackupFileTest {
     fun regularItemsSurviveARoundTripWithVarietyAndPrice() {
         val file = BackupFile(exportedAt = 5L, items = listOf(commemorative), regularItems = listOf(regular.toBackupItem()))
         val back = BackupFile.decode(BackupFile.encode(file))
-        assertEquals(2, back.schemaVersion)
+        assertEquals(3, back.schemaVersion)
         assertEquals(listOf(regular), back.regularItems.map { it.toCollectionItem() })
         assertEquals(listOf(commemorative), back.items)
+    }
+
+    @Test
+    fun thePurchaseDateSurvivesARoundTripOnBothKinds() {
+        val withDate = regular.copy(purchasedOn = 20_000L)
+        val item = CollectionItem(coinKey = "k", quality = CoinQuality.BU, priceCents = 900, purchasedOn = 20_100L, anno = 2025, paese = "Andorra", tema = "T", addedAt = 1L)
+        val file = BackupFile(exportedAt = 5L, items = listOf(item.toBackupItem()), regularItems = listOf(withDate.toBackupItem()))
+        val back = BackupFile.decode(BackupFile.encode(file))
+        assertEquals(20_000L, back.regularItems.single().toCollectionItem()!!.purchasedOn)
+        assertEquals(20_100L, back.items.single().toCollectionItem()!!.purchasedOn)
+    }
+
+    @Test
+    fun aBackupWithoutDatesStillReadsAndTheDateIsEmpty() {
+        // I backup v1 e v2 non hanno il campo: le voci tornano senza data, non falliscono.
+        val v2 = """{"schemaVersion":2,"exportedAt":5,"items":[{"coinKey":"k","quality":"BU","anno":2010,"paese":"Italia","tema":"T","addedAt":1}],"regularItems":[{"seriesKey":"Italia|1","taglio":"1 cent","anno":2010,"quality":"STANDARD","paese":"Italia","addedAt":1}]}"""
+        val file = BackupFile.decode(v2)
+        assertNull(file.items.single().purchasedOn)
+        assertNull(file.regularItems.single().purchasedOn)
+        assertTrue(file.includesRegularIssues)
     }
 
     @Test

@@ -38,6 +38,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,7 +102,7 @@ private val PriceFieldHeight = 40.dp
 fun CollectionSheet(
     coin: Coin,
     currentItems: List<CollectionItem>,
-    onSave: (Map<CoinQuality, Int?>) -> Unit,
+    onSave: (Map<CoinQuality, Int?>, Long?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val checked = remember(coin.stableKey) {
@@ -111,6 +113,8 @@ fun CollectionSheet(
             }
         }
     }
+    // Una sola data per moneta, valida per tutte le finiture spuntate; facoltativa e vuota di default.
+    var purchasedOn by remember(coin.stableKey) { mutableStateOf(currentItems.firstNotNullOfOrNull { it.purchasedOn }) }
     val prices = remember(coin.stableKey) {
         mutableStateMapOf<CoinQuality, String>().apply {
             CoinQuality.entries.forEach { quality ->
@@ -142,12 +146,19 @@ fun CollectionSheet(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
-            Text(
-                text = "${coin.displayCountry()} · ${coin.anno}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-            )
+            // La data di acquisto sta sulla riga del sottotitolo: non aggiunge altezza al pannello.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 6.dp),
+            ) {
+                Text(
+                    text = "${coin.displayCountry()} · ${coin.anno}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                PurchaseDateButton(epochDay = purchasedOn, onChange = { purchasedOn = it })
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CoinQuality.entries.forEach { quality ->
@@ -173,6 +184,7 @@ fun CollectionSheet(
                             CoinQuality.entries
                                 .filter { checked[it] == true }
                                 .associateWith { parsePriceCents(prices[it].orEmpty()) },
+                            purchasedOn,
                         )
                     },
                 ) { Text("Save") }

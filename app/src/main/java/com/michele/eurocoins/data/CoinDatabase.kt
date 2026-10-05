@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [Coin::class, CollectionItem::class, RegularIssueSeries::class, RegularCollectionItem::class],
-    version = 9,
+    version = 10,
     exportSchema = false,
 )
 @TypeConverters(RegularIssueConverters::class)
@@ -135,6 +135,15 @@ abstract class CoinDatabase : RoomDatabase() {
             }
         }
 
+        // Data di acquisto facoltativa su entrambe le tabelle di collezione: colonne nuove, nullable,
+        // senza DEFAULT (come le migrazioni 3->4 e 4->5): le voci esistenti restano senza data.
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `collection_items` ADD COLUMN `purchasedOn` INTEGER")
+                db.execSQL("ALTER TABLE `regular_collection_items` ADD COLUMN `purchasedOn` INTEGER")
+            }
+        }
+
         @Volatile private var instance: CoinDatabase? = null
 
         fun getInstance(context: Context): CoinDatabase =
@@ -143,7 +152,7 @@ abstract class CoinDatabase : RoomDatabase() {
                     context.applicationContext,
                     CoinDatabase::class.java,
                     "coins.db",
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10).build().also { instance = it }
             }
     }
 }

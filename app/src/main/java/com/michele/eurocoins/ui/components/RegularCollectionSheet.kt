@@ -116,6 +116,13 @@ fun RegularCollectionSheet(
             currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = formatPrice(it.priceCents) }
         }
     }
+    // Una data per annata (e varietà), valida per le finiture spuntate di quell'annata; facoltativa, vuota di default.
+    val dates = remember(stateKey) {
+        mutableStateMapOf<YearOption, Long?>().apply {
+            currentItems.groupBy { YearOption(it.anno, it.variety) }
+                .forEach { (option, items) -> this[option] = items.firstNotNullOfOrNull { it.purchasedOn } }
+        }
+    }
     val withData: Set<YearOption> = checked.filterValues { it }.keys.map { YearOption(it.year, it.variety) }.toSet()
 
     ModalBottomSheet(
@@ -154,6 +161,8 @@ fun RegularCollectionSheet(
                 withData = withData,
                 varietyDetail = { series.varietyFor(denomination.taglio, it.year)?.detail },
                 onSelect = { selected = it },
+                date = dates[selected],
+                onDateChange = { dates[selected] = it },
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -184,6 +193,7 @@ fun RegularCollectionSheet(
                                     quality = key.quality,
                                     priceCents = parsePriceCents(prices[key].orEmpty()),
                                     variety = key.variety,
+                                    purchasedOn = dates[YearOption(key.year, key.variety)],
                                 )
                             },
                         )
@@ -206,6 +216,8 @@ private fun YearSelector(
     withData: Set<YearOption>,
     varietyDetail: (YearOption) -> String?,
     onSelect: (YearOption) -> Unit,
+    date: Long?,
+    onDateChange: (Long?) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     var open by remember { mutableStateOf(false) }
@@ -234,6 +246,8 @@ private fun YearSelector(
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(20.dp))
             }
         }
+        // Dopo la pillola: la data è dell'annata scelta, e sta sulla riga che c'è già (nessuna altezza in più).
+        PurchaseDateButton(epochDay = date, onChange = onDateChange)
         if (others.isNotEmpty()) {
             Text(
                 text = "also: " + others.joinToString(", ") { it.label.replace(" · EFS variety", " EFS") },

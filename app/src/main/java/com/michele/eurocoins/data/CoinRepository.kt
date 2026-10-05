@@ -68,7 +68,7 @@ class CoinRepository(
      * -> prezzo in centesimi, null se non indicato); le qualità non presenti
      * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti.
      */
-    suspend fun saveCollection(coin: Coin, entries: Map<CoinQuality, Int?>) {
+    suspend fun saveCollection(coin: Coin, entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
         val key = coin.stableKey
         val existing = collectionDao.itemsFor(key).associateBy { it.quality }
         val now = System.currentTimeMillis()
@@ -79,6 +79,7 @@ class CoinRepository(
                     coinKey = key,
                     quality = quality,
                     priceCents = priceCents,
+                    purchasedOn = purchasedOn,
                     anno = coin.anno,
                     paese = coin.paese,
                     tema = coin.tema,

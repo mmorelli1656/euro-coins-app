@@ -60,6 +60,18 @@ class BackupStatusTest {
     }
 
     @Test
+    fun settingOrChangingThePurchaseDateCountsAsAChange() {
+        val before = listOf(item("a"), item("b"))
+        // Data aggiunta a "a", data cambiata... : ogni voce modificata e' una modifica da salvare.
+        val dated = listOf(item("a").copy(purchasedOn = 20_000L), item("b"))
+        assertEquals(BackupStatus.Pending(1), backupStatus(snapshot(before, emptyList()), dated, emptyList()))
+        val redated = listOf(item("a").copy(purchasedOn = 20_001L), item("b"))
+        assertEquals(BackupStatus.Pending(1), backupStatus(snapshot(dated, emptyList()), redated, emptyList()))
+        // E tolta torna uguale al backup originale.
+        assertEquals(BackupStatus.UpToDate, backupStatus(snapshot(before, emptyList()), before, emptyList()))
+    }
+
+    @Test
     fun aResetShowsAsAllEntriesRemoved() {
         val before = listOf(item("a"), item("b"))
         assertEquals(BackupStatus.Pending(2), backupStatus(snapshot(before, emptyList()), emptyList(), emptyList()))

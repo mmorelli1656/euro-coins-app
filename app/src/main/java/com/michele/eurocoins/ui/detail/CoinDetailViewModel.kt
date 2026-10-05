@@ -41,9 +41,9 @@ class CoinDetailViewModel(
         }
     }
 
-    fun onSaveCollection(entries: Map<CoinQuality, Int?>) {
+    fun onSaveCollection(entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
         val coin = _coin.value ?: return
-        viewModelScope.launch { repository.saveCollection(coin, entries) }
+        viewModelScope.launch { repository.saveCollection(coin, entries, purchasedOn) }
     }
 }
 

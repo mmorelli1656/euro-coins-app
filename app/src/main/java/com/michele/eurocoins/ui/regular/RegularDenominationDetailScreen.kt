@@ -73,6 +73,7 @@ import coil3.request.transformations
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
+import com.michele.eurocoins.data.regularPurchaseLines
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.displayCoinDescription
@@ -657,6 +658,14 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
                     )
                 }
             }
+        }
+        regularPurchaseLines(items).forEach { line ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(top = 10.dp, start = 4.dp),
+            )
         }
         TextButton(
             onClick = onEdit,

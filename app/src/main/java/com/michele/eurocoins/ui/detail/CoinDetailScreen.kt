@@ -94,6 +94,7 @@ import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
+import com.michele.eurocoins.data.commemorativePurchaseLines
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayDesigner
@@ -150,8 +151,8 @@ fun CoinDetailScreen(
             CollectionSheet(
                 coin = currentCoin,
                 currentItems = items,
-                onSave = { entries ->
-                    viewModel.onSaveCollection(entries)
+                onSave = { entries, purchasedOn ->
+                    viewModel.onSaveCollection(entries, purchasedOn)
                     showSheet = false
                 },
                 onDismiss = { showSheet = false },
@@ -754,6 +755,14 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
                     )
                 }
             }
+        }
+        commemorativePurchaseLines(items).forEach { line ->
+            Text(
+                text = line,
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(top = 10.dp, start = 4.dp),
+            )
         }
         TextButton(
             onClick = onEdit,

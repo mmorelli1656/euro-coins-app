@@ -30,9 +30,17 @@ data class RegularCollectionItem(
     val variety: String = "",
     /** Prezzo pagato in centesimi di euro, se l'utente lo ha inserito. */
     val priceCents: Int? = null,
+    /** Giorno di acquisto (`LocalDate.toEpochDay()`), se l'utente lo ha inserito: vedi `PurchaseDates.kt`. */
+    val purchasedOn: Long? = null,
     val paese: String,
     val addedAt: Long,
 )
 
 /** Un'annata inserita nel pannello di collezione, prima di essere salvata come [RegularCollectionItem]. */
-data class RegularCollectionEntry(val anno: Int, val quality: CoinQuality, val priceCents: Int?, val variety: String = "")
+data class RegularCollectionEntry(
+    val anno: Int,
+    val quality: CoinQuality,
+    val priceCents: Int?,
+    val variety: String = "",
+    val purchasedOn: Long? = null,
+)

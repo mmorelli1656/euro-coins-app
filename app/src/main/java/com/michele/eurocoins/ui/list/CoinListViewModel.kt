@@ -129,8 +129,8 @@ class CoinListViewModel(
         options.value = newOptions
     }
 
-    fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, Int?>) {
-        viewModelScope.launch { repository.saveCollection(coin, entries) }
+    fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
+        viewModelScope.launch { repository.saveCollection(coin, entries, purchasedOn) }
     }
 }
 

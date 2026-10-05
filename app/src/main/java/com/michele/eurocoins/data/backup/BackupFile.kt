@@ -34,7 +34,7 @@ data class BackupFile(
     val includesRegularIssues: Boolean get() = schemaVersion >= 2
 
     companion object {
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
 
         private val json = Json {
             ignoreUnknownKeys = true
@@ -64,6 +64,7 @@ data class BackupItem(
     /** Nome dell'enum [CoinQuality] (`STANDARD`, `BU`, `PROOF`). */
     val quality: String,
     val priceCents: Int? = null,
+    val purchasedOn: Long? = null,
     val anno: Int,
     val paese: String,
     val tema: String,
@@ -74,6 +75,7 @@ fun CollectionItem.toBackupItem() = BackupItem(
     coinKey = coinKey,
     quality = quality.name,
     priceCents = priceCents,
+    purchasedOn = purchasedOn,
     anno = anno,
     paese = paese,
     tema = tema,
@@ -87,6 +89,7 @@ fun BackupItem.toCollectionItem(): CollectionItem? {
         coinKey = coinKey,
         quality = parsed,
         priceCents = priceCents,
+        purchasedOn = purchasedOn,
         anno = anno,
         paese = paese,
         tema = tema,
@@ -107,6 +110,7 @@ data class RegularBackupItem(
     val quality: String,
     val variety: String = "",
     val priceCents: Int? = null,
+    val purchasedOn: Long? = null,
     val paese: String,
     val addedAt: Long,
 )
@@ -118,6 +122,7 @@ fun RegularCollectionItem.toBackupItem() = RegularBackupItem(
     quality = quality.name,
     variety = variety,
     priceCents = priceCents,
+    purchasedOn = purchasedOn,
     paese = paese,
     addedAt = addedAt,
 )
@@ -132,6 +137,7 @@ fun RegularBackupItem.toCollectionItem(): RegularCollectionItem? {
         quality = parsed,
         variety = variety,
         priceCents = priceCents,
+        purchasedOn = purchasedOn,
         paese = paese,
         addedAt = addedAt,
     )
