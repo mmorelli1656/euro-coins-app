@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.FilterSheet
+import com.michele.eurocoins.ui.components.FloatingBarState
 import com.michele.eurocoins.ui.components.FloatingSearchBar
 import com.michele.eurocoins.ui.components.MultiChoiceSection
 import dev.chrisbanes.haze.HazeState
@@ -53,6 +54,7 @@ fun BoxScope.CoinListSearchBar(
     viewModel: CoinListViewModel,
     placeholder: String,
     hazeState: HazeState,
+    barState: FloatingBarState,
 ) {
     val state by viewModel.uiState.collectAsState()
     var showFilters by remember { mutableStateOf(false) }
@@ -64,6 +66,7 @@ fun BoxScope.CoinListSearchBar(
         filterActive = state.options.isActive,
         onFilterClick = { showFilters = true },
         hazeState = hazeState,
+        barState = barState,
         modifier = Modifier.align(Alignment.BottomCenter),
     )
 

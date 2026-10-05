@@ -56,7 +56,9 @@ import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.michele.eurocoins.ui.components.floatingBarClearance
+import com.michele.eurocoins.ui.components.rememberFloatingBarState
 import com.michele.eurocoins.ui.list.CoinListContent
 import com.michele.eurocoins.ui.list.CoinListSearchBar
 import com.michele.eurocoins.ui.list.CoinListViewModel
@@ -101,7 +103,14 @@ fun BrowseScreen(
             )
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+        // Una barra per scheda: cambiando scheda lo stato riparte "visibile".
+        val barState = rememberFloatingBarState(state.mode)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .nestedScroll(barState.connection),
+        ) {
             Column {
                 ModeSelector(
                     selected = state.mode,
@@ -181,6 +190,7 @@ fun BrowseScreen(
                     filterActive = state.prefs.yearsFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
+                    barState = barState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
                 BrowseMode.COUNTRIES -> FloatingSearchBar(
@@ -190,12 +200,14 @@ fun BrowseScreen(
                     filterActive = state.prefs.countriesFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
+                    barState = barState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
                 BrowseMode.ALL -> CoinListSearchBar(
                     viewModel = allCoinsViewModel,
                     placeholder = "Theme, country, year…",
                     hazeState = hazeState,
+                    barState = barState,
                 )
             }
         }

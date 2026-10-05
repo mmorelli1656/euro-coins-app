@@ -34,7 +34,9 @@ import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.michele.eurocoins.ui.components.floatingBarClearance
+import com.michele.eurocoins.ui.components.rememberFloatingBarState
 import com.michele.eurocoins.ui.theme.appBarColors
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -72,7 +74,13 @@ fun RegularDenominationListScreen(
             )
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+        val barState = rememberFloatingBarState()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .nestedScroll(barState.connection),
+        ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().hazeSource(hazeState),
                 contentPadding = PaddingValues(top = 4.dp, bottom = floatingBarClearance()),
@@ -115,6 +123,7 @@ fun RegularDenominationListScreen(
                 filterActive = state.filterActive,
                 onFilterClick = { showFilters = true },
                 hazeState = hazeState,
+                barState = barState,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )
         }

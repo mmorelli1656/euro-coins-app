@@ -72,7 +72,9 @@ import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.michele.eurocoins.ui.components.floatingBarClearance
+import com.michele.eurocoins.ui.components.rememberFloatingBarState
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -100,7 +102,13 @@ fun CoinListScreen(
             )
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+        val barState = rememberFloatingBarState()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .nestedScroll(barState.connection),
+        ) {
             CoinListContent(
                 viewModel = viewModel,
                 onCoinClick = onCoinClick,
@@ -114,6 +122,7 @@ fun CoinListScreen(
                     is CoinFilter.Country -> "Theme or year…"
                 },
                 hazeState = hazeState,
+                barState = barState,
             )
         }
     }

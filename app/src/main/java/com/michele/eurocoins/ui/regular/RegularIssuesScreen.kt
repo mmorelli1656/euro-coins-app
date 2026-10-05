@@ -49,7 +49,9 @@ import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
 import com.michele.eurocoins.ui.components.MultiChoiceSection
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.michele.eurocoins.ui.components.floatingBarClearance
+import com.michele.eurocoins.ui.components.rememberFloatingBarState
 import com.michele.eurocoins.ui.theme.appBarColors
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -89,7 +91,14 @@ fun RegularIssuesScreen(
             )
         },
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding())) {
+        // Una barra per scheda: cambiando scheda lo stato riparte "visibile".
+        val barState = rememberFloatingBarState(state.mode)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .nestedScroll(barState.connection),
+        ) {
             Column {
                 ModeSelector(
                     selected = state.mode,
@@ -199,6 +208,7 @@ fun RegularIssuesScreen(
                     filterActive = state.prefs.countriesFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
+                    barState = barState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
                 RegularBrowseMode.DENOMINATIONS -> FloatingSearchBar(
@@ -208,6 +218,7 @@ fun RegularIssuesScreen(
                     filterActive = state.prefs.denominationsFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
+                    barState = barState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
                 RegularBrowseMode.ALL -> FloatingSearchBar(
@@ -217,6 +228,7 @@ fun RegularIssuesScreen(
                     filterActive = state.prefs.allFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
+                    barState = barState,
                     modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }

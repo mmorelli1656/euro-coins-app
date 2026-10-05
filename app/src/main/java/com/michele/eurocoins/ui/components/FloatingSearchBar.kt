@@ -30,7 +30,15 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.runtime.setValue
@@ -57,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
+import kotlin.math.roundToInt
 
 private val BarHeight = 72.dp
 private val BarBottomMargin = 24.dp
@@ -74,6 +83,52 @@ fun floatingBarClearance(): Dp {
     return BarHeight + BarBottomMargin + 16.dp + insets.asPaddingValues().calculateBottomPadding()
 }
 
+private val HideAfterScroll = 40.dp
+private val ShowAfterScroll = 16.dp
+private val BarEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+
+/**
+ * Se la barra è nascosta: scorrere la lista verso il basso la fa uscire dal bordo, scorrere verso
+ * l'alto (o tornare in cima) la riporta. Chi sfoglia in fretta non se la trova sopra le righe.
+ * Le soglie evitano che un tremolio del dito la faccia lampeggiare; contano solo gli spostamenti
+ * REALI della lista (`consumed`), quindi una lista che non scorre la lascia sempre visibile.
+ *
+ * Lo stato va creato dalla schermata ([rememberFloatingBarState]), messo con `nestedScroll` su un
+ * antenato sia della lista sia della barra (il Box che li contiene) e passato alla barra.
+ */
+@Stable
+class FloatingBarState internal constructor(private val hidePx: Float, private val showPx: Float) {
+    var hidden by mutableStateOf(false)
+        private set
+
+    fun show() {
+        hidden = false
+    }
+
+    // Spostamento accumulato nella direzione corrente: negativo = la lista scorre verso il basso.
+    private var travel = 0f
+
+    val connection = object : NestedScrollConnection {
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            val dy = consumed.y
+            if (dy == 0f) return Offset.Zero
+            if (dy * travel < 0f) travel = 0f
+            travel += dy
+            if (travel < -hidePx) hidden = true else if (travel > showPx) hidden = false
+            return Offset.Zero
+        }
+    }
+}
+
+/** [keys] cambiati (es. scheda diversa di Browse) riportano la barra visibile. */
+@Composable
+fun rememberFloatingBarState(vararg keys: Any?): FloatingBarState {
+    val density = LocalDensity.current
+    return remember(density, *keys) {
+        FloatingBarState(hidePx = with(density) { HideAfterScroll.toPx() }, showPx = with(density) { ShowAfterScroll.toPx() })
+    }
+}
+
 /**
  * Barra a pillola fissa in basso: ricerca a sinistra, divisore, pulsante
  * FILTER a destra. Lo sfondo è vetro smerigliato: [hazeState] deve essere lo
@@ -81,7 +136,8 @@ fun floatingBarClearance(): Dp {
  * Android 12 (niente RenderEffect) resta il solo fondo semitrasparente.
  *
  * Va posta in un Box a schermo intero con `Modifier.align(BottomCenter)`;
- * sale da sola sopra la tastiera.
+ * sale da sola sopra la tastiera e scivola fuori scorrendo ([barState]); con
+ * la tastiera aperta resta sempre visibile.
  */
 @Composable
 fun FloatingSearchBar(
@@ -91,6 +147,7 @@ fun FloatingSearchBar(
     filterActive: Boolean,
     onFilterClick: () -> Unit,
     hazeState: HazeState,
+    barState: FloatingBarState,
     modifier: Modifier = Modifier,
 ) {
     val onSurface = MaterialTheme.colorScheme.onSurface
@@ -116,16 +173,28 @@ fun FloatingSearchBar(
     // insets: il sistema li anima insieme alla tastiera, quindi la barra parte
     // e si muove con lei, senza ritardo.
     val density = LocalDensity.current
-    val liftPx = maxOf(
-        WindowInsets.navigationBars.getBottom(density),
-        WindowInsets.ime.getBottom(density),
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val liftPx = maxOf(WindowInsets.navigationBars.getBottom(density), imeBottom)
+
+    // Nascosta solo se la lista è stata scorsa verso il basso E la tastiera è chiusa. Si guarda la
+    // tastiera e non il focus: il campo tiene il focus anche dopo averla chiusa col tasto indietro,
+    // e la barra non si nasconderebbe più. Il fuoco sul campo la rimostra (vedi sotto), così dopo
+    // aver scritto non scivola via davanti ai risultati.
+    val hidden = barState.hidden && imeBottom == 0
+    val hideProgress by animateFloatAsState(
+        targetValue = if (hidden) 1f else 0f,
+        animationSpec = tween(300, easing = BarEasing),
+        label = "barHide",
     )
+    // Scivola con `offset` (layout) e non con graphicsLayer: Haze legge la posizione dal layout, come
+    // per il sollevamento sopra la tastiera. Percorso = altezza del Box (zona morta + pillola + margine).
+    val hideTravelPx = with(density) { (BarDeadZone + BarHeight + BarBottomMargin).roundToPx() }
 
     // La zona morta è il Box esterno: assorbe i tocchi nel margine attorno alla
     // pillola (larga tutto lo schermo) così non finiscono sulle monete vicine.
     Box(
         modifier = modifier
-            .offset { IntOffset(0, -liftPx) }
+            .offset { IntOffset(0, -liftPx + (hideProgress * (liftPx + hideTravelPx)).roundToInt()) }
             .fillMaxWidth()
             .pointerInput(Unit) { detectTapGestures { } }
             .padding(start = BarSideMargin, end = BarSideMargin, top = BarDeadZone, bottom = BarBottomMargin),
@@ -186,7 +255,10 @@ fun FloatingSearchBar(
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
-                        modifier = Modifier.fillMaxWidth().focusRequester(focusRequester),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .onFocusChanged { if (it.isFocused) barState.show() },
                     )
                 }
                 if (field.text.isNotEmpty()) {
