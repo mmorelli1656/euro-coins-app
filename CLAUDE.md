@@ -92,24 +92,21 @@ interamente nella pipeline.
    hash SHA-256 dell'asset, SharedPreferences separate `regular_issues_dataset`)
    e stessa scelta sulle immagini (hotlink, non bundlate).
 
-   **L'asset COMMITTATO è l'export `-ExcludeNumista`** (testo BCE, nessuna
-   tiratura/zecca/incisore/disegnatore): il repo `euro-coins-app` è PUBBLICO su
-   GitHub (verificato il 2026-10-03; la pipeline è privata) e pubblicarvi dati
-   Numista sarebbe distribuzione, vietata dai Termini API (§3/§11). Decisione
-   del proprietario dopo aver visto che il repo era pubblico. Per provare
-   l'app sul telefono con i dati completi si rilancia lo script SENZA
-   `-ExcludeNumista`, si installa, e prima di committare si rigenera con
-   `-ExcludeNumista` (o `git checkout app/src/main/assets/regular_issues.json`):
-   **mai committare l'export completo**. **Errore già fatto più volte: installare
-   sul telefono l'APK costruita con l'asset committato** (ridotto) — tirature, zecche
-   per anno e testi Numista non compaiono e sembra che manchino. Per ogni prova sul
-   telefono: script completo → build → install, e prima di committare
-   `git checkout` dell'asset (poi rilanciare i test sullo stato committato: i 7 test
-   Numista saltano, è normale). Il codice dell'app per tirature, DETAILS
-   e "Source: Numista" resta nel repo ed è inerte senza i dati (card "—", niente
-   riga Numista); `RegularIssuesAssetTest` salta i test sui dati Numista se
-   l'asset è quello ridotto.
-
+   **L'asset COMMITTATO è l'export COMPLETO** (senza `-ExcludeNumista`: testo Numista,
+   tirature, zecche per anno, incisore, disegnatore). **Decisione del proprietario del
+   2026-10-05, che ribalta la precedente**: il repo `euro-coins-app` è PUBBLICO su GitHub
+   (verificato il 2026-10-03; la pipeline è privata) e pubblicarvi dati Numista è
+   distribuzione, che i Termini API vietano (§3/§11) — rischio noto e accettato
+   consapevolmente (§ Backlog, "Gate da ricontrollare"), come per `coins.json`, già
+   pubblicato con dati Numista. La cronologia git conserva comunque le versioni precedenti
+   (ridotte): un eventuale ritorno al piano B vale solo da lì in poi. **Piano B sempre
+   pronto**: `scripts\export-regular-issues.ps1 -ExcludeNumista` scrive l'export senza
+   dati Numista (testo BCE soltanto) e l'app lo gestisce (card "—", niente riga Numista,
+   `RegularIssuesAssetTest` salta i 7 test sui dati Numista); in quel caso va ricordato che
+   installare sul telefono un'APK costruita con l'asset ridotto fa sembrare che tirature,
+   zecche per anno e testi Numista manchino. Nell'app restano comunque visibili "Source:
+   Numista N#…" e il link (§4 dei Termini API). Dopo ogni modifica ai dataset della pipeline
+   si rilancia lo script (senza opzioni) e si committa l'asset.
 ## Stack tecnico
 
 - Kotlin, Jetpack Compose (Material 3) — nessuna View/XML per la UI
@@ -783,7 +780,7 @@ catalogo completo.
     attribuire). Lavoro nella pipeline (scraper + abbinamento avviso → serie per paese e anno +
     export che preferisce il testo per serie): nessuna modifica all'app, la card funziona già e
     `seriesTextLabel` diventa il ripiego per le serie senza fonte propria. Copertura non ancora
-    verificata. Numista resta esclusa dall'asset pubblico.
+    verificata. (Numista non è più esclusa dall'asset pubblico dal 2026-10-05, § Come i dati arrivano nell'app.)
     **`displayDescription()`** (`RegularIssueText.kt`) toglie la frase standard "The coin's outer
     ring depicts the 12 stars of the European flag." (identica in 7 serie su 41, uguale su tutte
     le monete: non dice niente della serie) SOLO in visualizzazione, `descrizione` resta com'è nel
@@ -980,7 +977,7 @@ catalogo completo.
     (`zecche_anno`/`zecche_anno_probabili` per anno: lettera, marchio, commento, tabelle ufficiali
     di banche centrali, regole nazionali; livello "probabile" da Wikipedia/inferenza dichiarata;
     3731 combinazioni certe, 126 probabili, 63 senza zecca, tutte Lettonia) ed è nello stesso
-    `-ExcludeNumista` delle tirature: l'asset committato non la porta e la tabella resta com'era.
+    stesso export delle tirature (con `-ExcludeNumista` non c'è e la tabella resta com'era).
     Un anno senza voce = zecca NON nota ("not known"), mai "nessuna zecca" (regola 7 della
     pipeline: il probabile non va mai presentato come certo). **UI**: nella tabella "by year"
     un'etichetta pillola `Mint · Finland` sopra il primo anno di ogni periodo con la stessa
@@ -1122,8 +1119,8 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   drop, rename) — verificata sul telefono installando sopra la v8 popolata (5 voci regolari e 96
   commemorative intatte, `PRAGMA integrity_check` ok). **Dove si offre**: tabella FISSA in codice
   (`RegularVarieties.kt`, `RegularIssueSeries.varietyFor(taglio, anno)`: Grecia, serie 1, 2002,
-  lettera per taglio), NON derivata da `zecchePerAnno`, che è dato Numista escluso dall'asset
-  committato: la funzione sparirebbe nell'app pubblica; un test sul dataset completo controlla che
+  lettera per taglio), NON derivata da `zecchePerAnno`, che è dato Numista, assente con
+  l'export `-ExcludeNumista`: la funzione sparirebbe con il piano B; un test sul dataset completo controlla che
   le lettere coincidano con la zecca estera del dato. **UI**: vedi `YearOption` sopra, una voce
   "2002 · EFS variety" nell'elenco degli anni (con "letter S in the star" nell'accessibilità). La
   card COLLECTION del dettaglio mostra "Standard · 2002 · EFS". Il conteggio "N years owned" della
@@ -1773,7 +1770,7 @@ Nell'**app**:
   testo del taglio; la regola 6 della pipeline dice esplicitamente "niente dati Numista
   nell'app senza autorizzazione scritta" — scelta consapevole del proprietario, stessa
   logica del rischio già accettato). Per le divisionali il piano B è già pronto:
-  `scripts/export-regular-issues.ps1 -ExcludeNumista` — **ed è quello committato**: `euro-coins-app` è un repo pubblico, quindi `regular_issues.json` su GitHub non contiene dati Numista (`coins.json` sì, già pushato in precedenza: da ridecidere). Nell'app restano visibili "Source:
+  `scripts/export-regular-issues.ps1 -ExcludeNumista` — **ma dal 2026-10-05 l'asset committato è l'export COMPLETO** (decisione del proprietario, repo pubblico: `regular_issues.json` e `coins.json` su GitHub contengono dati Numista, rischio noto e accettato). Nell'app restano visibili "Source:
   Numista N#…" e il link (§4 dei Termini API).
 - Backup: fatto il confronto con la collezione locale ("Up to date"), il salvataggio automatico e
   la versione precedente su Drive (§ Backup su Google Drive). Non verificati end-to-end con un account
