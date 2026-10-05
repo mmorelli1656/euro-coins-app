@@ -336,20 +336,39 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 - **Data di acquisto** (ottobre 2026, `purchasedOn`, `PurchaseDates.kt`, `PurchaseDateButton`):
   facoltativa e **vuota di default** (chi registra la collezione che ha già non ricorda quando ha
   comprato: "oggi" sarebbe un dato sbagliato). Giorni dall'epoca (`LocalDate.toEpochDay()`), senza
-  ora né fuso. **UI = variante B dopo mockup**: un pulsante di SOLO TESTO con l'icona del calendario
-  ("Add date" verdigris, oppure la data in colore normale con una piccola ✕ che la toglie) sulla
-  riga che c'è già, così il pannello NON diventa più alto: sul sottotitolo "Paese · Anno" nelle
-  commemorative, sulla riga "Year" dopo la pillola nelle Regular. Scartate la riga intera sotto le
-  card (+32 px, sempre presente) e la data per ogni finitura (rendeva più alte tutte le card:
-  "appesantisce troppo il box", parere dell'utente). **Una sola data per moneta** (per annata e
-  varietà nelle Regular), valida per tutte le finiture spuntate; nel database è però salvata
-  PER VOCE, così un futuro modello a più esemplari (funzione Pro, non costruita: nessuna
-  domanda reale, Play Billing assente) potrà dare una data a ciascuno senza migrare. Il selettore
-  è quello di Material (`DatePickerDialog` con fondo `surface`): dal 1° gennaio 1999 a oggi, niente
-  date future. Nel dettaglio una riga sotto le finiture ("Bought 12 Mar 2026"; "Bought on 2
-  different dates" se differiscono; nelle Regular una riga per annata con data, "2002 EFS ·
-  Bought …"). La data conta come modifica per lo stato del backup e viaggia nel backup v3.
-  `PurchaseDatesTest`. Non ancora fatto: note libere, valuta diversa dall'euro, export CSV.
+  ora né fuso. **Una data per FINITURA** (corretto il 2026-10-05: prima era UNA per moneta, e una
+  finitura aggiunta dopo ereditava in silenzio la data dell'altra, o la sovrascriveva salvando; nelle
+  Regular era una per annata e varietà, stesso difetto). **UI** (`FinishCard`, usata anche dal pannello
+  delle Regular; scelta dopo cinque giri di mockup): un TONDO da 40 dp (`PurchaseDateButton`) tra le
+  scritte e il campo prezzo, solo sulle finiture spuntate (spazio riservato altrimenti: le scritte non
+  cambiano larghezza a ogni tocco). Senza data: bordo e icona verdigris su un fondo appena tinto,
+  calendario con "+"; con la data: tondo pieno con il calendario spuntato in bianco, e la data scritta
+  sulla seconda riga sotto il nome, al posto del sottotitolo ("Circulation"...). Le icone sono
+  `calendar-plus`/`calendar-check` di Tabler (MIT, `CalendarIcons.kt`: Material non ha il calendario con
+  il più). La data si toglie con "Remove" nel selettore; in bozza si conserva se si toglie e rimette la
+  spunta. La card resta da 64 dp (padding verticale 8). **Larghezza**: il telefono dell'utente è 375 dp,
+  la card 343; con checkbox da 48 dp, tondo e prezzo la colonna delle scritte era di 89 dp e
+  "Brilliant Uncirculated" si tagliava, quindi la casella è compatta (24 dp, `LocalMinimumInteractiveComponentSize`
+  azzerato: l'intera card è già `toggleable`) e la colonna ne ha ~120. Scartati: scritta "Add date" da
+  12-14 sp sotto il nome (troppo piccola da toccare anche a 32 dp), chip da 32/36 dp, striscia a tutta
+  larghezza (+34 dp per card), tondo fantasma senza bordo, la riga della data sul sottotitolo "Paese ·
+  Anno" / accanto all'anno nelle Regular. Nessuna migrazione e nessun cambio di backup: nel database la data era già per
+  voce (`FinishEntry` = prezzo e data di una finitura, passato da `CollectionSheet` a
+  `saveCollection`). Un modello a più ESEMPLARI della stessa finitura (funzione Pro, rimandata: Play
+  Billing assente) dovrà cambiare la chiave primaria (indice dell'esemplare, come `variety` in
+  `MIGRATION_8_9`) e il backup (v4). Il selettore è quello di Material (`DatePickerDialog` con fondo
+  `surface`): dal 1° gennaio 1999 a oggi, niente date future. **Senza data si apre con OGGI
+  preselezionato** (dopo mockup): "Add date" + OK basta per "l'ho presa/trovata oggi"; la data resta
+  vuota finché non si preme OK, e il default vuoto è deliberato (chi registra la collezione che ha già
+  non deve ritrovarsi date inventate, indistinguibili da quelle vere). **Dettaglio**: la riga di ogni finitura
+  (e annata, nelle Regular) ha una seconda riga piccola, icona del calendario + "12 Mar 2026" o "No
+  date" in grigio (`PurchaseDateLine`, `purchaseDateLabel`; **mai "Bought"**: una moneta può essere
+  trovata, ricevuta o ereditata, non solo comprata, e lo stesso vale per ogni testo visibile);
+  compare su TUTTE le righe della card solo se almeno una ha la data
+  (`anyPurchaseDate`), così chi non usa le date non vede "No date" ripetuto e le righe restano da 44
+  dp (con la data 58 dp). La data conta come modifica per lo stato del backup e viaggia nel backup
+  v3. `PurchaseDatesTest`. Non ancora fatto: esemplari multipli, note libere, valuta diversa
+  dall'euro, export CSV.
 
 ### Impostazioni
 
@@ -1073,7 +1092,24 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
   (`primary` Bold) — dà un'informazione utile invece di ripetere il paese, già nella barra in alto.
   Anche la card COLLECTION di `RegularDenominationDetailScreen` (§ omonima più sopra) apre lo
   stesso pannello con "Add to collection"/"Edit collection": due punti di ingresso allo stesso
-  pannello, come nelle commemorative.
+  pannello, come nelle commemorative. **Card COLLECTION con più anni** (ottobre 2026, scelta
+  dell'utente dopo quattro mockup): la lista piatta finitura × anno × varietà arrivava a 30 righe
+  (~1.700 dp) con 10 anni e 3 finiture. Con UN solo anno (o varietà) è identica alla card delle
+  commemorative (righe per finitura con data e prezzo, anno nell'etichetta "Standard · 2008"); con
+  PIÙ anni in cima ci sono gli anni come `FilterChip` (stile del selettore dell'anno e del FILTER,
+  scelto in lilla; "2002 EFS" per la varietà) in ordine CRONOLOGICO dal più vecchio (come la griglia
+  degli anni del pannello; scartati il più recente per primo e l'ordine di inserimento, che darebbe
+  una fila casuale), e all'apertura è scelto l'ULTIMO AGGIUNTO (`addedAt` più recente, a parità
+  l'anno più recente; si ricalcola solo se cambia l'insieme degli anni) e sotto le righe solo per l'anno
+  scelto: l'altezza non cresce con gli anni, date e prezzi restano visibili, `animateContentSize`
+  smorza il cambio. Oltre i primi 8 chip c'è "+N" / "Less" (numero FISSO, `YearChipsCollapsed`; un
+  anno scelto oltre i primi resta visibile). **Non usare `FlowRowOverflow.expandOrCollapseIndicator`**:
+  provato, legge `shownItemCount` nella composizione e lancia `IllegalStateException` a ogni apertura
+  del dettaglio con più anni (crash sul telefono, 2026-10-05); servirebbe `ContextualFlowRow`. L'altezza delle righe (44 o 58 dp
+  con le date) è la stessa per tutti gli anni, calcolata su TUTTE le voci. "Edit collection" apre il
+  pannello sull'anno scelto (`RegularCollectionSheet(initialYear)`). Scartati: tabella anni × finiture
+  (celle miste di date, pallini e trattini: "un mischione"), tessere uniformi, una riga per anno che si
+  apre, lista tipografica, riepilogo con elenco a parte. Non verificato con tanti anni sul telefono.
 - **`RegularCollectionSheet`** (`ui/components/RegularCollectionSheet.kt`): **il pannello delle
   commemorative più UN selettore dell'anno** (riscritto il 2026-10-04 su richiesta: prima era una
   lista di righe anno-più-prezzo da digitare, con "Add year" e rimozione, "troppo diversa" dall'altro

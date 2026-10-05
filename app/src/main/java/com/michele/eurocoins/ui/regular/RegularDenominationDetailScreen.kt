@@ -7,6 +7,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import com.michele.eurocoins.data.YearOption
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.AssistChip
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -73,7 +79,8 @@ import coil3.request.transformations
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
-import com.michele.eurocoins.data.regularPurchaseLines
+import com.michele.eurocoins.data.anyPurchaseDate
+import com.michele.eurocoins.ui.components.PurchaseDateLine
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.displayCoinDescription
@@ -148,6 +155,8 @@ fun RegularDenominationDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
+    // Anno scelto nella card COLLECTION quando si apre "Edit collection": il pannello si apre su quello.
+    var sheetYear by remember { mutableStateOf<YearOption?>(null) }
     var showMintageHistory by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     var viewport by remember { mutableStateOf<Rect?>(null) }
@@ -183,6 +192,7 @@ fun RegularDenominationDetailScreen(
                     showSheet = false
                 },
                 onDismiss = { showSheet = false },
+                initialYear = sheetYear,
             )
         }
         if (showMintageHistory) {
@@ -206,7 +216,13 @@ fun RegularDenominationDetailScreen(
             ) {
                 DenominationHero(image)
                 RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
-                RegularCollectionCard(items = state.items, onEdit = { showSheet = true })
+                RegularCollectionCard(
+                    items = state.items,
+                    onEdit = { year ->
+                        sheetYear = year
+                        showSheet = true
+                    },
+                )
                 image.displayCoinDescription()?.let { NotesCard(it, scrollState, { viewport }) }
                 DenominationCreditFooter(image)
             }
@@ -581,12 +597,20 @@ private fun MintageHeaderCell(text: String, modifier: Modifier = Modifier, cente
 }
 
 /**
- * Card COLLECTION: stessa forma di `CollectionCard` in `CoinDetailScreen.kt`, ma le righe sono
- * una per (qualità, anno) invece che una per qualità — qui la stessa qualità può avere più
- * annate, a differenza delle commemorative dove l'anno è fisso dal dataset.
+ * Card COLLECTION: stessa forma di `CollectionCard` in `CoinDetailScreen.kt` (righe per finitura con
+ * data e prezzo), ma qui la stessa moneta può essere in più ANNI (e nella varietà EFS), a differenza
+ * delle commemorative dove l'anno è fisso dal dataset. Con un solo anno (o varietà) è identica alla
+ * card delle commemorative, con l'anno nell'etichetta di ogni riga ("Standard · 2008"). Con più anni
+ * (scelta dell'utente dopo quattro mockup: la lista piatta di finitura × anno × varietà arrivava a 30
+ * righe, ~1.700 dp, con 10 anni e 3 finiture) in cima ci sono gli ANNI come chip, nello stesso stile
+ * del selettore dell'anno del pannello, e sotto le righe di sempre solo per l'anno scelto: l'altezza
+ * non cresce con il numero di anni e date e prezzi restano visibili. Anni in ordine cronologico, si apre sull'ultimo aggiunto;
+ * oltre i primi 8 gli anni stanno dietro "+N". "Edit collection" apre il pannello su
+ * quell'anno.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: () -> Unit) {
+private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: (YearOption?) -> Unit) {
     if (items.isEmpty()) {
         DetailCard {
             SectionLabel("COLLECTION")
@@ -598,7 +622,7 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             )
             Button(
-                onClick = onEdit,
+                onClick = { onEdit(null) },
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp).height(48.dp),
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -614,6 +638,26 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
     val shape = RoundedCornerShape(14.dp)
     val accent = if (dark) PurpleFieldDark else PurpleFieldLight
     val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
+    // Altezza delle righe uguale per TUTTI gli anni (se una sola data esiste in qualunque anno): cambiando
+    // anno la card non deve saltare.
+    val anyDate = anyPurchaseDate(items.map { it.purchasedOn })
+    // Anni (e varietà) in collezione in ordine CRONOLOGICO, dal più vecchio: come la griglia degli anni del
+    // pannello e il "also: …" accanto, e prevedibile (un selettore di anni non deve avere un ordine casuale).
+    val years = remember(items) {
+        items.map { YearOption(it.anno, it.variety) }.distinct()
+            .sortedWith(compareBy<YearOption> { it.year }.thenBy { it.variety })
+    }
+    // L'anno scelto all'apertura è l'ULTIMO AGGIUNTO (`addedAt` più recente; a parità, l'anno più recente: un
+    // salvataggio con più anni nuovi li marca tutti con lo stesso istante): salvando un anno, il dettaglio
+    // mostra subito quello. Si ricalcola solo se cambia l'insieme degli anni, quindi modificare un anno già
+    // presente non sposta la scelta.
+    var selected by remember(years) {
+        val latest = items.maxWith(compareBy<RegularCollectionItem> { it.addedAt }.thenBy { it.anno })
+        mutableStateOf(YearOption(latest.anno, latest.variety))
+    }
+    // Se l'anno scelto sparisce (tolto dal pannello) si torna al più recente invece di mostrare niente.
+    val current = selected.takeIf { it in years } ?: years.first()
+    val showYears = years.size > 1
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -626,49 +670,85 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
             SectionLabel("COLLECTION", modifier = Modifier.weight(1f))
             OwnedBadge(dark)
         }
-        Column(
-            modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            items.sortedWith(compareBy({ it.quality.ordinal }, { it.anno }, { it.variety })).forEach { item ->
-                val cents = item.priceCents?.takeIf { it > 0 }
-                val rowShape = RoundedCornerShape(14.dp)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(rowShape)
-                        .background(colors.surface)
-                        .border(2.dp, accent, rowShape)
-                        .padding(horizontal = 18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = "${item.quality.label} · ${item.anno}" + if (item.variety.isNotEmpty()) " · ${item.variety}" else "",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.onSurface,
-                        modifier = Modifier.weight(1f),
+        if (showYears) {
+            // Con tanti anni i primi [YearChipsCollapsed] e un chip "+N" per mostrarli tutti ("Less" per
+            // richiuderli). Numero fisso e non calcolato dal layout: `FlowRowOverflow` legge `shownItemCount`
+            // fuori dalla fase di disegno e fa crashare l'app. Un anno scelto oltre i primi è sempre visibile.
+            // Stesso stile dei chip del selettore dell'anno e del pannello FILTER: rettangoli con angoli
+            // morbidi, scelto in lilla.
+            var expanded by remember { mutableStateOf(false) }
+            val collapsible = years.size > YearChipsCollapsed + 1
+            val showAll = !collapsible || expanded || years.indexOf(current) >= YearChipsCollapsed
+            val shown = if (showAll) years else years.take(YearChipsCollapsed)
+            FlowRow(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                shown.forEach { year ->
+                    FilterChip(
+                        selected = year == current,
+                        onClick = { selected = year },
+                        label = { Text(year.chipLabel()) },
                     )
-                    Text(
-                        text = cents?.let { "€${formatPrice(it)}" } ?: NO_VALUE,
-                        style = sansTitleMedium(),
-                        fontWeight = FontWeight.Bold,
-                        color = if (cents != null) inkColor else inkColor.copy(alpha = 0.7f),
+                }
+                if (collapsible) {
+                    AssistChip(
+                        onClick = {
+                            if (showAll) {
+                                expanded = false
+                                selected = years.first()
+                            } else {
+                                expanded = true
+                            }
+                        },
+                        label = { Text(if (showAll) "Less" else "+${years.size - shown.size}") },
                     )
                 }
             }
         }
-        regularPurchaseLines(items).forEach { line ->
-            Text(
-                text = line,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                modifier = Modifier.padding(top = 10.dp, start = 4.dp),
-            )
+        Column(
+            modifier = Modifier.padding(top = 12.dp).animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            items
+                .filter { !showYears || YearOption(it.anno, it.variety) == current }
+                .sortedWith(compareBy({ it.quality.ordinal }, { it.anno }, { it.variety }))
+                .forEach { item ->
+                    val cents = item.priceCents?.takeIf { it > 0 }
+                    val rowShape = RoundedCornerShape(14.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (anyDate) 58.dp else 44.dp)
+                            .clip(rowShape)
+                            .background(colors.surface)
+                            .border(2.dp, accent, rowShape)
+                            .padding(horizontal = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                // L'anno è già nel chip scelto: nell'etichetta solo con un anno solo, dove i chip non ci sono.
+                                text = if (showYears) item.quality.label else "${item.quality.label} · ${YearOption(item.anno, item.variety).chipLabel()}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.onSurface,
+                            )
+                            // La data di QUESTA finitura di QUESTA annata: come nelle commemorative, la seconda riga
+                            // c'è su tutte le righe se almeno una ha la data ("No date" in grigio dove manca).
+                            if (anyDate) PurchaseDateLine(item.purchasedOn)
+                        }
+                        Text(
+                            text = cents?.let { "€${formatPrice(it)}" } ?: NO_VALUE,
+                            style = sansTitleMedium(),
+                            fontWeight = FontWeight.Bold,
+                            color = if (cents != null) inkColor else inkColor.copy(alpha = 0.7f),
+                        )
+                    }
+                }
         }
         TextButton(
-            onClick = onEdit,
+            onClick = { onEdit(current) },
             modifier = Modifier.align(Alignment.End).padding(top = 4.dp),
         ) {
             Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -678,6 +758,11 @@ private fun RegularCollectionCard(items: List<RegularCollectionItem>, onEdit: ()
     }
 }
 
+/** Chip degli anni mostrati prima del "+N": circa due righe su un telefono da 375 dp. */
+private const val YearChipsCollapsed = 8
+
+/** "2008", o "2002 EFS" per la varietà: il testo del chip e dell'etichetta di un anno solo. */
+private fun YearOption.chipLabel(): String = if (variety.isEmpty()) "$year" else "$year $variety"
 
 /**
  * Crediti nel formato comune ([SourceCredits]). Testo del taglio e immagine possono avere fonti

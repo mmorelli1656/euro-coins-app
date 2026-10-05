@@ -6,6 +6,7 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.FinishEntry
 import com.michele.eurocoins.data.stableKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,9 +42,9 @@ class CoinDetailViewModel(
         }
     }
 
-    fun onSaveCollection(entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
+    fun onSaveCollection(entries: Map<CoinQuality, FinishEntry>) {
         val coin = _coin.value ?: return
-        viewModelScope.launch { repository.saveCollection(coin, entries, purchasedOn) }
+        viewModelScope.launch { repository.saveCollection(coin, entries) }
     }
 }
 

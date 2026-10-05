@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
@@ -29,6 +30,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -36,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,11 +58,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.formatPurchaseDate
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.FinishEntry
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.theme.PurpleFieldDark
@@ -102,7 +108,7 @@ private val PriceFieldHeight = 40.dp
 fun CollectionSheet(
     coin: Coin,
     currentItems: List<CollectionItem>,
-    onSave: (Map<CoinQuality, Int?>, Long?) -> Unit,
+    onSave: (Map<CoinQuality, FinishEntry>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val checked = remember(coin.stableKey) {
@@ -113,8 +119,13 @@ fun CollectionSheet(
             }
         }
     }
-    // Una sola data per moneta, valida per tutte le finiture spuntate; facoltativa e vuota di default.
-    var purchasedOn by remember(coin.stableKey) { mutableStateOf(currentItems.firstNotNullOfOrNull { it.purchasedOn }) }
+    // Una data per FINITURA, facoltativa e vuota di default: una finitura aggiunta dopo non eredita quella
+    // delle altre (prima era una sola per moneta, e salvando la sovrascriveva per tutte).
+    val dates = remember(coin.stableKey) {
+        mutableStateMapOf<CoinQuality, Long?>().apply {
+            CoinQuality.entries.forEach { quality -> this[quality] = currentItems.firstOrNull { it.quality == quality }?.purchasedOn }
+        }
+    }
     val prices = remember(coin.stableKey) {
         mutableStateMapOf<CoinQuality, String>().apply {
             CoinQuality.entries.forEach { quality ->
@@ -146,19 +157,12 @@ fun CollectionSheet(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp),
             )
-            // La data di acquisto sta sulla riga del sottotitolo: non aggiunge altezza al pannello.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 6.dp),
-            ) {
-                Text(
-                    text = "${coin.displayCountry()} · ${coin.anno}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                PurchaseDateButton(epochDay = purchasedOn, onChange = { purchasedOn = it })
-            }
+            Text(
+                text = "${coin.displayCountry()} · ${coin.anno}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CoinQuality.entries.forEach { quality ->
@@ -168,6 +172,8 @@ fun CollectionSheet(
                         price = prices[quality].orEmpty(),
                         onCheckedChange = { checked[quality] = it },
                         onPriceChange = { prices[quality] = it },
+                        date = dates[quality],
+                        onDateChange = { dates[quality] = it },
                     )
                 }
             }
@@ -183,8 +189,7 @@ fun CollectionSheet(
                         onSave(
                             CoinQuality.entries
                                 .filter { checked[it] == true }
-                                .associateWith { parsePriceCents(prices[it].orEmpty()) },
-                            purchasedOn,
+                                .associateWith { FinishEntry(parsePriceCents(prices[it].orEmpty()), dates[it]) },
                         )
                     },
                 ) { Text("Save") }
@@ -211,6 +216,9 @@ fun FinishCard(
     price: String,
     onCheckedChange: (Boolean) -> Unit,
     onPriceChange: (String) -> Unit,
+    /** Data di acquisto di QUESTA finitura (una per card). */
+    date: Long?,
+    onDateChange: (Long?) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(14.dp)
@@ -240,20 +248,36 @@ fun FinishCard(
             modifier = Modifier
                 .weight(1f, fill = true)
                 .fillMaxHeight()
-                .padding(end = 8.dp),
+                .padding(end = 4.dp),
         ) {
-            Checkbox(checked = checked, onCheckedChange = null)
-            Spacer(Modifier.width(12.dp))
+            // Casella compatta: l'intera card è già `toggleable`, quindi i 48 dp di area di tocco minima di Material
+            // (che toglievano 28 dp alle scritte) non servono. Con il pulsante della data e il prezzo, su un telefono da
+            // 375 dp la colonna delle scritte era di 89 dp e "Brilliant Uncirculated" si tagliava; ora ne ha ~120.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Checkbox(checked = checked, onCheckedChange = null)
+            }
+            Spacer(Modifier.width(8.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = quality.label, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+                // Seconda riga: la data di QUESTA finitura se la card è spuntata e ce l'ha, altrimenti il sottotitolo
+                // ("Circulation"...). La data si conserva in bozza anche se si toglie e rimette la spunta.
+                val shownDate = if (checked && date != null) formatPurchaseDate(date) else null
                 Text(
-                    text = quality.descriptor,
+                    text = shownDate ?: quality.descriptor,
                     style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
+                    fontWeight = if (shownDate != null) FontWeight.Medium else null,
+                    color = if (shownDate != null) colors.onSurface else colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+        // Pulsante della data (tondo da 40 dp): solo con la finitura spuntata; senza, lo spazio resta riservato
+        // così le scritte non cambiano larghezza a ogni tocco (stessa logica del campo prezzo, sempre presente).
+        if (checked) {
+            PurchaseDateButton(epochDay = date, onChange = onDateChange, finish = quality.label)
+        } else {
+            Spacer(Modifier.size(40.dp))
         }
         PriceField(
             value = price,

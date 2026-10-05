@@ -94,7 +94,8 @@ import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
-import com.michele.eurocoins.data.commemorativePurchaseLines
+import com.michele.eurocoins.data.anyPurchaseDate
+import com.michele.eurocoins.ui.components.PurchaseDateLine
 import com.michele.eurocoins.data.CollectionItem
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayDesigner
@@ -151,8 +152,8 @@ fun CoinDetailScreen(
             CollectionSheet(
                 coin = currentCoin,
                 currentItems = items,
-                onSave = { entries, purchasedOn ->
-                    viewModel.onSaveCollection(entries, purchasedOn)
+                onSave = { entries ->
+                    viewModel.onSaveCollection(entries)
                     showSheet = false
                 },
                 onDismiss = { showSheet = false },
@@ -698,6 +699,7 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
     // Bordo verdigris (stato "posseduta", come badge OWNED e spunte); righe e pillole lilla/viola (finiture).
     val accent = if (dark) PurpleFieldDark else PurpleFieldLight
     val inkColor = if (dark) PurpleFieldFocusDark else PurpleFieldFocusLight
+    val anyDate = anyPurchaseDate(items.map { it.purchasedOn })
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -733,20 +735,25 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(44.dp)
+                        .height(if (anyDate) 58.dp else 44.dp)
                         .clip(rowShape)
                         .background(colors.surface)
                         .border(2.dp, accent, rowShape)
                         .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = item.quality.label,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.onSurface,
-                        modifier = Modifier.weight(1f),
-                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.quality.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.onSurface,
+                        )
+                        // La data di QUESTA finitura. Se almeno una finitura ne ha una, tutte le righe hanno la
+                        // seconda riga ("No date" in grigio dove manca), così le card hanno la stessa altezza;
+                        // se nessuna ha la data la card resta com'era, senza "No date" ripetuto per niente.
+                        if (anyDate) PurchaseDateLine(item.purchasedOn)
+                    }
                     Text(
                         text = cents?.let { "€${formatPrice(it)}" } ?: NO_VALUE,
                         style = sansTitleMedium(),
@@ -755,14 +762,6 @@ private fun CollectionCard(items: List<CollectionItem>, onEdit: () -> Unit) {
                     )
                 }
             }
-        }
-        commemorativePurchaseLines(items).forEach { line ->
-            Text(
-                text = line,
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                modifier = Modifier.padding(top = 10.dp, start = 4.dp),
-            )
         }
         TextButton(
             onClick = onEdit,

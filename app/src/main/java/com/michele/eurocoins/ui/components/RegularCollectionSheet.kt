@@ -96,12 +96,14 @@ fun RegularCollectionSheet(
     currentItems: List<RegularCollectionItem>,
     onSave: (List<RegularCollectionEntry>) -> Unit,
     onDismiss: () -> Unit,
+    /** Anno su cui aprire il pannello (es. quello scelto nella card COLLECTION del dettaglio); null = il predefinito. */
+    initialYear: YearOption? = null,
 ) {
     val stateKey = "${series.stableKey}|${denomination.taglio}"
     val currentYear = remember { Year.now().value }
     val owned = remember(stateKey) { currentItems.map { YearOption(it.anno, it.variety) }.distinct() }
     val options = remember(stateKey) { regularYearOptions(series, denomination, owned, currentYear) }
-    val initial = remember(stateKey) { defaultYearOption(options, owned) }
+    val initial = remember(stateKey) { initialYear?.takeIf { it in options } ?: defaultYearOption(options, owned) }
     var selected by remember(stateKey) { mutableStateOf(initial) }
 
     val checked = remember(stateKey) {
@@ -116,11 +118,11 @@ fun RegularCollectionSheet(
             currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = formatPrice(it.priceCents) }
         }
     }
-    // Una data per annata (e varietà), valida per le finiture spuntate di quell'annata; facoltativa, vuota di default.
+    // Una data per FINITURA di ogni annata (e varietà), facoltativa e vuota di default: una finitura
+    // aggiunta dopo non eredita la data di un'altra (prima era una per annata, valida per tutte le finiture).
     val dates = remember(stateKey) {
-        mutableStateMapOf<YearOption, Long?>().apply {
-            currentItems.groupBy { YearOption(it.anno, it.variety) }
-                .forEach { (option, items) -> this[option] = items.firstNotNullOfOrNull { it.purchasedOn } }
+        mutableStateMapOf<DraftKey, Long?>().apply {
+            currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = it.purchasedOn }
         }
     }
     val withData: Set<YearOption> = checked.filterValues { it }.keys.map { YearOption(it.year, it.variety) }.toSet()
@@ -161,8 +163,6 @@ fun RegularCollectionSheet(
                 withData = withData,
                 varietyDetail = { series.varietyFor(denomination.taglio, it.year)?.detail },
                 onSelect = { selected = it },
-                date = dates[selected],
-                onDateChange = { dates[selected] = it },
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -174,6 +174,8 @@ fun RegularCollectionSheet(
                         price = prices[key].orEmpty(),
                         onCheckedChange = { checked[key] = it },
                         onPriceChange = { prices[key] = it },
+                        date = dates[key],
+                        onDateChange = { dates[key] = it },
                     )
                 }
             }
@@ -193,7 +195,7 @@ fun RegularCollectionSheet(
                                     quality = key.quality,
                                     priceCents = parsePriceCents(prices[key].orEmpty()),
                                     variety = key.variety,
-                                    purchasedOn = dates[YearOption(key.year, key.variety)],
+                                    purchasedOn = dates[key],
                                 )
                             },
                         )
@@ -216,8 +218,6 @@ private fun YearSelector(
     withData: Set<YearOption>,
     varietyDetail: (YearOption) -> String?,
     onSelect: (YearOption) -> Unit,
-    date: Long?,
-    onDateChange: (Long?) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     var open by remember { mutableStateOf(false) }
@@ -246,8 +246,6 @@ private fun YearSelector(
                 Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, modifier = Modifier.size(20.dp))
             }
         }
-        // Dopo la pillola: la data è dell'annata scelta, e sta sulla riga che c'è già (nessuna altezza in più).
-        PurchaseDateButton(epochDay = date, onChange = onDateChange)
         if (others.isNotEmpty()) {
             Text(
                 text = "also: " + others.joinToString(", ") { it.label.replace(" · EFS variety", " EFS") },

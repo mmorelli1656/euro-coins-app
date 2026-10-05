@@ -6,6 +6,7 @@ import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.FinishEntry
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.stableKey
 import kotlinx.coroutines.Dispatchers
@@ -133,8 +134,8 @@ class CoinListViewModel(
         options.value = newOptions
     }
 
-    fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
-        viewModelScope.launch { repository.saveCollection(coin, entries, purchasedOn) }
+    fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, FinishEntry>) {
+        viewModelScope.launch { repository.saveCollection(coin, entries) }
     }
 }
 

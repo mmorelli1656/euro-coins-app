@@ -10,8 +10,9 @@ import java.util.Locale
  * non ricorda quando ha comprato, e "oggi" sarebbe un dato sbagliato.
  *
  * Nel database è salvata PER VOCE (una colonna in `collection_items` e in `regular_collection_items`),
- * anche se oggi la UI dà una sola data per moneta (per ogni anno, nelle Regular) valida per tutte le
- * finiture spuntate: un modello a più esemplari per moneta potrà dare una data a ciascuno senza migrare.
+ * e la UI ne dà una per FINITURA (per finitura di ogni annata e varietà, nelle Regular): prima era una
+ * sola per moneta, e aggiungere una finitura dopo faceva ereditare o sovrascrivere la data dell'altra.
+ * Un modello a più esemplari della stessa finitura (non costruito) dovrà cambiare la chiave primaria.
  */
 
 /** Primo anno di euro: prima non esistono monete da collezionare, il selettore non scende sotto. */
@@ -34,36 +35,13 @@ fun isSelectablePurchaseDay(epochDay: Long, today: LocalDate): Boolean =
     epochDay in LocalDate.of(FIRST_PURCHASE_YEAR, 1, 1).toEpochDay()..today.toEpochDay()
 
 /**
- * Riga del dettaglio sotto le finiture: "Bought 12 Mar 2026"; se le voci hanno date diverse
- * ("Bought on 2 different dates"); null se nessuna ha la data.
+ * Riga di data sotto il nome di una finitura nel dettaglio: "12 Mar 2026", o "No date" se manca.
+ * Senza "Bought": una moneta può essere stata trovata, ricevuta o ereditata, non solo comprata. Nella
+ * UI la data è sempre preceduta dall'icona del calendario (`PurchaseDateLine`), come nel pannello.
+ * Le righe di una card mostrano questa riga tutte insieme o nessuna (vedi [anyPurchaseDate]).
  */
-fun purchaseLine(dates: Collection<Long?>): String? {
-    val distinct = dates.filterNotNull().distinct()
-    return when {
-        distinct.isEmpty() -> null
-        distinct.size == 1 -> "Bought ${formatPurchaseDate(distinct.first())}"
-        else -> "Bought on ${distinct.size} different dates"
-    }
-}
+fun purchaseDateLabel(epochDay: Long?): String =
+    if (epochDay == null) "No date" else formatPurchaseDate(epochDay)
 
-/** Righe di data del dettaglio di una commemorativa (una sola moneta: una riga, o nessuna). */
-fun commemorativePurchaseLines(items: List<CollectionItem>): List<String> =
-    listOfNotNull(purchaseLine(items.map { it.purchasedOn }))
-
-/**
- * Righe di data del dettaglio di una moneta circolante. Con una sola annata in collezione una riga
- * "Bought 12 Mar 2026"; con più annate una riga per annata CON data ("2002 · Bought 12 Mar 2026",
- * "2002 EFS · …"), perché ogni annata ha la sua.
- */
-fun regularPurchaseLines(items: List<RegularCollectionItem>): List<String> {
-    val byEntry = items.groupBy { it.anno to it.variety }.mapValues { (_, group) -> group.map { it.purchasedOn } }
-    if (byEntry.values.none { dates -> dates.any { it != null } }) return emptyList()
-    if (byEntry.size == 1) return listOfNotNull(purchaseLine(byEntry.values.first()))
-    return byEntry.entries
-        .sortedWith(compareBy({ it.key.first }, { it.key.second }))
-        .mapNotNull { (key, dates) ->
-            val line = purchaseLine(dates) ?: return@mapNotNull null
-            val label = if (key.second.isEmpty()) "${key.first}" else "${key.first} ${key.second}"
-            "$label · $line"
-        }
-}
+/** true se almeno una voce ha la data: solo allora le righe del dettaglio hanno la seconda riga. */
+fun anyPurchaseDate(dates: Collection<Long?>): Boolean = dates.any { it != null }

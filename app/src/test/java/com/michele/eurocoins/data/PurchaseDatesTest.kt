@@ -3,7 +3,6 @@ package com.michele.eurocoins.data
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -45,37 +44,25 @@ class PurchaseDatesTest {
     }
 
     @Test
-    fun theCommemorativeDetailSaysOneDateOrHowManyDiffer() {
-        assertNull(purchaseLine(emptyList()))
-        assertNull(purchaseLine(listOf(null, null)))
-        assertEquals("Bought 12 Mar 2026", purchaseLine(listOf(march12, march12, null)))
-        assertEquals("Bought on 2 different dates", purchaseLine(listOf(march12, june3)))
-        assertEquals(listOf("Bought 12 Mar 2026"), commemorativePurchaseLines(listOf(item(date = march12), item(CoinQuality.BU, march12))))
-        assertEquals(emptyList<String>(), commemorativePurchaseLines(listOf(item())))
-    }
-
-    @Test
-    fun aSingleRegularYearGetsOneLine() {
-        val items = listOf(regular(2002, date = march12), regular(2002, CoinQuality.BU, date = march12))
-        assertEquals(listOf("Bought 12 Mar 2026"), regularPurchaseLines(items))
-    }
-
-    @Test
-    fun severalRegularYearsGetOneLineEachWhereThereIsADate() {
-        val items = listOf(
-            regular(2003, date = june3),
-            regular(2002, date = march12),
-            regular(2004), // senza data: nessuna riga
-            regular(2002, variety = "EFS", date = march12),
-        )
+    fun eachFinishHasItsOwnDateLabel() {
+        // Standard e BU della stessa moneta comprate in giorni diversi: ognuna dice il suo, nessuna "eredita".
+        val items = listOf(item(CoinQuality.STANDARD, march12), item(CoinQuality.BU, june3), item(CoinQuality.PROOF))
         assertEquals(
-            listOf("2002 · Bought 12 Mar 2026", "2002 EFS · Bought 12 Mar 2026", "2003 · Bought 3 Jun 2026"),
-            regularPurchaseLines(items),
+            listOf("12 Mar 2026", "3 Jun 2026", "No date"),
+            items.map { purchaseDateLabel(it.purchasedOn) },
         )
     }
 
     @Test
-    fun noRegularDateMeansNoLine() {
-        assertEquals(emptyList<String>(), regularPurchaseLines(listOf(regular(2002), regular(2003))))
+    fun theSecondLineAppearsOnlyIfSomeFinishHasADate() {
+        assertFalse(anyPurchaseDate(emptyList()))
+        assertFalse(anyPurchaseDate(listOf(null, null)))
+        assertTrue(anyPurchaseDate(listOf(null, march12)))
+        // Regular: la stessa finitura in due annate ha una data per annata.
+        val items = listOf(regular(2002, date = march12), regular(2003), regular(2002, CoinQuality.BU, date = june3))
+        assertEquals(
+            listOf("12 Mar 2026", "No date", "3 Jun 2026"),
+            items.map { purchaseDateLabel(it.purchasedOn) },
+        )
     }
 }

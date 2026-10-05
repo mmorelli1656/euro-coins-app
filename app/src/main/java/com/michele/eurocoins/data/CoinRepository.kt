@@ -65,21 +65,21 @@ class CoinRepository(
 
     /**
      * Salva in blocco le qualità possedute di una moneta ([entries]: qualità
-     * -> prezzo in centesimi, null se non indicato); le qualità non presenti
+     * -> prezzo e data di acquisto di QUELLA finitura, ciascuno facoltativo); le qualità non presenti
      * vengono rimosse. Conserva la data di aggiunta delle voci già esistenti.
      */
-    suspend fun saveCollection(coin: Coin, entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
+    suspend fun saveCollection(coin: Coin, entries: Map<CoinQuality, FinishEntry>) {
         val key = coin.stableKey
         val existing = collectionDao.itemsFor(key).associateBy { it.quality }
         val now = System.currentTimeMillis()
         collectionDao.replaceForCoin(
             key,
-            entries.map { (quality, priceCents) ->
+            entries.map { (quality, entry) ->
                 CollectionItem(
                     coinKey = key,
                     quality = quality,
-                    priceCents = priceCents,
-                    purchasedOn = purchasedOn,
+                    priceCents = entry.priceCents,
+                    purchasedOn = entry.purchasedOn,
                     anno = coin.anno,
                     paese = coin.paese,
                     tema = coin.tema,

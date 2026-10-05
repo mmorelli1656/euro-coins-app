@@ -2,6 +2,9 @@ package com.michele.eurocoins.data
 
 import androidx.room.Entity
 
+/** Cosa l'utente ha scritto per UNA finitura nel pannello: prezzo e data di acquisto, entrambi facoltativi. */
+data class FinishEntry(val priceCents: Int?, val purchasedOn: Long?)
+
 /**
  * Una moneta posseduta in una certa qualità. Dati dell'UTENTE: vivono in una
  * tabella separata da `coins` (che è un catalogo rigenerabile) e non vengono
