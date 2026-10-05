@@ -30,6 +30,10 @@ fun allDenominationRows(
     }
 }
 
+/** Filtro "Owned quality": vuoto = nessun vincolo, altrimenti almeno un'annata della riga in una di queste qualità. */
+fun DenominationRow.ownsAnyQuality(qualities: Set<CoinQuality>): Boolean =
+    qualities.isEmpty() || items.any { it.quality in qualities }
+
 private val DENOMINATION_IN_QUERY = Regex("""(\d+)\s*(euro|cent)s?""", RegexOption.IGNORE_CASE)
 private val SERIES_IN_QUERY = Regex("""series\s*(\d+)""", RegexOption.IGNORE_CASE)
 

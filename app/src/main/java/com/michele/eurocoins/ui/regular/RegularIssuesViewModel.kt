@@ -2,6 +2,7 @@ package com.michele.eurocoins.ui.regular
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.DenominationRow
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.REGULAR_DENOMINATIONS
@@ -16,6 +17,7 @@ import com.michele.eurocoins.data.denominationRows
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.data.matchesAllQuery
+import com.michele.eurocoins.data.ownsAnyQuality
 import com.michele.eurocoins.data.regularProgress
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.browse.CompletionFilter
@@ -57,13 +59,15 @@ data class RegularGridPrefs(
     val allSort: RegularAllSort = RegularAllSort.COUNTRY_ASC,
     val allQuery: String = "",
     val allOwnership: OwnershipFilter = OwnershipFilter.ALL,
+    /** Vuoto = nessun vincolo; altrimenti la riga deve avere almeno un'annata in una di queste qualità. */
+    val allQualities: Set<CoinQuality> = emptySet(),
 ) {
     val countriesFilterActive: Boolean
         get() = !countriesAscending || countriesCompletion != CompletionFilter.ALL
     val denominationsFilterActive: Boolean
         get() = !denominationsLargestFirst || denominationsCompletion != CompletionFilter.ALL
     val allFilterActive: Boolean
-        get() = allSort != RegularAllSort.COUNTRY_ASC || allOwnership != OwnershipFilter.ALL
+        get() = allSort != RegularAllSort.COUNTRY_ASC || allOwnership != OwnershipFilter.ALL || allQualities.isNotEmpty()
 }
 
 data class RegularIssuesUiState(
@@ -140,6 +144,7 @@ class RegularIssuesViewModel(
             .let { list -> if (p.denominationsLargestFirst) list.asReversed() else list }
         val all = allDenominationRows(rows, p.allSort)
             .filter { p.allOwnership == OwnershipFilter.ALL || (p.allOwnership == OwnershipFilter.OWNED) == it.owned }
+            .filter { it.ownsAnyQuality(p.allQualities) }
             .filter { it.matchesAllQuery(p.allQuery) }
         return RegularIssuesUiState(
             mode = currentMode,
@@ -173,7 +178,12 @@ class RegularIssuesViewModel(
     fun setAllQuery(value: String) = prefs.update { it.copy(allQuery = value) }
     fun setAllSort(value: RegularAllSort) = prefs.update { it.copy(allSort = value) }
     fun setAllOwnership(value: OwnershipFilter) = prefs.update { it.copy(allOwnership = value) }
-    fun resetAll() = prefs.update { it.copy(allSort = RegularAllSort.COUNTRY_ASC, allOwnership = OwnershipFilter.ALL) }
+    fun toggleAllQuality(value: CoinQuality) = prefs.update {
+        it.copy(allQualities = if (value in it.allQualities) it.allQualities - value else it.allQualities + value)
+    }
+    fun resetAll() = prefs.update {
+        it.copy(allSort = RegularAllSort.COUNTRY_ASC, allOwnership = OwnershipFilter.ALL, allQualities = emptySet())
+    }
 
     /** Salva dal pannello di una riga di All: stessa chiave (serie di origine) e finestra dell'elenco di un taglio. */
     fun onSaveCollection(row: DenominationRow, entries: List<RegularCollectionEntry>) {

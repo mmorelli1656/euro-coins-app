@@ -266,7 +266,9 @@ private fun <T> SegmentedChoice(
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->
             SegmentedButton(
-                modifier = Modifier.weight(1f),
+                // Larghezza in proporzione all'etichetta, con un minimo: con tre segmenti uguali "Denominations"
+                // andava a capo, mentre "Years / Countries / All" e "System / Light / Dark" restano quasi pari.
+                modifier = Modifier.weight(label(option).length.coerceAtLeast(8).toFloat()),
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),

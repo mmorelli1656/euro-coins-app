@@ -71,6 +71,23 @@ class RegularAllRowsTest {
     }
 
     @Test
+    fun ownedQualityFilterKeepsRowsWithAtLeastOneOfTheChosenFinishes() {
+        val germany = series.first { it.paese == "Germania" }
+        fun item(taglio: String, quality: CoinQuality) = RegularCollectionItem(
+            seriesKey = germany.stableKey, taglio = taglio, anno = 2015, quality = quality, paese = germany.paese, addedAt = 0L,
+        )
+        val rows = allDenominationRows(
+            denominationRows(series, listOf(item("2 euro", CoinQuality.PROOF), item("1 euro", CoinQuality.STANDARD), item("1 euro", CoinQuality.BU))),
+            RegularAllSort.COUNTRY_ASC,
+        )
+        fun names(vararg q: CoinQuality) = rows.filter { it.ownsAnyQuality(q.toSet()) }.map { it.denomination.image.taglio }
+        assertEquals(rows.size, rows.count { it.ownsAnyQuality(emptySet()) })
+        assertEquals(listOf("2 euro"), names(CoinQuality.PROOF))
+        assertEquals(listOf("1 euro"), names(CoinQuality.STANDARD))
+        assertEquals(listOf("2 euro", "1 euro"), names(CoinQuality.PROOF, CoinQuality.BU)) // basta una delle scelte
+    }
+
+    @Test
     fun looseWordsMatchCountryOrKind() {
         assertEquals(all(RegularAllSort.COUNTRY_ASC).size, search("").size)
         assertTrue(search("cent").all { it.denomination.image.taglio.endsWith("cent") })

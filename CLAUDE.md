@@ -354,7 +354,7 @@ regge un pulsante pieno):
 - **`SegmentedButton`** (Default tab, Theme): selezionato `secondaryContainer` (lilla),
   inattivo trasparente, bordo `onSurfaceVariant` al 40% — l'`outline` del tema scuro
   (`34351F`) è quasi uguale alla card e il bordo spariva —, `icon = {}` (la spunta di
-  default spostava l'etichetta e sbilanciava le larghezze) e `weight(1f)` su ogni segmento. **Stessa
+  default spostava l'etichetta e sbilanciava le larghezze) e larghezza in proporzione all'etichetta (`weight(max(8, lunghezza))`: con tre segmenti uguali "Denominations" andava a capo nelle Impostazioni; i selettori con etichette corte restano quasi pari). **Stessa
   scelta nei selettori di Browse (Years / Countries / All) e di Regular Issues** (`icon = {}`): con
   la spunta "Years" risultava visibilmente decentrato; il segmento selezionato si riconosce già dal
   lilla.
@@ -670,7 +670,7 @@ catalogo completo.
   righe sembrerebbero un duplicato. Il tocco apre il dettaglio della serie guardata, la casella il
   pannello (stessa chiave e finestra dell'elenco di un taglio). **FILTER**: "Sort by" con quattro voci
   (Country A → Z / Z → A, Largest / Smallest first; predefinito paese A → Z, dentro la serie dal taglio
-  più grande) + Collection All/Owned/Missing (`OwnershipFilter`). **Ricerca**
+  più grande) + Collection All/Owned/Missing (`OwnershipFilter`) + "Owned quality" Standard/BU/Proof a scelta multipla come nelle liste di Commemorative (la riga passa se ha almeno un'annata, dentro la finestra della serie, in una delle qualità scelte: `ownsAnyQuality`). **Ricerca**
   (`DenominationRow.matchesAllQuery`): paese, serie, periodo, taglio; "series 2" e un taglio per
   intero ("5 cent", "2euro") devono coincidere ESATTAMENTE con la riga (altrimenti "5" troverebbe i 50
   cent e "2" tutte le serie con un 2 negli anni), il resto è testo libero in paese/serie/periodo;

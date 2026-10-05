@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.DenominationRow
 import com.michele.eurocoins.data.RegularAllSort
 import com.michele.eurocoins.data.RegularIssueSeries
@@ -46,6 +47,7 @@ import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
+import com.michele.eurocoins.ui.components.MultiChoiceSection
 import com.michele.eurocoins.ui.components.RegularCollectionSheet
 import com.michele.eurocoins.ui.components.floatingBarClearance
 import com.michele.eurocoins.ui.theme.appBarColors
@@ -278,6 +280,13 @@ fun RegularIssuesScreen(
                     selected = state.prefs.allOwnership,
                     label = { it.label },
                     onSelect = viewModel::setAllOwnership,
+                )
+                MultiChoiceSection(
+                    title = "Owned quality",
+                    options = CoinQuality.entries,
+                    selected = state.prefs.allQualities,
+                    label = { it.label },
+                    onToggle = viewModel::toggleAllQuality,
                 )
             }
         }
