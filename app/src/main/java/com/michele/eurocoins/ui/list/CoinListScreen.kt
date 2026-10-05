@@ -174,7 +174,7 @@ fun CoinListContent(
     val filtering = state.query.isNotBlank() || state.options.isActive
     // Stato nuovo a ogni cambio d'ordinamento: con le chiavi stabili la lista
     // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
-    val listState = key(state.options.sort) { rememberLazyListState() }
+    val listState = key(state.options.orderKey) { rememberLazyListState() }
     PrefetchThumbnails(listState = listState, coins = state.coins)
     // Alla prima apertura la lista arriva dopo la schermata (state.loading): senza il fade si vedeva
     // "0 coins" e poi le righe di colpo.

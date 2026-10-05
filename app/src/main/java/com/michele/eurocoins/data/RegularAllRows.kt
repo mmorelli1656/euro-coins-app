@@ -1,32 +1,41 @@
 package com.michele.eurocoins.data
 
-/** Ordine dell'elenco "All" di Regular Issues. */
-enum class RegularAllSort(val label: String) {
-    COUNTRY_ASC("Country A → Z"),
-    COUNTRY_DESC("Country Z → A"),
-    LARGEST_FIRST("Largest first"),
-    SMALLEST_FIRST("Smallest first"),
+/** Cosa viene prima nell'elenco "All": le righe si raggruppano per paese o per taglio. */
+enum class RegularAllGroup(val label: String) {
+    COUNTRY("Country"),
+    VALUE("Value"),
 }
+
+/**
+ * Ordine dell'elenco "All" di Regular Issues: tre scelte indipendenti. [group] dice quale asse ha la
+ * precedenza (paese: tutte le righe di un paese insieme; taglio: tutte le righe di un taglio insieme),
+ * le altre due la direzione di ciascun asse. Il predefinito è il vecchio "Country A → Z".
+ */
+data class RegularAllOrder(
+    val group: RegularAllGroup = RegularAllGroup.COUNTRY,
+    val countryAscending: Boolean = true,
+    val largestFirst: Boolean = true,
+)
 
 /**
  * Tutte le righe di tutti i tagli in un solo elenco (328 = 41 serie × 8), nell'ordine scelto.
  * Parte da [denominationRows] (già ordinate per paese e serie dentro ogni taglio), quindi il
- * possesso e le finestre di anni sono gli stessi di ogni altra schermata. Ordine per paese:
- * paese, serie, taglio dal più grande; per taglio: taglio, paese, serie. [REGULAR_DENOMINATIONS]
- * è dal più piccolo al più grande.
+ * possesso e le finestre di anni sono gli stessi di ogni altra schermata. Dentro lo stesso paese la
+ * serie va sempre dalla 1 in su. [REGULAR_DENOMINATIONS] è dal più piccolo al più grande.
  */
 fun allDenominationRows(
     byDenomination: Map<String, List<DenominationRow>>,
-    sort: RegularAllSort,
+    order: RegularAllOrder,
 ): List<DenominationRow> {
-    return when (sort) {
-        RegularAllSort.SMALLEST_FIRST -> REGULAR_DENOMINATIONS.flatMap { byDenomination[it].orEmpty() }
-        RegularAllSort.LARGEST_FIRST -> REGULAR_DENOMINATIONS.asReversed().flatMap { byDenomination[it].orEmpty() }
-        // sortedWith è stabile: l'ordine di partenza (taglio dal più grande) resta dentro serie e paese.
-        RegularAllSort.COUNTRY_ASC -> REGULAR_DENOMINATIONS.asReversed().flatMap { byDenomination[it].orEmpty() }
-            .sortedWith(compareBy<DenominationRow> { it.countryName }.thenBy { it.seriesNumber })
-        RegularAllSort.COUNTRY_DESC -> REGULAR_DENOMINATIONS.asReversed().flatMap { byDenomination[it].orEmpty() }
-            .sortedWith(compareByDescending<DenominationRow> { it.countryName }.thenBy { it.seriesNumber })
+    val rows = REGULAR_DENOMINATIONS.flatMap { byDenomination[it].orEmpty() }
+    val rank = REGULAR_DENOMINATIONS.withIndex().associate { (index, taglio) -> taglio to index }
+    fun DenominationRow.rank() = rank[denomination.image.taglio] ?: Int.MAX_VALUE
+    val byValue = if (order.largestFirst) compareByDescending<DenominationRow> { it.rank() } else compareBy { it.rank() }
+    val byCountry = if (order.countryAscending) compareBy<DenominationRow> { it.countryName } else compareByDescending { it.countryName }
+    val bySeries = compareBy<DenominationRow> { it.seriesNumber }
+    return when (order.group) {
+        RegularAllGroup.COUNTRY -> rows.sortedWith(byCountry.then(bySeries).then(byValue))
+        RegularAllGroup.VALUE -> rows.sortedWith(byValue.then(byCountry).then(bySeries))
     }
 }
 

@@ -96,12 +96,16 @@ class CoinListViewModel(
                 } && (opts.qualities.isEmpty() || mine.any { it.quality in opts.qualities })
             }
             .let { list ->
-                when (opts.sort) {
-                    CoinSort.DEFAULT -> list
-                    CoinSort.YEAR_DESC -> list.sortedByDescending { it.anno }
-                    CoinSort.YEAR_ASC -> list.sortedBy { it.anno }
-                    CoinSort.COUNTRY_AZ -> list.sortedBy { it.displayCountry() }
-                    CoinSort.COUNTRY_ZA -> list.sortedByDescending { it.displayCountry() }
+                if (filter == CoinFilter.All) {
+                    sortAll(list, opts)
+                } else {
+                    when (opts.sort) {
+                        CoinSort.DEFAULT -> list
+                        CoinSort.YEAR_DESC -> list.sortedByDescending { it.anno }
+                        CoinSort.YEAR_ASC -> list.sortedBy { it.anno }
+                        CoinSort.COUNTRY_AZ -> list.sortedBy { it.displayCountry() }
+                        CoinSort.COUNTRY_ZA -> list.sortedByDescending { it.displayCountry() }
+                    }
                 }
             }
         return CoinListUiState(
@@ -131,6 +135,23 @@ class CoinListViewModel(
 
     fun onSaveCollection(coin: Coin, entries: Map<CoinQuality, Int?>, purchasedOn: Long?) {
         viewModelScope.launch { repository.saveCollection(coin, entries, purchasedOn) }
+    }
+}
+
+/**
+ * Ordine dell'elenco "All": [CoinListOptions.group] dice quale asse ha la precedenza, le altre due la
+ * direzione di paese (nome mostrato) e anno. Con il predefinito si lascia l'ordine del database
+ * (anno decrescente, poi `paese`): coincide quasi sempre con quello calcolato, ma `paese` e nome
+ * mostrato differiscono per due paesi ("Città del Vaticano", "Paesi Bassi"), e chi non tocca niente
+ * non deve vedere cambiare nulla. `sortedWith` è stabile: a parità di paese e anno resta l'ordine del database.
+ */
+internal fun sortAll(coins: List<Coin>, opts: CoinListOptions): List<Coin> {
+    if (opts.isDefaultAllOrder) return coins
+    val byCountry = if (opts.countryAscending) compareBy<Coin> { it.displayCountry() } else compareByDescending { it.displayCountry() }
+    val byYear = if (opts.newestFirst) compareByDescending<Coin> { it.anno } else compareBy { it.anno }
+    return when (opts.group) {
+        CoinGroup.YEAR -> coins.sortedWith(byYear.then(byCountry))
+        CoinGroup.COUNTRY -> coins.sortedWith(byCountry.then(byYear))
     }
 }
 

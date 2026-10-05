@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.ui.components.ChoiceSection
+import com.michele.eurocoins.ui.components.FilterGroupHeader
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingBarState
 import com.michele.eurocoins.ui.components.FloatingSearchBar
@@ -23,7 +24,10 @@ enum class OwnershipFilter(val label: String) {
     MISSING("Missing"),
 }
 
-/** [DEFAULT] = ordine del database (anno decrescente, poi paese). */
+/**
+ * Ordine delle liste di un anno o di un paese (una sola scelta: l'altro asse è costante).
+ * [DEFAULT] = ordine del database (anno decrescente, poi paese).
+ */
 enum class CoinSort(val label: String) {
     DEFAULT("Default"),
     YEAR_DESC("Newest first"),
@@ -32,18 +36,35 @@ enum class CoinSort(val label: String) {
     COUNTRY_ZA("Country Z → A"),
 }
 
+/** Cosa viene prima nell'elenco "All": le monete si raggruppano per anno o per paese. */
+enum class CoinGroup(val label: String) {
+    YEAR("Year"),
+    COUNTRY("Country"),
+}
+
 data class CoinListOptions(
     val ownership: OwnershipFilter = OwnershipFilter.ALL,
     /** Vuoto = nessun vincolo; altrimenti la moneta deve avere almeno una di queste qualità. */
     val qualities: Set<CoinQuality> = emptySet(),
+    /** Liste di un anno o di un paese. */
     val sort: CoinSort = CoinSort.DEFAULT,
+    /** Elenco "All": tre scelte indipendenti, il predefinito coincide con l'ordine del database (anno decrescente, poi paese A → Z). */
+    val group: CoinGroup = CoinGroup.YEAR,
+    val countryAscending: Boolean = true,
+    val newestFirst: Boolean = true,
 ) {
     val isActive: Boolean get() = this != CoinListOptions()
+
+    /** Cambia con qualunque scelta di ordine: la lista torna in cima (stato di scorrimento nuovo). */
+    val orderKey: List<Any> get() = listOf(sort, group, countryAscending, newestFirst)
+
+    /** true se l'ordine dell'elenco "All" è quello del database. */
+    val isDefaultAllOrder: Boolean get() = group == CoinGroup.YEAR && countryAscending && newestFirst
 }
 
-/** Ordinamenti sensati per lista: in un anno o in un paese l'altro asse è costante. */
+/** Ordinamenti sensati per le liste di un anno o di un paese; "All" ha invece le tre scelte di [CoinListOptions]. */
 fun CoinFilter.sortChoices(): List<CoinSort> = when (this) {
-    CoinFilter.All -> CoinSort.entries
+    CoinFilter.All -> emptyList()
     is CoinFilter.Year -> listOf(CoinSort.DEFAULT, CoinSort.COUNTRY_AZ, CoinSort.COUNTRY_ZA)
     is CoinFilter.Country -> listOf(CoinSort.DEFAULT, CoinSort.YEAR_DESC, CoinSort.YEAR_ASC)
 }
@@ -76,30 +97,68 @@ fun BoxScope.CoinListSearchBar(
             onReset = { viewModel.onOptionsChange(CoinListOptions()) },
             onDismiss = { showFilters = false },
         ) {
-            ChoiceSection(
-                title = "Sort by",
-                options = viewModel.sortChoices,
-                selected = options.sort,
-                label = { it.label },
-                onSelect = { viewModel.onOptionsChange(options.copy(sort = it)) },
-            )
+            if (viewModel.sortChoices.isEmpty()) {
+                // "All": due assi (paese e anno), quindi tre scelte indipendenti invece di un solo ordine.
+                FilterGroupHeader("Sort")
+                ChoiceSection(
+                    title = "Group by",
+                    options = CoinGroup.entries,
+                    selected = options.group,
+                    label = { it.label },
+                    onSelect = { viewModel.onOptionsChange(options.copy(group = it)) },
+                )
+                ChoiceSection(
+                    title = "Country order",
+                    options = listOf(true, false),
+                    selected = options.countryAscending,
+                    label = { if (it) "A → Z" else "Z → A" },
+                    onSelect = { viewModel.onOptionsChange(options.copy(countryAscending = it)) },
+                )
+                ChoiceSection(
+                    title = "Year order",
+                    options = listOf(true, false),
+                    selected = options.newestFirst,
+                    label = { if (it) "Newest first" else "Oldest first" },
+                    onSelect = { viewModel.onOptionsChange(options.copy(newestFirst = it)) },
+                )
+                FilterGroupHeader("Filter")
+            } else {
+                ChoiceSection(
+                    title = "Sort by",
+                    options = viewModel.sortChoices,
+                    selected = options.sort,
+                    label = { it.label },
+                    onSelect = { viewModel.onOptionsChange(options.copy(sort = it)) },
+                )
+            }
             ChoiceSection(
                 title = "Collection",
                 options = OwnershipFilter.entries,
                 selected = options.ownership,
                 label = { it.label },
-                onSelect = { viewModel.onOptionsChange(options.copy(ownership = it)) },
-            )
-            MultiChoiceSection(
-                title = "Owned quality",
-                options = CoinQuality.entries,
-                selected = options.qualities,
-                label = { it.label },
-                onToggle = {
-                    val next = if (it in options.qualities) options.qualities - it else options.qualities + it
-                    viewModel.onOptionsChange(options.copy(qualities = next))
+                // "Owned quality" esiste solo con Collection = Owned: uscendone le qualità spuntate si
+                // azzerano, non restano attive di nascosto.
+                onSelect = {
+                    viewModel.onOptionsChange(
+                        options.copy(
+                            ownership = it,
+                            qualities = if (it == OwnershipFilter.OWNED) options.qualities else emptySet(),
+                        ),
+                    )
                 },
             )
+            if (options.ownership == OwnershipFilter.OWNED) {
+                MultiChoiceSection(
+                    title = "Owned quality",
+                    options = CoinQuality.entries,
+                    selected = options.qualities,
+                    label = { it.label },
+                    onToggle = {
+                        val next = if (it in options.qualities) options.qualities - it else options.qualities + it
+                        viewModel.onOptionsChange(options.copy(qualities = next))
+                    },
+                )
+            }
         }
     }
 }

@@ -36,7 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.DenominationRow
-import com.michele.eurocoins.data.RegularAllSort
+import com.michele.eurocoins.data.RegularAllGroup
 import com.michele.eurocoins.data.RegularIssueSeries
 import com.michele.eurocoins.data.seriesTitle
 import com.michele.eurocoins.ui.browse.BrowseCard
@@ -45,6 +45,7 @@ import com.michele.eurocoins.ui.browse.CardGrid
 import com.michele.eurocoins.ui.browse.CompletionFilter
 import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.CollectionProgressBar
+import com.michele.eurocoins.ui.components.FilterGroupHeader
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
 import com.michele.eurocoins.ui.components.MultiChoiceSection
@@ -169,7 +170,7 @@ fun RegularIssuesScreen(
                     RegularBrowseMode.ALL -> Box {
                         // key(...) e non un LaunchedEffect: lo scorrimento si ricrea nella stessa composizione,
                         // come nelle liste di Commemorative (un effetto arriverebbe un fotogramma dopo).
-                        key(state.prefs.allSort) {
+                        key(state.prefs.allOrder) {
                             LazyColumn(
                                 modifier = Modifier.fillMaxSize().hazeSource(hazeState),
                                 contentPadding = PaddingValues(top = 4.dp, bottom = floatingBarClearance()),
@@ -279,13 +280,29 @@ fun RegularIssuesScreen(
                 onReset = viewModel::resetAll,
                 onDismiss = { showFilters = false },
             ) {
+                FilterGroupHeader("Sort")
                 ChoiceSection(
-                    title = "Sort by",
-                    options = RegularAllSort.entries,
-                    selected = state.prefs.allSort,
+                    title = "Group by",
+                    options = RegularAllGroup.entries,
+                    selected = state.prefs.allOrder.group,
                     label = { it.label },
-                    onSelect = viewModel::setAllSort,
+                    onSelect = viewModel::setAllGroup,
                 )
+                ChoiceSection(
+                    title = "Country order",
+                    options = listOf(true, false),
+                    selected = state.prefs.allOrder.countryAscending,
+                    label = { if (it) "A → Z" else "Z → A" },
+                    onSelect = viewModel::setAllCountryAscending,
+                )
+                ChoiceSection(
+                    title = "Value order",
+                    options = listOf(true, false),
+                    selected = state.prefs.allOrder.largestFirst,
+                    label = { if (it) "Largest first" else "Smallest first" },
+                    onSelect = viewModel::setAllLargestFirst,
+                )
+                FilterGroupHeader("Filter")
                 ChoiceSection(
                     title = "Collection",
                     options = OwnershipFilter.entries,
@@ -293,13 +310,15 @@ fun RegularIssuesScreen(
                     label = { it.label },
                     onSelect = viewModel::setAllOwnership,
                 )
-                MultiChoiceSection(
-                    title = "Owned quality",
-                    options = CoinQuality.entries,
-                    selected = state.prefs.allQualities,
-                    label = { it.label },
-                    onToggle = viewModel::toggleAllQuality,
-                )
+                if (state.prefs.allOwnership == OwnershipFilter.OWNED) {
+                    MultiChoiceSection(
+                        title = "Owned quality",
+                        options = CoinQuality.entries,
+                        selected = state.prefs.allQualities,
+                        label = { it.label },
+                        onToggle = viewModel::toggleAllQuality,
+                    )
+                }
             }
         }
     }

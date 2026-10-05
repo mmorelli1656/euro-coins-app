@@ -15,40 +15,69 @@ class RegularAllRowsTest {
 
     private val byDenomination = denominationRows(series, emptyList())
 
-    private fun all(sort: RegularAllSort) = allDenominationRows(byDenomination, sort)
+    private val defaultOrder = RegularAllOrder()
 
-    private fun search(query: String, sort: RegularAllSort = RegularAllSort.COUNTRY_ASC) =
-        all(sort).filter { it.matchesAllQuery(query) }
+    private fun all(order: RegularAllOrder = defaultOrder) = allDenominationRows(byDenomination, order)
+
+    private fun search(query: String, order: RegularAllOrder = defaultOrder) =
+        all(order).filter { it.matchesAllQuery(query) }
+
+    private val everyOrder = RegularAllGroup.entries.flatMap { group ->
+        listOf(true, false).flatMap { country -> listOf(true, false).map { largest -> RegularAllOrder(group, country, largest) } }
+    }
 
     @Test
-    fun everySortHasTheWholeCatalogOnce() {
-        for (sort in RegularAllSort.entries) {
-            val rows = all(sort)
-            assertEquals(sort.name, series.regularProgress(emptyList()).total, rows.size)
-            assertEquals(sort.name, rows.size, rows.map { Triple(it.paese, it.viewedSeries.ordineCronologico, it.denomination.image.taglio) }.toSet().size)
+    fun everyOrderHasTheWholeCatalogOnce() {
+        for (order in everyOrder) {
+            val rows = all(order)
+            assertEquals(order.toString(), series.regularProgress(emptyList()).total, rows.size)
+            assertEquals(order.toString(), rows.size, rows.map { Triple(it.paese, it.viewedSeries.ordineCronologico, it.denomination.image.taglio) }.toSet().size)
         }
     }
 
     @Test
     fun byCountryTheEightCoinsOfASeriesAreTogetherFromLargestToSmallest() {
-        val rows = all(RegularAllSort.COUNTRY_ASC)
+        val rows = all()
         assertEquals(rows.map { it.countryName }, rows.map { it.countryName }.sorted())
         val germany = rows.filter { it.paese == "Germania" }
         assertEquals(REGULAR_DENOMINATIONS.asReversed(), germany.map { it.denomination.image.taglio })
         val belgium = rows.filter { it.paese == "Belgio" }
         assertEquals(listOf(1, 2, 3), belgium.map { it.seriesNumber }.distinct())
         assertEquals(REGULAR_DENOMINATIONS.asReversed(), belgium.take(8).map { it.denomination.image.taglio })
-        assertEquals(rows.map { it.countryName }.asReversed().distinct(), all(RegularAllSort.COUNTRY_DESC).map { it.countryName }.distinct())
+        assertEquals(rows.map { it.countryName }.asReversed().distinct(), all(RegularAllOrder(countryAscending = false)).map { it.countryName }.distinct())
+    }
+
+    @Test
+    fun byCountryTheDirectionOfTheValueOrderIsIndependent() {
+        val smallestFirst = all(RegularAllOrder(largestFirst = false))
+        // I paesi restano A → Z, dentro ogni serie i tagli vanno dal più piccolo.
+        assertEquals(smallestFirst.map { it.countryName }, smallestFirst.map { it.countryName }.sorted())
+        assertEquals(REGULAR_DENOMINATIONS, smallestFirst.filter { it.paese == "Germania" }.map { it.denomination.image.taglio })
+        // Paesi Z → A e tagli dal più piccolo: tutte e due le direzioni invertite insieme.
+        val both = all(RegularAllOrder(countryAscending = false, largestFirst = false))
+        assertEquals(both.map { it.countryName }.distinct(), all().map { it.countryName }.distinct().asReversed())
+        assertEquals(REGULAR_DENOMINATIONS, both.filter { it.paese == "Germania" }.map { it.denomination.image.taglio })
     }
 
     @Test
     fun byValueAllTheCountriesOfADenominationAreTogether() {
-        val rows = all(RegularAllSort.LARGEST_FIRST)
+        val rows = all(RegularAllOrder(group = RegularAllGroup.VALUE))
         assertEquals(REGULAR_DENOMINATIONS.asReversed(), rows.map { it.denomination.image.taglio }.distinct())
-        assertEquals(REGULAR_DENOMINATIONS, all(RegularAllSort.SMALLEST_FIRST).map { it.denomination.image.taglio }.distinct())
+        assertEquals(
+            REGULAR_DENOMINATIONS,
+            all(RegularAllOrder(group = RegularAllGroup.VALUE, largestFirst = false)).map { it.denomination.image.taglio }.distinct(),
+        )
         val twoEuro = rows.take(series.size)
         assertTrue(twoEuro.all { it.denomination.image.taglio == "2 euro" })
         assertEquals(twoEuro.map { it.countryName }, twoEuro.map { it.countryName }.sorted())
+    }
+
+    @Test
+    fun byValueTheDirectionOfTheCountryOrderIsIndependent() {
+        val rows = all(RegularAllOrder(group = RegularAllGroup.VALUE, countryAscending = false))
+        val twoEuro = rows.take(series.size)
+        assertTrue(twoEuro.all { it.denomination.image.taglio == "2 euro" })
+        assertEquals(twoEuro.map { it.countryName }, twoEuro.map { it.countryName }.sortedDescending())
     }
 
     @Test
@@ -78,7 +107,7 @@ class RegularAllRowsTest {
         )
         val rows = allDenominationRows(
             denominationRows(series, listOf(item("2 euro", CoinQuality.PROOF), item("1 euro", CoinQuality.STANDARD), item("1 euro", CoinQuality.BU))),
-            RegularAllSort.COUNTRY_ASC,
+            RegularAllOrder(),
         )
         fun names(vararg q: CoinQuality) = rows.filter { it.ownsAnyQuality(q.toSet()) }.map { it.denomination.image.taglio }
         assertEquals(rows.size, rows.count { it.ownsAnyQuality(emptySet()) })
@@ -89,7 +118,7 @@ class RegularAllRowsTest {
 
     @Test
     fun looseWordsMatchCountryOrKind() {
-        assertEquals(all(RegularAllSort.COUNTRY_ASC).size, search("").size)
+        assertEquals(all().size, search("").size)
         assertTrue(search("cent").all { it.denomination.image.taglio.endsWith("cent") })
         assertEquals(6 * series.size, search("cent").size)
         assertEquals(0, search("zzz").size)
