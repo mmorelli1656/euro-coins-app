@@ -25,7 +25,8 @@ class UserSettingsTest {
     fun theRegularDefaultTabFallsBackToCountries() {
         assertEquals(RegularBrowseMode.COUNTRIES, parseRegularBrowseMode(null))
         assertEquals(RegularBrowseMode.COUNTRIES, parseRegularBrowseMode(""))
-        assertEquals(RegularBrowseMode.COUNTRIES, parseRegularBrowseMode("ALL")) // valore di un altro catalogo
+        assertEquals(RegularBrowseMode.COUNTRIES, parseRegularBrowseMode("YEARS")) // valore di un altro catalogo
         assertEquals(RegularBrowseMode.DENOMINATIONS, parseRegularBrowseMode("DENOMINATIONS"))
+        assertEquals(RegularBrowseMode.ALL, parseRegularBrowseMode("ALL"))
     }
 }

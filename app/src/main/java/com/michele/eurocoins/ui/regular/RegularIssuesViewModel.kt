@@ -2,16 +2,22 @@ package com.michele.eurocoins.ui.regular
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.michele.eurocoins.data.DenominationRow
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.REGULAR_DENOMINATIONS
+import com.michele.eurocoins.data.RegularAllSort
+import com.michele.eurocoins.data.RegularCollectionEntry
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.allDenominationRows
 import com.michele.eurocoins.data.denominationProgress
 import com.michele.eurocoins.data.denominationRows
 import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.flagEmojiForCountry
+import com.michele.eurocoins.data.matchesAllQuery
 import com.michele.eurocoins.data.regularProgress
+import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.browse.CompletionFilter
 import com.michele.eurocoins.ui.browse.matches
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +28,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-enum class RegularBrowseMode { COUNTRIES, DENOMINATIONS }
+enum class RegularBrowseMode { COUNTRIES, DENOMINATIONS, ALL }
 
 /** [paese] è la chiave stabile usata per navigare, [name] il nome mostrato. */
 data class RegularIssueCountryCardData(
@@ -37,7 +44,7 @@ data class RegularIssueCountryCardData(
 /** [taglio] è la chiave ("2 euro") usata per navigare e da mostrare; [progress] sulle righe di tutti i paesi. */
 data class DenominationCardData(val taglio: String, val progress: Progress)
 
-/** Query, ordine e filtro delle due griglie; ognuna ha i suoi, così cambiando scheda non si perdono. */
+/** Query, ordine e filtro delle tre schede; ognuna ha i suoi, così cambiando scheda non si perdono. */
 data class RegularGridPrefs(
     /** true = A → Z (default); false = Z → A. */
     val countriesAscending: Boolean = true,
@@ -47,11 +54,16 @@ data class RegularGridPrefs(
     val denominationsQuery: String = "",
     val countriesCompletion: CompletionFilter = CompletionFilter.ALL,
     val denominationsCompletion: CompletionFilter = CompletionFilter.ALL,
+    val allSort: RegularAllSort = RegularAllSort.COUNTRY_ASC,
+    val allQuery: String = "",
+    val allOwnership: OwnershipFilter = OwnershipFilter.ALL,
 ) {
     val countriesFilterActive: Boolean
         get() = !countriesAscending || countriesCompletion != CompletionFilter.ALL
     val denominationsFilterActive: Boolean
         get() = !denominationsLargestFirst || denominationsCompletion != CompletionFilter.ALL
+    val allFilterActive: Boolean
+        get() = allSort != RegularAllSort.COUNTRY_ASC || allOwnership != OwnershipFilter.ALL
 }
 
 data class RegularIssuesUiState(
@@ -61,13 +73,15 @@ data class RegularIssuesUiState(
     val loaded: Boolean = false,
     val countries: List<RegularIssueCountryCardData> = emptyList(),
     val denominations: List<DenominationCardData> = emptyList(),
+    /** Righe della scheda All dopo ricerca e filtro (una per serie e taglio). */
+    val all: List<DenominationRow> = emptyList(),
 )
 
 /**
- * Catalogo Regular Issues: due schede, Countries (la griglia dei paesi, con ricerca, ordine e filtro
- * di completamento come in Commemorative) e Denominations (una card per taglio, con il suo avanzamento
- * su tutti i paesi). Niente scheda "All" (tutte le righe in un elenco): non è detto che serva, e
- * l'elenco di un taglio ne è già una versione filtrata — vedi CLAUDE.md § Regular Issues.
+ * Catalogo Regular Issues: tre schede, Countries (la griglia dei paesi, con ricerca, ordine e filtro
+ * di completamento come in Commemorative), Denominations (una card per taglio, con il suo avanzamento
+ * su tutti i paesi) e All (tutte le righe di tutti i tagli in un elenco, come All di Commemorative:
+ * l'unico posto dove cercare una moneta precisa o filtrare "Missing" su tutto il catalogo).
  */
 class RegularIssuesViewModel(
     private val repository: RegularIssueRepository,
@@ -124,18 +138,23 @@ class RegularIssuesViewModel(
             .filter { it.progress.matches(p.denominationsCompletion) }
             .filter { matchesDenomination(it.taglio, p.denominationsQuery) }
             .let { list -> if (p.denominationsLargestFirst) list.asReversed() else list }
+        val all = allDenominationRows(rows, p.allSort)
+            .filter { p.allOwnership == OwnershipFilter.ALL || (p.allOwnership == OwnershipFilter.OWNED) == it.owned }
+            .filter { it.matchesAllQuery(p.allQuery) }
         return RegularIssuesUiState(
             mode = currentMode,
             prefs = p,
             loaded = true,
             countries = countries,
             denominations = denominations,
+            all = all,
         )
     }
 
     /** Query attuali delle due griglie, lette subito (uiState arriva con qualche fotogramma di ritardo). */
     val countriesQueryNow: String get() = prefs.value.countriesQuery
     val denominationsQueryNow: String get() = prefs.value.denominationsQuery
+    val allQueryNow: String get() = prefs.value.allQuery
 
     fun onModeChange(newMode: RegularBrowseMode) {
         mode.value = newMode
@@ -150,6 +169,19 @@ class RegularIssuesViewModel(
 
     fun resetCountries() = prefs.update { it.copy(countriesAscending = true, countriesCompletion = CompletionFilter.ALL) }
     fun resetDenominations() = prefs.update { it.copy(denominationsLargestFirst = true, denominationsCompletion = CompletionFilter.ALL) }
+
+    fun setAllQuery(value: String) = prefs.update { it.copy(allQuery = value) }
+    fun setAllSort(value: RegularAllSort) = prefs.update { it.copy(allSort = value) }
+    fun setAllOwnership(value: OwnershipFilter) = prefs.update { it.copy(allOwnership = value) }
+    fun resetAll() = prefs.update { it.copy(allSort = RegularAllSort.COUNTRY_ASC, allOwnership = OwnershipFilter.ALL) }
+
+    /** Salva dal pannello di una riga di All: stessa chiave (serie di origine) e finestra dell'elenco di un taglio. */
+    fun onSaveCollection(row: DenominationRow, entries: List<RegularCollectionEntry>) {
+        val series = row.denomination.series
+        viewModelScope.launch {
+            repository.saveCollection(series.stableKey, row.denomination.image.taglio, series.paese, entries, window = row.denomination)
+        }
+    }
 }
 
 /** "euro", "2 euro", "2euro", "cent" trovano il taglio senza badare a maiuscole e spazi. */

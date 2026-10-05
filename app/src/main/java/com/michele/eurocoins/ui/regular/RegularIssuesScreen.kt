@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,6 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.data.DenominationRow
+import com.michele.eurocoins.data.RegularAllSort
+import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.data.seriesTitle
 import com.michele.eurocoins.ui.browse.BrowseCard
 import com.michele.eurocoins.ui.browse.CardFooter
 import com.michele.eurocoins.ui.browse.CardGrid
@@ -38,14 +46,18 @@ import com.michele.eurocoins.ui.components.ChoiceSection
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.FilterSheet
 import com.michele.eurocoins.ui.components.FloatingSearchBar
+import com.michele.eurocoins.ui.components.RegularCollectionSheet
+import com.michele.eurocoins.ui.components.floatingBarClearance
 import com.michele.eurocoins.ui.theme.appBarColors
 import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 
 /**
- * Catalogo Regular Issues: un selettore Countries / Denominations. Countries è la griglia dei paesi (un
- * tocco apre le serie), Denominations una card per taglio (un tocco apre l'elenco di quel taglio in
- * tutti i paesi). In basso la stessa barra flottante di ricerca + FILTER delle commemorative, con query,
- * ordine e filtro propri di ogni scheda. Niente scheda "All": vedi [RegularIssuesViewModel].
+ * Catalogo Regular Issues: un selettore Countries / Denominations / All. Countries è la griglia dei paesi
+ * (un tocco apre le serie), Denominations una card per taglio (un tocco apre l'elenco di quel taglio in
+ * tutti i paesi), All l'elenco di tutte le righe (il tocco apre il dettaglio, la casella il pannello di
+ * collezione). In basso la stessa barra flottante di ricerca + FILTER delle commemorative, con query,
+ * ordine e filtro propri di ogni scheda.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,11 +65,14 @@ fun RegularIssuesScreen(
     viewModel: RegularIssuesViewModel,
     onCountryClick: (String) -> Unit,
     onDenominationClick: (String) -> Unit,
+    /** Dettaglio di un taglio dalla scheda All: serie GUARDATA e taglio. */
+    onRowClick: (series: RegularIssueSeries, taglio: String) -> Unit,
     onBack: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
     val hazeState = remember { HazeState() }
     var showFilters by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<DenominationRow?>(null) }
 
     Scaffold(
         topBar = {
@@ -140,6 +155,37 @@ fun RegularIssuesScreen(
                             )
                         }
                     }
+                    RegularBrowseMode.ALL -> Box {
+                        // key(...) e non un LaunchedEffect: lo scorrimento si ricrea nella stessa composizione,
+                        // come nelle liste di Commemorative (un effetto arriverebbe un fotogramma dopo).
+                        key(state.prefs.allSort) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize().hazeSource(hazeState),
+                                contentPadding = PaddingValues(top = 4.dp, bottom = floatingBarClearance()),
+                            ) {
+                                items(state.all, key = { "${it.paese}|${it.viewedSeries.ordineCronologico}|${it.denomination.image.taglio}" }) { row ->
+                                    // Come CoinRow: riga piccola "Paese · …" in verde sopra, il taglio come titolo. La serie
+                                    // serve: lo stesso 5 cent francese compare in tre serie con la stessa foto.
+                                    RegularCoinRow(
+                                        image = row.denomination.image,
+                                        status = "${row.flag} ${row.countryName} · ${seriesTitle(row.seriesNumber)}".trim(),
+                                        statusHighlight = true,
+                                        title = row.denomination.image.taglio,
+                                        owned = row.owned,
+                                        onClick = { onRowClick(row.viewedSeries, row.denomination.image.taglio) },
+                                        onEditCollection = { editing = row },
+                                    )
+                                }
+                            }
+                        }
+                        if (state.loaded && state.all.isEmpty()) {
+                            NoMatch(
+                                what = "coins",
+                                hint = "Search by country, value like “2 euro”, series or year.",
+                                query = state.prefs.allQuery.trim(),
+                            )
+                        }
+                    }
                 }
             }
 
@@ -158,6 +204,15 @@ fun RegularIssuesScreen(
                     onQueryChange = viewModel::setDenominationsQuery,
                     placeholder = "Filter by value…",
                     filterActive = state.prefs.denominationsFilterActive,
+                    onFilterClick = { showFilters = true },
+                    hazeState = hazeState,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+                RegularBrowseMode.ALL -> FloatingSearchBar(
+                    query = viewModel.allQueryNow,
+                    onQueryChange = viewModel::setAllQuery,
+                    placeholder = "Country, value, series…",
+                    filterActive = state.prefs.allFilterActive,
                     onFilterClick = { showFilters = true },
                     hazeState = hazeState,
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -206,7 +261,43 @@ fun RegularIssuesScreen(
                     onSelect = viewModel::setDenominationsCompletion,
                 )
             }
+            RegularBrowseMode.ALL -> FilterSheet(
+                onReset = viewModel::resetAll,
+                onDismiss = { showFilters = false },
+            ) {
+                ChoiceSection(
+                    title = "Sort by",
+                    options = RegularAllSort.entries,
+                    selected = state.prefs.allSort,
+                    label = { it.label },
+                    onSelect = viewModel::setAllSort,
+                )
+                ChoiceSection(
+                    title = "Collection",
+                    options = OwnershipFilter.entries,
+                    selected = state.prefs.allOwnership,
+                    label = { it.label },
+                    onSelect = viewModel::setAllOwnership,
+                )
+            }
         }
+    }
+
+    val current = editing
+    if (current != null) {
+        // La serie del taglio (di origine) per la chiave, la serie GUARDATA per il titolo del pannello.
+        RegularCollectionSheet(
+            countryName = current.countryName,
+            series = current.denomination.series,
+            seriesNumber = current.seriesNumber,
+            denomination = current.denomination.image,
+            currentItems = current.items,
+            onSave = { entries ->
+                viewModel.onSaveCollection(current, entries)
+                editing = null
+            },
+            onDismiss = { editing = null },
+        )
     }
 }
 
@@ -231,6 +322,7 @@ private fun ModeSelector(
                         when (mode) {
                             RegularBrowseMode.COUNTRIES -> "Countries"
                             RegularBrowseMode.DENOMINATIONS -> "Denominations"
+                            RegularBrowseMode.ALL -> "All"
                         },
                     )
                 },
@@ -240,8 +332,8 @@ private fun ModeSelector(
 }
 
 /**
- * Nessuna card corrisponde alla ricerca o al filtro di una griglia. A differenza di Commemorative non
- * c'è il pulsante "Search all": qui non esiste la scheda All a cui portare il testo.
+ * Nessuna card o riga corrisponde alla ricerca o al filtro. A differenza di Commemorative non c'è il
+ * pulsante "Search all" sulle griglie: l'avviso resta semplice, la scheda All si sceglie dal selettore.
  */
 @Composable
 private fun NoMatch(what: String, hint: String, query: String) {

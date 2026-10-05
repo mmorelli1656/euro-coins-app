@@ -186,6 +186,11 @@ fun EuroCoinsNavHost(
                 // Uri.encode: stesso motivo delle commemorative, "Città del Vaticano" e "Paesi Bassi" hanno spazi/accenti.
                 onCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
                 onDenominationClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}") },
+                onRowClick = { series, taglio ->
+                    navController.navigate(
+                        "regular-issues/${Uri.encode(series.paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
+                    )
+                },
                 onBack = { navController.popBackStack() },
             )
         }

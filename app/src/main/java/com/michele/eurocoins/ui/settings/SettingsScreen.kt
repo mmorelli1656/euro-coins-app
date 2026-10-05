@@ -141,6 +141,7 @@ fun SettingsScreen(
                     when (it) {
                         RegularBrowseMode.COUNTRIES -> "Countries"
                         RegularBrowseMode.DENOMINATIONS -> "Denominations"
+                        RegularBrowseMode.ALL -> "All"
                     }
                 },
                 onSelect = settingsViewModel::setDefaultRegularTab,

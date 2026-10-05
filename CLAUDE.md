@@ -165,6 +165,7 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularYearMints.kt   # yearMintLabels(): etichette "Mint · …" per periodo (certa/probabile/non nota), logica pura, testata
 │   ├── RegularSeriesDenominations.kt # denominationsOf(): gli 8 tagli di una serie, quelli invariati ereditati dalla precedente, ritagliati alla finestra di anni della serie
 │   ├── RegularDenominationRows.kt # denominationRows(): le righe di un taglio in tutti i paesi (una per serie), per l'elenco di un taglio e le card Denominations
+│   ├── RegularAllRows.kt     # allDenominationRows()/RegularAllSort/matchesAllQuery(): l'elenco di tutte le righe (scheda All), ordine e ricerca, logica pura, testata
 │   ├── RegularIssueText.kt   # displayDescription() (senza la frase sul bordo esterno), seriesTitle()/seriesChipLabel()/seriesPeriod() — titoli e periodo delle serie
 │   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
 └── ui/
@@ -177,7 +178,7 @@ app/src/main/java/com/michele/eurocoins/
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
-    ├── regular/               # Regular Issues: schede Countries/Denominations + elenco di un taglio + serie del paese + collezione per taglio
+    ├── regular/               # Regular Issues: schede Countries/Denominations/All + elenco di un taglio + serie del paese + collezione per taglio
     │                         # + RegularDenominationDetailScreen (dettaglio taglio, building
     │                         # block riusati da ui/detail/)
     ├── settings/             # SettingsScreen unificata, SettingsViewModel, UserSettings (prefs `settings`)
@@ -380,7 +381,7 @@ regge un pulsante pieno):
   (`UserSettings.defaultTab`, letto alla creazione del `BrowseViewModel`).
   Scartato il riordino completo dei segmenti: i segmenti restano Years /
   Countries / All. **Anche Regular Issues ha la sua** (`UserSettings.defaultRegularTab`, chiave
-  `default_regular_tab`, Countries / Denominations, predefinito Countries, letta alla creazione di
+  `default_regular_tab`, Countries / Denominations / All, predefinito Countries, letta alla creazione di
   `RegularIssuesViewModel`: cambiarla da Impostazioni vale dalla prossima apertura della schermata,
   come per Commemorative). `UserSettingsTest` copre ereditarietà e valore di ripiego.
 - **Rotate home coins** (sezione Appearance, interruttore, **acceso di default**;
@@ -631,7 +632,7 @@ catalogo completo.
 - **Navigazione**: `HomeScreen` → `RegularIssuesScreen` → `RegularIssueCountryScreen` (route
   `regular-issues/{paese}`, `Uri.encode` come per le commemorative) oppure
   `RegularDenominationListScreen` (route `regular-denominations/{taglio}`, vedi sotto).
-- **`RegularIssuesScreen`: due schede, Countries / Denominations** (selettore segmentato come
+- **`RegularIssuesScreen`: tre schede, Countries / Denominations / All** (selettore segmentato come
   Years / Countries / All di Browse) **con la stessa barra flottante di ricerca + FILTER delle
   commemorative**, query/ordine/filtro propri di ogni scheda (`RegularGridPrefs`). Riusa i mattoni di
   `BrowseScreen.kt` (`BrowseCard`, `CardGrid`, `CardFooter`, `Progress.matches`, `FloatingSearchBar`,
@@ -652,12 +653,32 @@ catalogo completo.
   Colori duplicati da `RegularCoin` della Home (là attenuata al 62% perché è un ripiego): se i
   metalli cambiano, cambiarli in entrambi. `DenominationCoinTest`. Ricerca per valore
   ("2 euro", "euro", "cent": `matchesDenomination`, senza badare a maiuscole e spazi), FILTER = ordine
-  Largest/Smallest first + Collection. **Niente scheda "All"** (tutte le 328 righe in un elenco, come
-  in Commemorative): proposta e poi tolta dall'utente ("non verrebbe mai utilizzata", non ci sono
-  dati d'uso per decidere); l'elenco di un taglio ne è già una versione filtrata, quindi si aggiunge
-  senza rifare niente se servisse. **Niente "Years"**: l'anno non è un dato della moneta qui (una
+  Largest/Smallest first + Collection. **Niente "Years"**: l'anno non è un dato della moneta qui (una
   serie copre decenni, l'anno lo sceglie l'utente al salvataggio). Mockup approvato prima del codice.
-  Senza risultati: messaggio senza il pulsante "Search all" di Commemorative (non c'è la scheda All).
+  Senza risultati: messaggio senza il pulsante "Search all" di Commemorative (le griglie non portano
+  alla scheda All, che si sceglie dal selettore).
+  **Scheda All** (ottobre 2026): tutte le 328 righe in un elenco, per coerenza con Years / Countries /
+  All di Commemorative. Era stata tolta ("non verrebbe mai utilizzata", niente dati d'uso) e rimessa
+  su richiesta dell'utente: è l'unico posto dove cercare una moneta precisa ("Italy 2 euro") e dove
+  il filtro Missing vale su tutto il catalogo. **Implementata senza mockup, per scelta dell'utente**
+  ("schermata molto derivativa"): è `RegularCoinRow` (80 dp, stessa casella e stesso pannello) dentro
+  la schermata di Countries/Denominations, con le righe di `denominationRows()` appiattite
+  (`allDenominationRows`, `RegularAllRows.kt`). **Riga come `CoinRow`**: sopra, in `primary` Bold,
+  "🇧🇪 Belgium · Series 2" (lo slot di "Paese · Anno"), titolo il taglio ("2 euro"); il paese NON è il
+  titolo come nell'elenco di un taglio, perché qui il taglio è ciò che distingue le righe. La serie
+  c'è sempre: la Francia ha lo stesso 5 cent in tre serie con la stessa foto, senza "Series N" le tre
+  righe sembrerebbero un duplicato. Il tocco apre il dettaglio della serie guardata, la casella il
+  pannello (stessa chiave e finestra dell'elenco di un taglio). **FILTER**: "Sort by" con quattro voci
+  (Country A → Z / Z → A, Largest / Smallest first; predefinito paese A → Z, dentro la serie dal taglio
+  più grande) + Collection All/Owned/Missing (`OwnershipFilter`). **Ricerca**
+  (`DenominationRow.matchesAllQuery`): paese, serie, periodo, taglio; "series 2" e un taglio per
+  intero ("5 cent", "2euro") devono coincidere ESATTAMENTE con la riga (altrimenti "5" troverebbe i 50
+  cent e "2" tutte le serie con un 2 negli anni), il resto è testo libero in paese/serie/periodo;
+  "euro"/"cent" da soli trovano tutti i tagli di quel tipo. Segnaposto "Country, value, series…" (non
+  misurato sul telefono). Il Default tab nelle Impostazioni ha il terzo segmento. **Non fatto**:
+  precaricamento delle miniature oltre la lista (come `PrefetchThumbnails` di Commemorative, che è
+  privato e legato a `Coin`; nemmeno l'elenco di un taglio ce l'ha); non verificato su telefono.
+  `RegularAllRowsTest`.
 - **`RegularDenominationListScreen`**: un taglio in tutti i paesi, una riga per serie (41),
   `denominationRows()` (`RegularDenominationRows.kt`, stesso conto di `regularProgress`: ordine per paese
   e poi per serie, riga posseduta = almeno un'annata nella finestra della serie). **Il PAESE è il
@@ -1694,8 +1715,7 @@ Nella **pipeline dati** (repo separato, va fatto lì):
 
 Nell'**app**:
 - **Regular Issues, fuori scope della prima versione** (§ omonima):
-  gestione di `possibileIncongruenza` in UI; scheda "All" (vedi § omonima: tolta, da riconsiderare
-  se serve cercare una moneta precisa o il filtro Missing su tutto il catalogo).
+  gestione di `possibileIncongruenza` in UI.
 - **Collezione su Regular Issues** (§ omonima): export CSV ancora assente. Il backup su Drive e il
   reset la coprono dal v2 (§ Backup su Google Drive). Il problema della deduplicazione dell'anno
   scritto a mano non esiste più (anno scelto da lista).
