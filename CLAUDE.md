@@ -632,7 +632,7 @@ catalogo completo.
 - **Navigazione**: `HomeScreen` → `RegularIssuesScreen` → `RegularIssueCountryScreen` (route
   `regular-issues/{paese}`, `Uri.encode` come per le commemorative) oppure
   `RegularDenominationListScreen` (route `regular-denominations/{taglio}`, vedi sotto).
-- **`RegularIssuesScreen`: tre schede, Denominations / Countries / All** (nell'ordine di Years / Countries / All di Commemorative: Denominations occupa il posto di Years, Countries resta in mezzo; il predefinito è comunque Countries; selettore segmentato come
+- **`RegularIssuesScreen`: tre schede, Denominations / Countries / All** (**etichetta mostrata "Values", non "Denominations"**: nel selettore delle Impostazioni, con tre segmenti, la parola lunga andava a capo anche misurando le larghezze; "Values" è la parola già usata da "Sort by value" e "Filter by value…"; il nome interno `RegularBrowseMode.DENOMINATIONS` e il resto di questo file restano "Denominations") (nell'ordine di Years / Countries / All di Commemorative: Denominations occupa il posto di Years, Countries resta in mezzo; il predefinito è comunque Countries; selettore segmentato come
   Years / Countries / All di Browse) **con la stessa barra flottante di ricerca + FILTER delle
   commemorative**, query/ordine/filtro propri di ogni scheda (`RegularGridPrefs`). Riusa i mattoni di
   `BrowseScreen.kt` (`BrowseCard`, `CardGrid`, `CardFooter`, `Progress.matches`, `FloatingSearchBar`,

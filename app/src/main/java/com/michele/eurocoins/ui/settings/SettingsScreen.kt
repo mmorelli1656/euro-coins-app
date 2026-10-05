@@ -142,7 +142,7 @@ fun SettingsScreen(
                 label = {
                     when (it) {
                         RegularBrowseMode.COUNTRIES -> "Countries"
-                        RegularBrowseMode.DENOMINATIONS -> "Denominations"
+                        RegularBrowseMode.DENOMINATIONS -> "Values"
                         RegularBrowseMode.ALL -> "All"
                     }
                 },
@@ -269,7 +269,7 @@ private fun <T> SegmentedChoice(
     // padding del segmento, con un minimo di 64 dp di testo: con tre segmenti uguali "Denominations" andava a
     // capo, mentre i selettori con etichette corte (System / Light / Dark) restano pari. SIMMETRICA (il più
     // largo tra un segmento e il suo opposto): con pesi diversi sui due lati il segmento di mezzo non sta al
-    // centro della barra. Contare i caratteri non bastava: "Countries" di mezzo andava a capo a sua volta.
+    // centro della barra. Contare i caratteri non bastava; con l'etichetta "Values" (non più "Denominations") i tre segmenti sono comunque quasi pari.
     val measurer = rememberTextMeasurer()
     val textStyle = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current

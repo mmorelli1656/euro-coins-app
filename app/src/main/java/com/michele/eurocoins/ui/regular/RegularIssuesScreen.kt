@@ -330,7 +330,7 @@ private fun ModeSelector(
                     Text(
                         when (mode) {
                             RegularBrowseMode.COUNTRIES -> "Countries"
-                            RegularBrowseMode.DENOMINATIONS -> "Denominations"
+                            RegularBrowseMode.DENOMINATIONS -> "Values"
                             RegularBrowseMode.ALL -> "All"
                         },
                     )
