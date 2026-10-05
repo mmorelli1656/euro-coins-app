@@ -33,9 +33,13 @@ class RegularIssueRepository(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    /** Tutte le serie, senza i microstati quando l'utente li ha nascosti dalle Impostazioni. */
+    /**
+     * Tutte le serie, senza i microstati quando l'utente li ha nascosti dalle Impostazioni, e senza le
+     * immagini che non vanno mostrate ([withUsableImages]): applicato in lettura e non al seeding perché
+     * l'asset non cambia, quindi non ripopolerebbe un database già seminato.
+     */
     val series: SharedFlow<List<RegularIssueSeries>> = combine(dao.observeAll(), hideMicrostates) { all, hide ->
-        if (hide) all.filterNot { it.paese in MICROSTATE_PAESI } else all
+        (if (hide) all.filterNot { it.paese in MICROSTATE_PAESI } else all).map { it.withUsableImages() }
     }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
 
     /** Ultimo dataset già letto, o null se Room non ha ancora risposto: come `CoinRepository.coinsNow`. */
