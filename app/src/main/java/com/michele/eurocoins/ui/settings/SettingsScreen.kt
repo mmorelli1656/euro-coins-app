@@ -183,7 +183,10 @@ fun SettingsScreen(
             onDismissRequest = { confirmReset = false },
             title = { DialogTitle("Reset collection?") },
             text = {
-                Text("${owned.describe()} will be removed from this device. " + resetBackupNote(backupState))
+                Text(
+                    "This removes the following coins:\n" + owned.lines().joinToString("\n") { "• $it" } +
+                        "\n\n" + resetBackupNote(backupState, owned.total),
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -408,16 +411,20 @@ internal fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChec
 
 /**
  * Cosa dire sul backup nel dialog del Reset: se la collezione si potrà ripristinare e da quando.
- * Il Reset non tocca Drive, ma il suo effetto dipende da quanto il backup è aggiornato.
+ * Il Reset non tocca Drive, ma il suo effetto dipende da quanto il backup è aggiornato. Niente consigli
+ * ("restore before adding new coins" c'era e si è tolto: il dialog conferma un'azione voluta, il rischio
+ * vero è il backup automatico che sovrascrive, e il testo non lo risolve).
+ * [coins] serve solo al plurale ("has it" / "has them").
  */
-internal fun resetBackupNote(state: BackupUiState): String {
-    if (state.account == null) return "You're not signed in, so there is no backup to restore from."
+internal fun resetBackupNote(state: BackupUiState, coins: Int = 2): String {
+    if (state.account == null) return "You're not signed in, so there's no backup to restore from."
     val last = state.lastBackup ?: state.lastBackupLocal
-    val head = when {
-        state.localStatus == BackupStatus.UpToDate ->
-            "Your collection is backed up on Google Drive${last?.let { " ($it)" } ?: ""}, so you can restore it."
-        last != null -> "Anything added since your last backup ($last) can't be restored."
-        else -> "There is no backup on Google Drive yet, so this can't be undone."
+    // Spazi non separabili dentro la data: a capo non deve restare "07:44)" da solo.
+    val dated = last?.let { " (${it.replace(' ', ' ')})" } ?: ""
+    val pronoun = if (coins == 1) "it" else "them"
+    return when {
+        state.localStatus == BackupStatus.UpToDate -> "Your Google Drive backup$dated has $pronoun, so you can restore $pronoun."
+        last != null -> "Anything added since your last backup$dated can't be restored."
+        else -> "There's no backup on Google Drive, so this can't be undone."
     }
-    return "$head Your backup isn't deleted by the reset, but backing up again replaces it (the previous version stays on Drive)."
 }

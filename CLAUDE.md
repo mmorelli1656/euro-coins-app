@@ -470,8 +470,8 @@ regge un pulsante pieno):
   passati in uno dei due `saveShowcaseUrls` avrebbe cancellato anche le chiavi dell'altro. Test:
   `HomeShowcaseTest` (solo `pickShowcase`, invariato dal refactoring — nessun test aggiunto per
   `pickRegularIssueShowcaseUrls`, anche dopo questo allineamento).
-- **Reset collection**: la riga nella Danger zone dice solo il totale ("Removes 6 coins from this device", una riga sola: con il dettaglio per sezione andava su tre righe); il dialog di conferma con il numero di monete, diviso per sezione ("85
-  commemorative coins and 4 Regular Issues coins", `OwnedCounts.describe()`); svuota
+- **Reset collection**: la riga nella Danger zone dice solo il totale ("Removes 6 coins from this device", una riga sola: con il dettaglio per sezione andava su tre righe); il dialog di conferma con il numero di monete, diviso per sezione (un ELENCO: "This removes the following coins:" e una voce per sezione, "• 85
+  Commemorative", "• 4 Regular Issues", `OwnedCounts.lines()`, `OwnedCountsTest`: i nomi dei cataloghi come nel resto dell'app, senza "coins" in coda (lo dice l'intestazione: niente plurale da accordare, scelta dell'utente), la sezione vuota saltata. La frase andava a capo male ("85 coins from Commemorative and 4 coins from Regular Issues", 71 caratteri: a capo dopo "from", visto sul telefono; la versione accorciata "85 Commemorative and 4 Regular Issues coins" non è stata verificata a schermo prima di passare all'elenco); le righe dell'elenco sono corte e non si spezzano. Con una sezione sola resta un elenco di una voce, stessa forma sempre); svuota
   `collection_items` **e** `regular_collection_items` (`CoinRepository.resetCollection` +
   `RegularIssueRepository.resetCollection`). Prima toglieva solo le commemorative e lasciava
   le righe Regular senza dirlo. I tagli Regular si contano distinti per (serie, taglio), non per
@@ -1906,7 +1906,7 @@ Nell'**app**:
   la versione precedente su Drive (§ Backup su Google Drive). Non verificati end-to-end con un account
   Drive reale; il salvataggio automatico in particolare dipende dal sistema che lascia vivere il
   processo qualche secondo dopo l'uscita dall'app. Il Reset mostra nel dialog se la collezione è
-  ripristinabile e da quando (`resetBackupNote`).
+  ripristinabile e da quando (`resetBackupNote`, `ResetBackupNoteTest`): due paragrafi (l'elenco "This removes the following coins:" e l'esito sul backup, con spazi non separabili dentro la data perché a capo non resti "07:44)" da solo, visto sul telefono). **Nessun consiglio**: c'era "Restore before adding new coins: the next backup replaces this one." e si è tolto (decisione del 2026-10-06): il dialog conferma un'azione voluta, la frase serviva a chi si pente dopo, e il testo non risolve il rischio vero, cioè che dopo un reset il backup automatico, appena si aggiunge una moneta, sovrascrive quello buono (la copia precedente su Drive resta solo se il file aveva più di 24 ore). Se il rischio preoccupa, il rimedio è nel comportamento (sospendere il salvataggio automatico dopo un reset finché non c'è un backup manuale o un restore), non nel testo: decisione di prodotto aperta. Prima era un blocco unico che chiudeva con la nota tecnica "(the previous version stays on Drive)", e la ripeteva anche senza backup. Verificato sul telefono solo il caso "backup aggiornato"; gli altri tre sono coperti dal test.
 - Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
   segnaposto "Go Pro".
 
