@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
+import coil3.request.transformations
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.key
@@ -71,7 +72,9 @@ import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.CollectionSheet
+import com.michele.eurocoins.ui.components.ThumbnailColorFilter
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
+import com.michele.eurocoins.ui.components.ThumbnailSharpen
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.michele.eurocoins.ui.components.floatingBarClearance
 import com.michele.eurocoins.ui.components.rememberFloatingBarState
@@ -375,11 +378,20 @@ private fun CoinThumbnail(coin: Coin) {
         if (!coin.hasImage()) {
             EuroPlaceholder()
         } else {
+            val context = LocalContext.current
+            // ThumbnailSharpen: riduce alla misura della miniatura e rende nitido (vedi la classe).
+            val request = remember(coin.urlImmagineFonte) {
+                ImageRequest.Builder(context)
+                    .data(coin.urlImmagineFonte)
+                    .transformations(ThumbnailSharpen)
+                    .build()
+            }
             SubcomposeAsyncImage(
-                model = coin.urlImmagineFonte,
+                model = request,
                 contentDescription = coin.tema,
                 contentScale = ContentScale.Crop,
                 filterQuality = ThumbnailFilterQuality,
+                colorFilter = ThumbnailColorFilter,
                 modifier = Modifier.fillMaxSize(),
             ) {
                 when (painter.state.collectAsState().value) {

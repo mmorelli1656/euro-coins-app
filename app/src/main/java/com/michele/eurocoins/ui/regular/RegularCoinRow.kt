@@ -39,7 +39,9 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
+import com.michele.eurocoins.ui.components.ThumbnailColorFilter
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
+import com.michele.eurocoins.ui.components.ThumbnailSharpen
 
 private val ThumbnailSize = 64.dp
 
@@ -153,11 +155,12 @@ private fun DenominationThumbnail(image: RegularIssueImage) {
             // file (vedi quella classe) — senza, la moneta appare più piccola del cerchio.
             model = ImageRequest.Builder(context)
                 .data(image.urlImmagineFonte)
-                .transformations(RegularIssueImageTrim)
+                .transformations(RegularIssueImageTrim, ThumbnailSharpen)
                 .build(),
             contentDescription = image.taglio,
             contentScale = ContentScale.Crop,
             filterQuality = ThumbnailFilterQuality,
+            colorFilter = ThumbnailColorFilter,
             modifier = Modifier.fillMaxSize().clip(CircleShape),
         ) {
             // MAI painter.state.value: e' uno StateFlow, .value non sottoscrive la ricomposizione
