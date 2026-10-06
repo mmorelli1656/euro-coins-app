@@ -1741,7 +1741,18 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     sono Numista: l'attribuzione con N# mancava (la regola dei Termini API §4), il campo
     `Coin.numistaId` (colonna dalla v8, `numista_id` in `coins.json`) serve a questo. Le poche
     monete senza abbinamento Numista non hanno la voce "Data". La licenza resta il testo vero
-    (non "Public domain").
+    (non "Public domain"). **Leggibilità sul fondo chiaro** (2026-10-06): i crediti stanno sul
+    fondo grigio-verde, non in una card bianca, e nel tema chiaro erano l'unico testo piccolo (12 sp,
+    peso normale) scuro su un mezzo tono. Misurato sullo screenshot del telefono: testo ~9:1
+    (inchiostro `1F2620` su `C0C8BC`) contro ~15:1 nel tema scuro, icone di link ~5:1 contro ~8:1; sopra le
+    soglie WCAG, ma nel chiaro "affondavano" (il problema è il peso visivo, non il colore). Ora testo
+    **13 sp Medium** (`SourceCredits`, `FooterLine` per la licenza, e la riga "Series text: …" di
+    `RegularIssueCountryScreen`, stesso fondo) e icone **16 dp** con `creditIconColor()`
+    (`LinkColor.kt`, verdigris `253A2D`, ~7:1; nel tema scuro resta il primario). `linkColor()` non è
+    stato scurito: serve anche alle etichette di sezione e ai pulsanti testuali nelle card bianche,
+    dove va bene. Scartati: un inchiostro più scuro (da 9 a 11:1, esce dalla palette) e, come
+    ripiego se non bastasse, i crediti in una card bianca (15:1 come il resto, ma un blocco più
+    pesante di quanto serva a una riga di fonti). Non verificato con uno screenshot reale del tema scuro.
   - Tocco sulla foto per ingrandirla: non c'è nel dettaglio (solo nell'elenco).
   - **Nitidezza leggera sulla foto grande** (`DetailSharpen`, 0.45, alla risoluzione originale
     prima dell'ingrandimento; niente contrasto): vedi § Decisioni di prodotto, "Visibilità delle
