@@ -50,7 +50,6 @@ import androidx.compose.ui.layout.ContentScale
 import coil3.SingletonImageLoader
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.request.transformations
 import coil3.transform.Transformation
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -512,7 +511,7 @@ private fun ShowcaseCoin(
             fallback()
         } else if (url != null) {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(url).transformations(transformations).build(),
+                model = remember(url, transformations) { showcaseRequest(context, url, transformations) },
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 onSuccess = { onLoaded(url) },

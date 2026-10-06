@@ -1,11 +1,57 @@
 package com.michele.eurocoins.ui.home
 
+import android.content.Context
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import coil3.size.Size
+import coil3.transform.Transformation
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.RegularIssueSeries
+import com.michele.eurocoins.ui.regular.RegularIssueImageTrim
+import com.michele.eurocoins.ui.settings.UserSettings
+import java.time.LocalDate
 import kotlin.random.Random
 
 /** Quante monete mostra la fascia della scheda. */
 const val SHOWCASE_SIZE = 4
+
+/**
+ * Richiesta Coil di una foto della fascia, costruita sempre qui: `HomeScreen` e il precaricamento
+ * di [preloadHomeShowcase] devono produrre la STESSA chiave di cache in memoria (dati + dimensione +
+ * trasformazioni). La dimensione è fissa (`Size.ORIGINAL`) e non quella del layout: così il
+ * precaricamento non deve conoscerla e `AsyncImage` non aspetta la misura per partire; la foto
+ * (270 o 540 px) la scala poi Compose nel cerchio, che è comunque di ~260-340 px.
+ */
+fun showcaseRequest(context: Context, url: String, transformations: List<Transformation> = emptyList()): ImageRequest =
+    ImageRequest.Builder(context).data(url).size(Size.ORIGINAL).transformations(transformations).build()
+
+/**
+ * Foto note al primo fotogramma, senza il database: il set di oggi se già calcolato (ieri o
+ * un'apertura precedente di oggi), altrimenti l'ultimo mostrato per intero.
+ */
+fun firstFrameShowcaseUrls(settings: UserSettings): List<String> =
+    (if (settings.rotateHomeCoins.value) settings.showcaseUrlsFor(LocalDate.now().toEpochDay()) else null) ?: settings.lastShowcase
+
+/** Come [firstFrameShowcaseUrls], per Regular Issues (posizioni preservate: una può essere null). */
+fun firstFrameRegularIssueShowcaseUrls(settings: UserSettings): List<String?> =
+    (if (settings.rotateHomeCoins.value) settings.regularIssueShowcaseUrlsFor(LocalDate.now().toEpochDay()) else null)
+        ?: settings.regularIssueLastShowcase
+
+/**
+ * Avvia la lettura dalla cache su disco e la decodifica delle 8 foto della Home già in `onCreate`,
+ * in parallelo alla prima composizione: a freddo la composizione di `AsyncImage` partiva solo dopo
+ * il layout (60-160 ms dopo `onCreate`) e la foto arrivava altri ~40 ms più tardi, quindi il primo
+ * fotogramma usciva con i tondi vuoti. Così finiscono nella cache in memoria di Coil, che le
+ * richieste della Home trovano subito.
+ */
+fun preloadHomeShowcase(context: Context, settings: UserSettings) {
+    val loader = SingletonImageLoader.get(context)
+    firstFrameShowcaseUrls(settings).take(SHOWCASE_SIZE).forEach { loader.enqueue(showcaseRequest(context, it)) }
+    firstFrameRegularIssueShowcaseUrls(settings).take(SHOWCASE_SIZE).filterNotNull().forEach {
+        loader.enqueue(showcaseRequest(context, it, listOf(RegularIssueImageTrim)))
+    }
+}
 
 /**
  * Da una lista di (paese, elemento) sceglie [size] elementi di paesi diversi (usata da

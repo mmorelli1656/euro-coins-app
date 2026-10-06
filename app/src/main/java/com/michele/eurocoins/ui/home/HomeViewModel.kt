@@ -62,13 +62,10 @@ class HomeViewModel(
     // Letto una volta: durante la sessione il ripiego non cambia (il nuovo set salvato serve dalla prossima apertura).
     // Foto note subito, senza il database: il set di oggi se già calcolato (ieri l'ha precaricato, oppure
     // un'apertura precedente di oggi), altrimenti l'ultimo mostrato. Sono le monete del primo fotogramma.
-    private val lastShowcaseUrls: List<String> =
-        (if (settings.rotateHomeCoins.value) settings.showcaseUrlsFor(LocalDate.now().toEpochDay()) else null) ?: settings.lastShowcase
+    private val lastShowcaseUrls: List<String> = firstFrameShowcaseUrls(settings)
 
     /** Stesso discorso di [lastShowcaseUrls], per la fascia di Regular Issues. */
-    private val regularIssueLastShowcaseUrls: List<String?> =
-        (if (settings.rotateHomeCoins.value) settings.regularIssueShowcaseUrlsFor(LocalDate.now().toEpochDay()) else null)
-            ?: settings.regularIssueLastShowcase
+    private val regularIssueLastShowcaseUrls: List<String?> = firstFrameRegularIssueShowcaseUrls(settings)
 
     fun saveLastShowcase(urls: List<String>) = settings.setLastShowcase(urls)
 

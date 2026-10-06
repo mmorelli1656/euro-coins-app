@@ -14,6 +14,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.michele.eurocoins.ui.home.preloadHomeShowcase
 import com.michele.eurocoins.ui.navigation.EuroCoinsNavHost
 import com.michele.eurocoins.ui.theme.EuroCoinsTheme
 import com.michele.eurocoins.ui.theme.ThemeMode
@@ -31,6 +32,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val app = application as EuroCoinsApplication
+        // Decodifica delle foto della Home già adesso, in parallelo alla prima composizione.
+        preloadHomeShowcase(this, app.userSettings)
 
         setContent {
             val themeMode by app.themePreference.mode.collectAsState()
