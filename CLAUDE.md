@@ -171,7 +171,8 @@ app/src/main/java/com/michele/eurocoins/
     ├── components/           # CollectionProgressBar, CollectionSheet (qualità + prezzo),
     │                         # RegularCollectionSheet (come CollectionSheet + selettore anno a griglia, Regular Issues),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet,
-    │                         # CoinThumbnailRing (anello + qualità di ridimensionamento delle miniature)
+    │                         # CoinThumbnailRing (anello, qualità di ridimensionamento e contrasto delle miniature),
+    │                         # ThumbnailSharpen + UnsharpMask (nitidezza locale delle miniature, logica pura testata)
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
@@ -1336,6 +1337,9 @@ lingua da servire.
 ## Test
 
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
+`UnsharpMaskTest` copre `unsharpMask()` (immagine uniforme invariata, intensità 0 = identità, bordo
+netto accentuato dai due lati e invariato lontano, valori nel campo 0-255, alfa intatta); il
+rendering con `Bitmap` di `ThumbnailSharpen` non è testabile in JVM.
 `BackupFileTest` copre il formato v2 (andata e ritorno con varietà e prezzo, un v1 che si legge
 ma non porta Regular, un v2 con Regular vuota che invece sostituisce, qualità sconosciuta saltata,
 versione più nuova rifiutata). `BackupStatusTest` copre il confronto con l'ultimo backup (ordine
@@ -1463,22 +1467,43 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   Misurato prima di intervenire: foto BCE 270×270, la moneta ne occupa il 97-98% (niente margine
   da ritagliare); la miniatura ne usa ~140-190 px fisici, quindi il limite non è la risoluzione ma
   la grandezza sullo schermo; le monete sono chiare (luminanza media 187-213/255) su una card
-  bianca e il contorno si perdeva. Tre interventi: (1) **miniatura 64 dp, card 80 dp** (era 52/72:
+  bianca e il contorno si perdeva. Quattro interventi: (1) **miniatura 64 dp, card 80 dp** (era 52/72:
   +23% di diametro, ~10% di densità dell'elenco in meno), l'unico che aggiunge dettaglio vero;
   (2) **anello da 1 dp** (`onSurfaceVariant` al 35%, `CoinThumbnailRing` in `ui/components/`)
   disegnato SOPRA la foto e solo a foto caricata (non sul segnaposto lilla); (3)
   **`FilterQuality.Medium`** (`ThumbnailFilterQuality`) sulle `SubcomposeAsyncImage` delle miniature:
   Coil non riduce da 270 px alla misura del riquadro (precisione inesatta), la riduzione la fa
   Compose e con la qualità bassa di default era morbida (ipotesi, valutata a occhio sul
-  telefono: "va meglio"). Le due liste hanno la STESSA misura per scelta dell'utente: provato
+  telefono: "va meglio"); (4) **nitidezza locale + contrasto 1.2** (2026-10-06, dopo i primi tre).
+  Il primo tentativo fu il solo contrasto globale (`ColorFilter` con `ColorMatrix`, `THUMBNAIL_CONTRAST`
+  1.2, poi 1.35: troppo poca differenza, "funziona meglio sulle monete già luminose"; scuriva ancora
+  le ombre delle monete scure, dove i dettagli già si perdevano). Confronto su 14 monete prese dalla
+  cache Coil del telefono, simulato sul PC con la stessa matrice (originale / contrasto 1.2 / solo
+  nitidezza / nitidezza + 1.2): la nitidezza locale (unsharp mask) rende leggibili scritte, stelle e
+  rilievi, il contrasto globale no. **Scelta dell'utente: nitidezza + 1.2** (il parere dell'assistente
+  era la sola nitidezza, differenza marginale: l'anello esterno delle bimetalliche si scurisce un po').
+  `ThumbnailSharpen` (`ui/components/`, `coil3.transform.Transformation`): riduce la foto alla misura
+  richiesta (168 px sul telefono dell'utente, mai ingrandisce) e SOLO DOPO applica
+  `unsharpMask()` (`UnsharpMask.kt`, logica pura testata: due passate del kernel 3×3 gaussiano, sigma
+  ~1,2 px, `THUMBNAIL_SHARPEN_AMOUNT` = 0.9, l'alfa non cambia): fatta a 270/540 px verrebbe sfocata
+  dal ridimensionamento successivo di Compose. Il risultato sta nella cache in memoria di Coil (la
+  chiave contiene la trasformazione). Il contrasto resta un `ColorFilter` (`ThumbnailColorFilter`,
+  perno sui chiari a 170/255 e non a 128, altrimenti i chiari si schiarirebbero verso il bianco dello
+  sfondo; `THUMBNAIL_CONTRAST` = 1.2, 1.0 lo spegne, oltre ~1.4 l'argento brucia). Solo le
+  miniature degli elenchi; nelle Regular Issues la nitidezza viene dopo `RegularIssueImageTrim`;
+  `PrefetchThumbnails` non ha la trasformazione (precarica solo la cache su disco). Valori da
+  ritoccare: `THUMBNAIL_SHARPEN_AMOUNT` (sopra ~1.2 compare un alone sui bordi) e `THUMBNAIL_CONTRAST`.
+  Punto debole noto: nel ritaglio a fondo trasparente della 1 euro francese 2022 (`RegularIssueImageTrim`
+  su sfondo nero) la nitidezza lavora anche sul bordo con alfa parziale: non verificato sul telefono.
+  Le due liste hanno la STESSA misura per scelta dell'utente: provato
   68/60 dp con 4 dp tra le card per far stare le 8 monete di una serie in una schermata (calcolo:
   8 × 72 = 576 dp contro ~590 visibili sul suo telefono), poi scartato per tenere le liste
   identiche; **con 80/64 le 8 righe di una serie non ci stanno più tutte insieme** e l'ultima esce
   in parte. A 68 dp i titoli commemorativi su due righe sforerebbero (serve togliere il padding
-  verticale della colonna di testo). Scartati: boost di contrasto con `ColorMatrix` (altera i
-  colori reali della moneta, difetto in un'app da collezionisti, e l'anello risolve già il
-  bordo) e tocco prolungato per ingrandire (un'azione in più chiesta all'utente). La fascia Home
-  non è stata toccata.
+  verticale della colonna di testo). Scartato il tocco prolungato per ingrandire (un'azione in più
+  chiesta all'utente). Il boost di contrasto, scartato in un primo momento perché altera i colori
+  reali della moneta, è stato poi provato su richiesta dell'utente e tenuto a 1.2 insieme alla
+  nitidezza (vedi (4)). La fascia Home e i dettagli non sono stati toccati.
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile. Causa poi chiarita (vedi sotto): `painter.state` è uno `StateFlow`. Solo icona di errore.
