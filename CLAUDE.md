@@ -470,7 +470,7 @@ regge un pulsante pieno):
   passati in uno dei due `saveShowcaseUrls` avrebbe cancellato anche le chiavi dell'altro. Test:
   `HomeShowcaseTest` (solo `pickShowcase`, invariato dal refactoring — nessun test aggiunto per
   `pickRegularIssueShowcaseUrls`, anche dopo questo allineamento).
-- **Reset collection**: dialog di conferma con il numero di monete, diviso per sezione ("85
+- **Reset collection**: la riga nella Danger zone dice solo il totale ("Removes 6 coins from this device", una riga sola: con il dettaglio per sezione andava su tre righe); il dialog di conferma con il numero di monete, diviso per sezione ("85
   commemorative coins and 4 Regular Issues coins", `OwnedCounts.describe()`); svuota
   `collection_items` **e** `regular_collection_items` (`CoinRepository.resetCollection` +
   `RegularIssueRepository.resetCollection`). Prima toglieva solo le commemorative e lasciava

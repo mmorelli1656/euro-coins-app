@@ -363,7 +363,8 @@ private fun ResetRow(owned: OwnedCounts, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("Reset collection", style = MaterialTheme.typography.titleMedium, color = error)
             Text(
-                if (enabled) "Removes ${owned.describe()} from local storage" else "Collection is currently empty",
+                // Solo il totale: il dettaglio per sezione ("2 commemorative coins and 4 Regular Issues coins") sta nel dialog di conferma.
+                if (enabled) "Removes ${owned.total} ${if (owned.total == 1) "coin" else "coins"} from this device" else "Collection is currently empty",
                 style = MaterialTheme.typography.bodyMedium,
                 color = error,
             )
