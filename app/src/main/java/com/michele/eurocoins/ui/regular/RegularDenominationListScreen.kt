@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
+import com.michele.eurocoins.ui.components.rememberReturnHighlight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,12 +86,14 @@ fun RegularDenominationListScreen(
         ) {
             val listState = rememberLazyListState()
             val scrollTarget by viewModel.scrollTo.collectAsState()
+            val highlight = rememberReturnHighlight<RegularPageKey>()
             ScrollToRequestedItem(
                 target = scrollTarget,
                 listState = listState,
                 ready = state.rows.isNotEmpty(),
                 rowHeight = RowHeight,
                 indexOf = { key -> state.rows.indexOfFirst { it.paese == key.paese && it.viewedSeries.ordineCronologico == key.ordine } },
+                highlight = highlight,
                 onHandled = viewModel::consumeScrollTo,
             )
             LazyColumn(
@@ -106,6 +109,7 @@ fun RegularDenominationListScreen(
                         title = "${row.flag} ${row.countryName}".trim(),
                         owned = row.owned,
                         onClick = { onRowClick(row.viewedSeries) },
+                        highlighted = highlight.key == RegularPageKey(row.paese, row.viewedSeries.ordineCronologico, taglio),
                         onEditCollection = { editing = row },
                     )
                 }

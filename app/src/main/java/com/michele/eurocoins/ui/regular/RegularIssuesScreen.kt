@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
+import com.michele.eurocoins.ui.components.rememberReturnHighlight
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -175,6 +176,7 @@ fun RegularIssuesScreen(
                         key(state.prefs.allOrder) {
                             val listState = rememberLazyListState()
                             val scrollTarget by viewModel.scrollTo.collectAsState()
+                            val highlight = rememberReturnHighlight<RegularPageKey>()
                             ScrollToRequestedItem(
                                 target = scrollTarget,
                                 listState = listState,
@@ -186,6 +188,7 @@ fun RegularIssuesScreen(
                                             it.denomination.image.taglio == key.taglio
                                     }
                                 },
+                                highlight = highlight,
                                 onHandled = viewModel::consumeScrollTo,
                             )
                             LazyColumn(
@@ -203,6 +206,8 @@ fun RegularIssuesScreen(
                                         title = row.denomination.image.taglio,
                                         owned = row.owned,
                                         onClick = { onRowClick(row.viewedSeries, row.denomination.image.taglio) },
+                                        highlighted = highlight.key ==
+                                            RegularPageKey(row.paese, row.viewedSeries.ordineCronologico, row.denomination.image.taglio),
                                         onEditCollection = { editing = row },
                                     )
                                 }

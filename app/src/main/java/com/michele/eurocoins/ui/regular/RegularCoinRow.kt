@@ -38,6 +38,7 @@ import coil3.compose.SubcomposeAsyncImageContent
 import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.data.RegularIssueImage
+import com.michele.eurocoins.ui.components.returnHighlight
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.ThumbnailColorFilter
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
@@ -67,6 +68,8 @@ internal fun RegularCoinRow(
     owned: Boolean,
     onClick: () -> Unit,
     onEditCollection: () -> Unit,
+    // Vero per un attimo se la lista è scorsa da sola fino a questa riga (ritorno dal dettaglio a pagine).
+    highlighted: Boolean = false,
 ) {
     val shape = RoundedCornerShape(14.dp)
     Row(
@@ -77,6 +80,7 @@ internal fun RegularCoinRow(
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .returnHighlight(highlighted)
             .clickable(onClick = onClick)
             .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,

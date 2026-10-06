@@ -73,6 +73,8 @@ import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
+import com.michele.eurocoins.ui.components.rememberReturnHighlight
+import com.michele.eurocoins.ui.components.returnHighlight
 import com.michele.eurocoins.ui.components.ThumbnailColorFilter
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
 import com.michele.eurocoins.ui.components.ThumbnailSharpen
@@ -181,6 +183,7 @@ fun CoinListContent(
     val listState = key(state.options.orderKey) { rememberLazyListState() }
     PrefetchThumbnails(listState = listState, coins = state.coins)
     val scrollTarget by viewModel.scrollTo.collectAsState()
+    val highlight = rememberReturnHighlight<Long>()
     // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
     ScrollToRequestedItem(
         target = scrollTarget,
@@ -188,6 +191,7 @@ fun CoinListContent(
         ready = state.coins.isNotEmpty(),
         rowHeight = RowHeight,
         indexOf = { id -> state.coins.indexOfFirst { it.id == id }.let { if (it < 0) -1 else it + 1 } },
+        highlight = highlight,
         onHandled = viewModel::consumeScrollTo,
     )
     // Alla prima apertura la lista arriva dopo la schermata (state.loading): senza il fade si vedeva
@@ -210,6 +214,7 @@ fun CoinListContent(
             CoinRow(
                 coin = coin,
                 owned = coin.stableKey in state.collection,
+                highlighted = highlight.key == coin.id,
                 onClick = { onCoinClick(coin.id) },
                 onEditCollection = { editing = coin },
             )
@@ -264,6 +269,8 @@ private fun PrefetchThumbnails(listState: LazyListState, coins: List<Coin>) {
 private fun CoinRow(
     coin: Coin,
     owned: Boolean,
+    // Vero per un attimo se la lista è scorsa da sola fino a questa riga (ritorno dal dettaglio a pagine).
+    highlighted: Boolean = false,
     onClick: () -> Unit,
     // Null = la miniatura non ha un tocco proprio e segue la riga (dettaglio).
     onImageClick: (() -> Unit)? = null,
@@ -283,6 +290,7 @@ private fun CoinRow(
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+            .returnHighlight(highlighted)
             .clickable(onClick = onClick)
             .padding(start = 6.dp, end = 8.dp, top = 2.dp, bottom = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
