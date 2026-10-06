@@ -172,7 +172,7 @@ app/src/main/java/com/michele/eurocoins/
     │                         # RegularCollectionSheet (come CollectionSheet + selettore anno a griglia, Regular Issues),
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet,
     │                         # CoinThumbnailRing (anello, qualità di ridimensionamento e contrasto delle miniature),
-    │                         # ThumbnailSharpen + UnsharpMask (nitidezza locale delle miniature, logica pura testata)
+    │                         # ThumbnailSharpen/DetailSharpen + UnsharpMask (nitidezza locale di miniature e foto grande del dettaglio, logica pura testata)
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
@@ -1520,7 +1520,23 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
   verticale della colonna di testo). Scartato il tocco prolungato per ingrandire (un'azione in più
   chiesta all'utente). Il boost di contrasto, scartato in un primo momento perché altera i colori
   reali della moneta, è stato poi provato su richiesta dell'utente e tenuto a 1.2 insieme alla
-  nitidezza (vedi (4)). La fascia Home e i dettagli non sono stati toccati.
+  nitidezza (vedi (4)). La fascia Home non è stata toccata.
+  **(5) Foto grande del dettaglio: solo nitidezza 0.45, niente contrasto** (2026-10-06, su
+  domanda dell'utente "ha senso anche nella moneta grande?"). Il problema lì è diverso dalle
+  miniature: non la perdita di dettaglio per la RIDUZIONE ma la morbidezza di un INGRANDIMENTO (foto
+  BCE commemorative da 270 px in un riquadro di ~840 px sul telefono dell'utente: circa 3 volte; le
+  Regular Issues hanno 540 px, circa 1,5 volte). Il contrasto non si applica: a quella grandezza il
+  bordo si legge già e alterare i colori reali dell'argento si nota molto di più (e in un'app da
+  collezionisti è un difetto). `DetailSharpen` (stesso file di `ThumbnailSharpen`,
+  `DETAIL_SHARPEN_AMOUNT` = 0.45) lavora sulla foto alla sua risoluzione ORIGINALE, senza
+  ridimensionarla, e lascia l'ingrandimento a Compose: fatta dopo, gli aloni sarebbero larghi tre
+  volte. Confronto su tre monete (Germania 2006 chiara e pulita, Finlandia EMU 2009 spenta, Turingia
+  2022 scura da 540 px) con 0.4 e 0.6 sulla foto mostrata a 620 px: su quelle da 270 px 0.4 rende più
+  definite scritte, stelle e rilievi senza aloni, a 0.6 compaiono contorni più duri; sulla Turingia
+  (540 px) la differenza è minima e la nitidezza non schiarisce le ombre. Applicata a
+  `CoinDetailScreen` (`CoinHero`) e `RegularDenominationDetailScreen` (dopo `RegularIssueImageTrim`);
+  nelle Regular Issues dà poco perché le foto sono quasi sempre da 540 px. Non verificato sul telefono
+  con un confronto affiancato.
 - **Ingrandimento senza rotella di caricamento**: con `SubcomposeAsyncImage`
   la prima apertura non tornava mai a Success e la rotella girava per sempre
   sopra la foto già visibile. Causa poi chiarita (vedi sotto): `painter.state` è uno `StateFlow`. Solo icona di errore.
@@ -1727,6 +1743,9 @@ Non descritta nei file di build, utile per non rifare gli stessi giri:
     monete senza abbinamento Numista non hanno la voce "Data". La licenza resta il testo vero
     (non "Public domain").
   - Tocco sulla foto per ingrandirla: non c'è nel dettaglio (solo nell'elenco).
+  - **Nitidezza leggera sulla foto grande** (`DetailSharpen`, 0.45, alla risoluzione originale
+    prima dell'ingrandimento; niente contrasto): vedi § Decisioni di prodotto, "Visibilità delle
+    miniature", punto (5).
 - **Nomi paese in inglese** presi da `zeccaRaw`, non tradotti nell'app.
 - **Barra "x / y collected" della home: animata, con onda vettoriale disegnata a
   mano** (`CollectionProgressBar.kt`/`rememberProgressAnimation`), non il
