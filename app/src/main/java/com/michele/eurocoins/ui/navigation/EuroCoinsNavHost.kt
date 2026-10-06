@@ -28,6 +28,7 @@ import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
+import com.michele.eurocoins.ui.detail.CoinPagerSession
 import com.michele.eurocoins.ui.home.HomeScreen
 import com.michele.eurocoins.ui.home.HomeViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
@@ -75,6 +76,8 @@ fun EuroCoinsNavHost(
     userSettings: UserSettings,
 ) {
     val navController = rememberNavController()
+    // Elenco ordinato della lista da cui si apre un dettaglio (per scorrere tra le monete): vedi CoinPagerSession.
+    val pagerSession: CoinPagerSession = viewModel()
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
 
@@ -135,7 +138,10 @@ fun EuroCoinsNavHost(
                     navController.navigate("coins/$kind/$year")
                 },
                 onCountryClick = { paese -> navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}") },
-                onCoinClick = ::openDetail,
+                onCoinClick = { id ->
+                    pagerSession.open(allCoinsViewModel)
+                    openDetail(id)
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -160,7 +166,10 @@ fun EuroCoinsNavHost(
             CoinListScreen(
                 viewModel = viewModel,
                 filter = filter,
-                onCoinClick = ::openDetail,
+                onCoinClick = { id ->
+                    pagerSession.open(viewModel)
+                    openDetail(id)
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -169,11 +178,17 @@ fun EuroCoinsNavHost(
             arguments = listOf(navArgument(ARG_COIN_ID) { type = NavType.LongType }),
         ) { backStackEntry ->
             val coinId = backStackEntry.arguments?.getLong(ARG_COIN_ID) ?: return@composable
-            val viewModel: CoinDetailViewModel = viewModel(
-                factory = viewModelFactory { initializer { CoinDetailViewModel(repository, coinId) } },
-            )
             CoinDetailScreen(
-                viewModel = viewModel,
+                coinIds = pagerSession.idsFor(coinId),
+                initialCoinId = coinId,
+                // Stessa chiave = stessa istanza: la pagina e il titolo della barra condividono il ViewModel.
+                viewModelFor = { id ->
+                    viewModel(
+                        key = "detail-$id",
+                        factory = viewModelFactory { initializer { CoinDetailViewModel(repository, id) } },
+                    )
+                },
+                onPageShown = pagerSession::onPageShown,
                 onBack = { navController.popBackStack() },
             )
         }

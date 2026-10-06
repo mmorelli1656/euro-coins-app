@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.first
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import coil3.SingletonImageLoader
@@ -179,6 +180,7 @@ fun CoinListContent(
     // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
     val listState = key(state.options.orderKey) { rememberLazyListState() }
     PrefetchThumbnails(listState = listState, coins = state.coins)
+    ScrollToViewedCoin(viewModel = viewModel, listState = listState, coins = state.coins)
     // Alla prima apertura la lista arriva dopo la schermata (state.loading): senza il fade si vedeva
     // "0 coins" e poi le righe di colpo.
     val alpha by animateFloatAsState(if (state.loading) 0f else 1f, tween(220), label = "listFade")
@@ -203,6 +205,34 @@ fun CoinListContent(
                 onEditCollection = { editing = coin },
             )
         }
+    }
+}
+
+/**
+ * Al ritorno dal dettaglio a pagine porta in vista la moneta in cui si è finiti scorrendo, se non lo
+ * è già (centrata; se è già tutta visibile la lista non si muove). Aspetta il primo layout: prima
+ * `visibleItemsInfo` è vuoto e ogni ritorno sembrerebbe "moneta fuori vista".
+ */
+@Composable
+private fun ScrollToViewedCoin(viewModel: CoinListViewModel, listState: LazyListState, coins: List<Coin>) {
+    val target by viewModel.scrollTo.collectAsState()
+    val rowPx = with(LocalDensity.current) { RowHeight.roundToPx() }
+    LaunchedEffect(target, coins) {
+        val id = target ?: return@LaunchedEffect
+        if (coins.isEmpty()) return@LaunchedEffect
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.isNotEmpty() }.first { it }
+        // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
+        val index = coins.indexOfFirst { it.id == id } + 1
+        if (index > 0) {
+            val info = listState.layoutInfo
+            val visible = info.visibleItemsInfo.firstOrNull { it.index == index }
+            val bottom = info.viewportEndOffset - info.afterContentPadding
+            val fullyVisible = visible != null && visible.offset >= info.viewportStartOffset && visible.offset + visible.size <= bottom
+            if (!fullyVisible) {
+                listState.scrollToItem(index, scrollOffset = -((bottom - info.viewportStartOffset - rowPx) / 2))
+            }
+        }
+        viewModel.consumeScrollTo()
     }
 }
 

@@ -48,7 +48,18 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.material3.TopAppBar
 import com.michele.eurocoins.ui.theme.appBarColors
 import androidx.compose.runtime.Composable
@@ -118,67 +129,196 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
 
+/**
+ * Dettaglio a pagine: scorrendo a sinistra e a destra si passa alla moneta successiva/precedente
+ * della lista da cui si è arrivati ([coinIds], nell'ordine di quella lista), senza aggiungere voci
+ * alla cronologia — un solo "indietro" riporta alla lista, qualunque moneta si stia guardando.
+ * Barra del titolo e contatore "4 / 12" stanno fuori dal pager e seguono la pagina corrente.
+ * `beyondViewportPageCount = 1` compone anche le pagine vicine: la foto della prossima è già
+ * caricata quando entra, invece di comparire a metà scorrimento.
+ *
+ * [viewModelFor] dà il ViewModel di una moneta (stessa chiave = stessa istanza, sia per la pagina sia per
+ * il titolo); [onPageShown] è chiamata quando una pagina diversa da quella di partenza si ferma.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoinDetailScreen(
-    viewModel: CoinDetailViewModel,
+    coinIds: List<Long>,
+    initialCoinId: Long,
+    viewModelFor: @Composable (Long) -> CoinDetailViewModel,
+    onPageShown: (Long) -> Unit,
     onBack: () -> Unit,
 ) {
+    val pagerState = rememberPagerState(initialPage = coinIds.indexOf(initialCoinId).coerceAtLeast(0)) { coinIds.size }
+    val currentCoin by viewModelFor(coinIds[pagerState.currentPage]).coin.collectAsState()
+    val currentOnPageShown by rememberUpdatedState(onPageShown)
+    LaunchedEffect(pagerState) {
+        // drop(1): la prima emissione è la pagina di partenza, la lista è già lì.
+        snapshotFlow { pagerState.settledPage }.drop(1).collect { currentOnPageShown(coinIds[it]) }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = appBarColors(),
+                title = { Text(currentCoin?.let { "${it.displayCountry()} · ${it.anno}" } ?: "") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (coinIds.size > 1) PagePositionPill("${pagerState.currentPage + 1} / ${coinIds.size}")
+                },
+            )
+        },
+    ) { padding ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize().padding(padding),
+            beyondViewportPageCount = 1,
+            key = { coinIds[it] },
+        ) { page ->
+            // Sfondo opaco: la pagina sotto non deve trasparire da quella che esce.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .stackedPage(pagerState, page, MaterialTheme.colorScheme.background)
+                    .background(MaterialTheme.colorScheme.background),
+            ) {
+                CoinDetailPage(viewModelFor(coinIds[page]))
+            }
+        }
+    }
+}
+
+/** Scala e opacità della pagina sotto a riposo-di-trascinamento (mockup B: 94% e 55%, poi crescono fino a 100%). */
+private const val STACK_UNDER_SCALE = 0.94f
+private const val STACK_UNDER_ALPHA = 0.55f
+
+/** La pagina che esce (mockup D): inclinazione massima a uscita completa, alzata, ingrandimento, ombra e angoli mentre è trascinata. */
+private const val STACK_TILT_DEGREES = 5f
+private const val STACK_LIFT_DP = 8f
+private const val STACK_LIFT_SCALE = 0.012f
+private const val STACK_SHADOW_DP = 12f
+private const val STACK_CORNER_DP = 22f
+/** Frazione di pagina dopo cui alzata e ombra sono al massimo (prima crescono in modo continuo da 0). */
+private const val STACK_LIFT_RAMP = 1f / 3f
+
+/**
+ * Effetto "mazzo": la pagina che esce (indice più basso) scorre sopra, quella dopo resta FERMA al centro
+ * sotto di lei, un po' più piccola e spenta, e cresce fino a scala e opacità piene man mano che la
+ * prima la scopre. Vale in entrambe le direzioni: andando indietro la precedente rientra da sinistra
+ * sopra la corrente, che si rimpicciolisce. La pagina in cima inoltre si inclina (5°, perno sul bordo in basso),
+ * si alza e proietta ombra mentre è trascinata (variante D del mockup: con la sola traslazione "sembrava
+ * ancora uno scorrimento laterale"). A riposo la pagina centrale è identica a prima (scala 1,
+ * nessuna traslazione). `offset` = distanza della pagina dalla posizione corrente del pager, in pagine:
+ * 0 al centro, negativo a sinistra, positivo a destra. Lo `zIndex` dà la precedenza alle pagine con
+ * indice più basso, che il pager disegnerebbe invece sotto.
+ */
+private fun Modifier.stackedPage(state: PagerState, page: Int, fadeTo: Color): Modifier = this
+    .zIndex(-page.toFloat())
+    .graphicsLayer {
+        val offset = page - (state.currentPage + state.currentPageOffsetFraction)
+        if (offset > 0f) {
+            // Il pager sposta la pagina di offset * larghezza: si annulla per tenerla ferma.
+            translationX = -offset * size.width
+            val scale = STACK_UNDER_SCALE + (1f - STACK_UNDER_SCALE) * (1f - offset.coerceAtMost(1f))
+            scaleX = scale
+            scaleY = scale
+        } else {
+            // La pagina in cima, mentre la si trascina: ruota attorno al bordo in basso nel verso del dito, si
+            // alza un poco e ha ombra e angoli arrotondati. A riposo (offset 0) niente di tutto questo.
+            val lift = (-offset / STACK_LIFT_RAMP).coerceIn(0f, 1f)
+            if (lift > 0f) {
+                transformOrigin = TransformOrigin(0.5f, 1f)
+                rotationZ = STACK_TILT_DEGREES * offset.coerceAtLeast(-1f)
+                translationY = -STACK_LIFT_DP.dp.toPx() * lift
+                val scale = 1f + STACK_LIFT_SCALE * lift
+                scaleX = scale
+                scaleY = scale
+                shadowElevation = STACK_SHADOW_DP.dp.toPx() * lift
+                shape = RoundedCornerShape((STACK_CORNER_DP * lift).dp)
+                clip = true
+            }
+        }
+    }
+    // "Spenta" con una velatura del colore di sfondo e non con `alpha` del layer: un alpha sotto 1 fa
+    // disegnare l'intera pagina (foto comprese) in un buffer fuori schermo a ogni fotogramma, ed era
+    // il sospetto principale dello scorrimento poco fluido. Sopra uno sfondo uguale rende lo stesso.
+    .drawWithContent {
+        drawContent()
+        val offset = page - (state.currentPage + state.currentPageOffsetFraction)
+        if (offset > 0f) {
+            val reveal = 1f - offset.coerceAtMost(1f)
+            drawRect(fadeTo, alpha = (1f - (STACK_UNDER_ALPHA + (1f - STACK_UNDER_ALPHA) * reveal)).coerceIn(0f, 1f))
+        }
+    }
+
+/**
+ * Posizione nella lista ("4 / 12"): pillola lilla come le altre etichette dell'app. Cifre
+ * tabulari, così la larghezza non cambia scorrendo da 9 a 10.
+ */
+@Composable
+private fun PagePositionPill(text: String) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.padding(end = 16.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+        )
+    }
+}
+
+/** Una pagina del dettaglio: la moneta di [viewModel], con il proprio scorrimento verticale e il proprio pannello. */
+@Composable
+private fun CoinDetailPage(viewModel: CoinDetailViewModel) {
     val coin by viewModel.coin.collectAsState()
     val items by viewModel.items.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     var viewport by remember { mutableStateOf<Rect?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = appBarColors(),
-                title = { Text(coin?.let { "${it.displayCountry()} · ${it.anno}" } ?: "") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        val currentCoin = coin
-        if (currentCoin == null) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding))
-            return@Scaffold
-        }
-        if (showSheet) {
-            CollectionSheet(
-                coin = currentCoin,
-                currentItems = items,
-                onSave = { entries ->
-                    viewModel.onSaveCollection(entries)
-                    showSheet = false
-                },
-                onDismiss = { showSheet = false },
-            )
-        }
+    val currentCoin = coin
+    if (currentCoin == null) {
+        Box(modifier = Modifier.fillMaxSize())
+        return
+    }
+    if (showSheet) {
+        CollectionSheet(
+            coin = currentCoin,
+            currentItems = items,
+            onSave = { entries ->
+                viewModel.onSaveCollection(entries)
+                showSheet = false
+            },
+            onDismiss = { showSheet = false },
+        )
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { viewport = it.boundsInWindow() }
+            .verticalScroll(scrollState),
+    ) {
+        // Hero card bianca (foto + titolo), poi tre card con la stessa etichetta maiuscola
+        // (MINTAGES, COLLECTION, ABOUT THIS COIN) e i crediti in una riga in fondo.
+        // Margini di 16 dp, 12 dp tra le card.
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .onGloballyPositioned { viewport = it.boundsInWindow() }
-                .verticalScroll(scrollState),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Hero card bianca (foto + titolo), poi tre card con la stessa etichetta maiuscola
-            // (MINTAGES, COLLECTION, ABOUT THIS COIN) e i crediti in una riga in fondo.
-            // Margini di 16 dp, 12 dp tra le card.
-            Column(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                CoinHero(currentCoin)
-                MintageCard(currentCoin)
-                CollectionCard(items = items, onEdit = { showSheet = true })
-                currentCoin.noteStoriche?.let { NotesCard(it, scrollState, viewport = { viewport }) }
-                ImageCreditFooter(currentCoin)
-            }
+            CoinHero(currentCoin)
+            MintageCard(currentCoin)
+            CollectionCard(items = items, onEdit = { showSheet = true })
+            currentCoin.noteStoriche?.let { NotesCard(it, scrollState, viewport = { viewport }) }
+            ImageCreditFooter(currentCoin)
         }
     }
 }

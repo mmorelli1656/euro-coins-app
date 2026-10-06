@@ -123,6 +123,23 @@ class CoinListViewModel(
         )
     }
 
+    private val _scrollTo = MutableStateFlow<Long?>(null)
+
+    /**
+     * Moneta da portare in vista alla prossima apparizione della lista: la imposta il dettaglio a
+     * pagine quando si scorre fino a un'altra moneta, la lista la legge al ritorno e la azzera
+     * ([consumeScrollTo]). Resta in attesa mentre la lista non è composta (c'è il dettaglio sopra).
+     */
+    val scrollTo: StateFlow<Long?> = _scrollTo
+
+    fun requestScrollTo(coinId: Long) {
+        _scrollTo.value = coinId
+    }
+
+    fun consumeScrollTo() {
+        _scrollTo.value = null
+    }
+
     /** Query attuale, letta subito (uiState arriva con qualche fotogramma di ritardo). */
     val currentQuery: String get() = query.value
 
