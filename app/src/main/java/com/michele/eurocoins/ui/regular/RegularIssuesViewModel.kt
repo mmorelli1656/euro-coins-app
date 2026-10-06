@@ -177,6 +177,19 @@ class RegularIssuesViewModel(
     fun resetCountries() = prefs.update { it.copy(countriesAscending = true, countriesCompletion = CompletionFilter.ALL) }
     fun resetDenominations() = prefs.update { it.copy(denominationsLargestFirst = true, denominationsCompletion = CompletionFilter.ALL) }
 
+    private val _scrollTo = MutableStateFlow<RegularPageKey?>(null)
+
+    /** Riga della scheda All da portare in vista al ritorno dal dettaglio a pagine (vedi [RegularPagerSession]); la lista la azzera. */
+    val scrollTo: StateFlow<RegularPageKey?> = _scrollTo
+
+    fun requestScrollTo(key: RegularPageKey) {
+        _scrollTo.value = key
+    }
+
+    fun consumeScrollTo() {
+        _scrollTo.value = null
+    }
+
     fun setAllQuery(value: String) = prefs.update { it.copy(allQuery = value) }
     fun setAllGroup(value: RegularAllGroup) = prefs.update { it.copy(allOrder = it.allOrder.copy(group = value)) }
     fun setAllCountryAscending(value: Boolean) = prefs.update { it.copy(allOrder = it.allOrder.copy(countryAscending = value)) }

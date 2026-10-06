@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.michele.eurocoins.ui.components.ScrollToRequestedItem
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -81,7 +83,18 @@ fun RegularDenominationListScreen(
                 .padding(top = padding.calculateTopPadding())
                 .nestedScroll(barState.connection),
         ) {
+            val listState = rememberLazyListState()
+            val scrollTarget by viewModel.scrollTo.collectAsState()
+            ScrollToRequestedItem(
+                target = scrollTarget,
+                listState = listState,
+                ready = state.rows.isNotEmpty(),
+                rowHeight = RowHeight,
+                indexOf = { key -> state.rows.indexOfFirst { it.paese == key.paese && it.viewedSeries.ordineCronologico == key.ordine } },
+                onHandled = viewModel::consumeScrollTo,
+            )
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().hazeSource(hazeState),
                 contentPadding = PaddingValues(top = 4.dp, bottom = floatingBarClearance()),
             ) {

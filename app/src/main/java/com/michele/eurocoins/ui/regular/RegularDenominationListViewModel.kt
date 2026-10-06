@@ -92,6 +92,19 @@ class RegularDenominationListViewModel(
     /** Query attuale, letta subito (uiState arriva con qualche fotogramma di ritardo). */
     val queryNow: String get() = query.value
 
+    private val _scrollTo = MutableStateFlow<RegularPageKey?>(null)
+
+    /** Riga da portare in vista al ritorno dal dettaglio a pagine (vedi [RegularPagerSession]); la lista la azzera. */
+    val scrollTo: StateFlow<RegularPageKey?> = _scrollTo
+
+    fun requestScrollTo(key: RegularPageKey) {
+        _scrollTo.value = key
+    }
+
+    fun consumeScrollTo() {
+        _scrollTo.value = null
+    }
+
     fun onQueryChange(value: String) = query.update { value }
     fun onOwnershipChange(value: OwnershipFilter) = ownership.update { value }
     fun resetFilters() = ownership.update { OwnershipFilter.ALL }

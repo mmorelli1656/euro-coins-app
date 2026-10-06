@@ -38,6 +38,8 @@ import com.michele.eurocoins.ui.regular.RegularDenominationDetailScreen
 import com.michele.eurocoins.ui.regular.RegularDenominationDetailViewModel
 import com.michele.eurocoins.ui.regular.RegularDenominationListScreen
 import com.michele.eurocoins.ui.regular.RegularDenominationListViewModel
+import com.michele.eurocoins.ui.regular.RegularPageKey
+import com.michele.eurocoins.ui.regular.RegularPagerSession
 import com.michele.eurocoins.ui.regular.RegularIssueCountryScreen
 import com.michele.eurocoins.ui.regular.RegularIssueCountryViewModel
 import com.michele.eurocoins.ui.regular.RegularIssuesScreen
@@ -78,6 +80,8 @@ fun EuroCoinsNavHost(
     val navController = rememberNavController()
     // Elenco ordinato della lista da cui si apre un dettaglio (per scorrere tra le monete): vedi CoinPagerSession.
     val pagerSession: CoinPagerSession = viewModel()
+    // Lo stesso per Regular Issues: le righe (taglio di una serie) della lista da cui si apre il dettaglio.
+    val regularPagerSession: RegularPagerSession = viewModel()
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
 
@@ -202,6 +206,12 @@ fun EuroCoinsNavHost(
                 onCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
                 onDenominationClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}") },
                 onRowClick = { series, taglio ->
+                    regularPagerSession.open(
+                        pages = viewModel.uiState.value.all.map {
+                            RegularPageKey(it.paese, it.viewedSeries.ordineCronologico, it.denomination.image.taglio)
+                        },
+                        onShown = viewModel::requestScrollTo,
+                    )
                     navController.navigate(
                         "regular-issues/${Uri.encode(series.paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
                     )
@@ -222,6 +232,12 @@ fun EuroCoinsNavHost(
                 taglio = taglio,
                 viewModel = viewModel,
                 onRowClick = { series ->
+                    regularPagerSession.open(
+                        pages = viewModel.uiState.value.rows.map {
+                            RegularPageKey(it.paese, it.viewedSeries.ordineCronologico, taglio)
+                        },
+                        onShown = viewModel::requestScrollTo,
+                    )
                     navController.navigate(
                         "regular-issues/${Uri.encode(series.paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
                     )
@@ -241,6 +257,14 @@ fun EuroCoinsNavHost(
             RegularIssueCountryScreen(
                 viewModel = viewModel,
                 onDenominationClick = { series, taglio ->
+                    // Gli 8 tagli della serie guardata, nell'ordine della schermata. Niente scorrimento al ritorno: la
+                    // schermata del paese non è una lista lazy e mantiene da sola la posizione.
+                    regularPagerSession.open(
+                        pages = viewModel.uiState.value.denominations.map {
+                            RegularPageKey(paese, series.ordineCronologico, it.image.taglio)
+                        },
+                        onShown = {},
+                    )
                     navController.navigate(
                         "regular-issues/${Uri.encode(paese)}/${series.ordineCronologico}/${Uri.encode(taglio)}",
                     )
@@ -259,14 +283,20 @@ fun EuroCoinsNavHost(
             val paese = backStackEntry.arguments?.getString(ARG_PAESE) ?: return@composable
             val ordine = backStackEntry.arguments?.getInt(ARG_ORDINE) ?: return@composable
             val taglio = backStackEntry.arguments?.getString(ARG_TAGLIO) ?: return@composable
-            val viewModel: RegularDenominationDetailViewModel = viewModel(
-                key = "regular-denomination-$paese-$ordine-$taglio",
-                factory = viewModelFactory {
-                    initializer { RegularDenominationDetailViewModel(regularIssueRepository, paese, ordine, taglio) }
-                },
-            )
+            val initial = RegularPageKey(paese, ordine, taglio)
             RegularDenominationDetailScreen(
-                viewModel = viewModel,
+                pages = regularPagerSession.pagesFor(initial),
+                initialPage = initial,
+                // Stessa chiave = stessa istanza: la pagina e il titolo della barra condividono il ViewModel.
+                viewModelFor = { page ->
+                    viewModel(
+                        key = "regular-denomination-${page.paese}-${page.ordine}-${page.taglio}",
+                        factory = viewModelFactory {
+                            initializer { RegularDenominationDetailViewModel(regularIssueRepository, page.paese, page.ordine, page.taglio) }
+                        },
+                    )
+                },
+                onPageShown = regularPagerSession::onPageShown,
                 onBack = { navController.popBackStack() },
             )
         }

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import com.michele.eurocoins.ui.components.ScrollToRequestedItem
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -171,7 +173,23 @@ fun RegularIssuesScreen(
                         // key(...) e non un LaunchedEffect: lo scorrimento si ricrea nella stessa composizione,
                         // come nelle liste di Commemorative (un effetto arriverebbe un fotogramma dopo).
                         key(state.prefs.allOrder) {
+                            val listState = rememberLazyListState()
+                            val scrollTarget by viewModel.scrollTo.collectAsState()
+                            ScrollToRequestedItem(
+                                target = scrollTarget,
+                                listState = listState,
+                                ready = state.all.isNotEmpty(),
+                                rowHeight = RowHeight,
+                                indexOf = { key ->
+                                    state.all.indexOfFirst {
+                                        it.paese == key.paese && it.viewedSeries.ordineCronologico == key.ordine &&
+                                            it.denomination.image.taglio == key.taglio
+                                    }
+                                },
+                                onHandled = viewModel::consumeScrollTo,
+                            )
                             LazyColumn(
+                                state = listState,
                                 modifier = Modifier.fillMaxSize().hazeSource(hazeState),
                                 contentPadding = PaddingValues(top = 4.dp, bottom = floatingBarClearance()),
                             ) {

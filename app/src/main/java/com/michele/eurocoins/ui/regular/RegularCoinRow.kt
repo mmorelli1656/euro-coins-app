@@ -49,7 +49,7 @@ private val ThumbnailSize = 64.dp
 private val PlaceholderSize = 62.dp
 
 /** Stessa altezza di `CoinRow` in `CoinListScreen.kt`. */
-private val RowHeight = 80.dp
+internal val RowHeight = 80.dp
 
 /**
  * Una card per taglio, altezza fissa 80 dp: stessa struttura di `CoinRow` in `CoinListScreen.kt`.

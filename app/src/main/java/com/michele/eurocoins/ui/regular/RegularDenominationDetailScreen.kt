@@ -51,6 +51,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.pager.rememberPagerState
+import com.michele.eurocoins.ui.detail.PagePositionPill
+import com.michele.eurocoins.ui.detail.StackedPager
+import kotlinx.coroutines.flow.drop
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -147,12 +154,66 @@ import java.util.Locale
  * ingrandimento separato — vedi CLAUDE.md § Dettaglio moneta, "Tocco sulla foto per ingrandirla:
  * non c'è nel dettaglio").
  */
+/**
+ * Dettaglio a pagine: scorrendo a sinistra e a destra si passa alla riga successiva/precedente della lista da cui
+ * si è arrivati ([pages], nell'ordine di quella lista: gli 8 tagli di una serie, un taglio in tutti i paesi o
+ * tutta la scheda All), senza aggiungere voci alla cronologia. Stesso pager, stessa animazione "mazzo" e stesso
+ * contatore "4 / 12" del dettaglio commemorativo (`CoinDetailScreen`, `DetailPager.kt`); barra del titolo e
+ * contatore seguono la pagina corrente. [viewModelFor] dà il ViewModel di una pagina (stessa chiave = stessa
+ * istanza, per la pagina e per il titolo); [onPageShown] è chiamata quando si ferma una pagina diversa da quella
+ * di partenza, per far scorrere la lista di origine su quella riga al ritorno.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegularDenominationDetailScreen(
-    viewModel: RegularDenominationDetailViewModel,
+    pages: List<RegularPageKey>,
+    initialPage: RegularPageKey,
+    viewModelFor: @Composable (RegularPageKey) -> RegularDenominationDetailViewModel,
+    onPageShown: (RegularPageKey) -> Unit,
     onBack: () -> Unit,
 ) {
+    val pagerState = rememberPagerState(initialPage = pages.indexOf(initialPage).coerceAtLeast(0)) { pages.size }
+    val currentState by viewModelFor(pages[pagerState.currentPage]).uiState.collectAsState()
+    val currentOnPageShown by rememberUpdatedState(onPageShown)
+    LaunchedEffect(pagerState) {
+        // drop(1): la prima emissione è la pagina di partenza, la lista è già lì.
+        snapshotFlow { pagerState.settledPage }.drop(1).collect { currentOnPageShown(pages[it]) }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                colors = appBarColors(),
+                title = {
+                    Text(
+                        currentState.series?.let { "${currentState.countryName} · Series ${currentState.seriesNumber}" }
+                            ?: currentState.countryName,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (pages.size > 1) PagePositionPill("${pagerState.currentPage + 1} / ${pages.size}")
+                },
+            )
+        },
+    ) { padding ->
+        StackedPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize().padding(padding),
+            key = { pages[it].id },
+        ) { page ->
+            RegularDenominationDetailPage(viewModelFor(pages[page]))
+        }
+    }
+}
+
+/** Una pagina del dettaglio: il taglio di [viewModel], con il proprio scorrimento verticale e i propri pannelli. */
+@Composable
+private fun RegularDenominationDetailPage(viewModel: RegularDenominationDetailViewModel) {
     val state by viewModel.uiState.collectAsState()
     var showSheet by remember { mutableStateOf(false) }
     // Anno scelto nella card COLLECTION quando si apre "Edit collection": il pannello si apre su quello.
@@ -161,71 +222,56 @@ fun RegularDenominationDetailScreen(
     val scrollState = rememberScrollState()
     var viewport by remember { mutableStateOf<Rect?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                colors = appBarColors(),
-                title = { Text(state.series?.let { "${state.countryName} · Series ${state.seriesNumber}" } ?: state.countryName) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        val series = state.series
-        val image = state.image
-        if (series == null || image == null) {
-            Box(modifier = Modifier.fillMaxSize().padding(padding))
-            return@Scaffold
-        }
-        if (showSheet) {
-            RegularCollectionSheet(
-                countryName = state.countryName,
-                series = series,
-                seriesNumber = state.seriesNumber,
-                denomination = image,
-                currentItems = state.items,
-                onSave = { entries ->
-                    viewModel.onSaveCollection(entries)
-                    showSheet = false
-                },
-                onDismiss = { showSheet = false },
-                initialYear = sheetYear,
-            )
-        }
-        if (showMintageHistory) {
-            RegularMintageHistorySheet(
-                countryName = state.countryName,
-                seriesNumber = state.seriesNumber,
-                denomination = image,
-                onDismiss = { showMintageHistory = false },
-            )
-        }
+    val series = state.series
+    val image = state.image
+    if (series == null || image == null) {
+        Box(modifier = Modifier.fillMaxSize())
+        return
+    }
+    if (showSheet) {
+        RegularCollectionSheet(
+            countryName = state.countryName,
+            series = series,
+            seriesNumber = state.seriesNumber,
+            denomination = image,
+            currentItems = state.items,
+            onSave = { entries ->
+                viewModel.onSaveCollection(entries)
+                showSheet = false
+            },
+            onDismiss = { showSheet = false },
+            initialYear = sheetYear,
+        )
+    }
+    if (showMintageHistory) {
+        RegularMintageHistorySheet(
+            countryName = state.countryName,
+            seriesNumber = state.seriesNumber,
+            denomination = image,
+            onDismiss = { showMintageHistory = false },
+        )
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .onGloballyPositioned { viewport = it.boundsInWindow() }
+            .verticalScroll(scrollState),
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .onGloballyPositioned { viewport = it.boundsInWindow() }
-                .verticalScroll(scrollState),
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                DenominationHero(image)
-                RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
-                RegularCollectionCard(
-                    items = state.items,
-                    onEdit = { year ->
-                        sheetYear = year
-                        showSheet = true
-                    },
-                )
-                image.displayCoinDescription()?.let { NotesCard(it, scrollState, { viewport }) }
-                DenominationCreditFooter(image)
-            }
+            DenominationHero(image)
+            RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
+            RegularCollectionCard(
+                items = state.items,
+                onEdit = { year ->
+                    sheetYear = year
+                    showSheet = true
+                },
+            )
+            image.displayCoinDescription()?.let { NotesCard(it, scrollState, { viewport }) }
+            DenominationCreditFooter(image)
         }
     }
 }
