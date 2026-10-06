@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.michele.eurocoins.ui.components.PrefetchThumbnails
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
 import com.michele.eurocoins.ui.components.rememberReturnHighlight
 import androidx.compose.material.icons.Icons
@@ -85,6 +86,8 @@ fun RegularDenominationListScreen(
                 .nestedScroll(barState.connection),
         ) {
             val listState = rememberLazyListState()
+            val thumbnailUrls = remember(state.rows) { state.rows.map { it.denomination.image.urlImmagineFonte } }
+            PrefetchThumbnails(listState = listState, urls = thumbnailUrls, transformations = RegularThumbnailTransformations)
             val scrollTarget by viewModel.scrollTo.collectAsState()
             val highlight = rememberReturnHighlight<RegularPageKey>()
             ScrollToRequestedItem(

@@ -43,8 +43,16 @@ import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.ThumbnailColorFilter
 import com.michele.eurocoins.ui.components.ThumbnailFilterQuality
 import com.michele.eurocoins.ui.components.ThumbnailSharpen
+import com.michele.eurocoins.ui.components.ListThumbnailSize
+import com.michele.eurocoins.ui.components.rememberThumbnailPx
+import com.michele.eurocoins.ui.components.thumbnailRequest
+import androidx.compose.runtime.remember
+import coil3.transform.Transformation
 
-private val ThumbnailSize = 64.dp
+private val ThumbnailSize = ListThumbnailSize
+
+/** Trasformazioni della miniatura, nello stesso ordine per la riga e per `PrefetchThumbnails` (stessa chiave di cache in memoria). */
+internal val RegularThumbnailTransformations = listOf<Transformation>(RegularIssueImageTrim, ThumbnailSharpen)
 
 /** Cerchio lilla un po' più piccolo della foto (62 dp contro 64): stesso motivo di `CoinListScreen`. */
 private val PlaceholderSize = 62.dp
@@ -154,13 +162,13 @@ private fun DenominationThumbnail(image: RegularIssueImage) {
         DenominationPlaceholder()
     } else {
         val context = LocalContext.current
+        val sizePx = rememberThumbnailPx()
         SubcomposeAsyncImage(
             // RegularIssueImageTrim: il margine attorno alla moneta non è uniforme da file a
             // file (vedi quella classe) — senza, la moneta appare più piccola del cerchio.
-            model = ImageRequest.Builder(context)
-                .data(image.urlImmagineFonte)
-                .transformations(RegularIssueImageTrim, ThumbnailSharpen)
-                .build(),
+            model = remember(image.urlImmagineFonte, sizePx) {
+                thumbnailRequest(context, image.urlImmagineFonte, sizePx, RegularThumbnailTransformations)
+            },
             contentDescription = image.taglio,
             contentScale = ContentScale.Crop,
             filterQuality = ThumbnailFilterQuality,

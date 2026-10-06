@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.michele.eurocoins.ui.components.PrefetchThumbnails
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
 import com.michele.eurocoins.ui.components.rememberReturnHighlight
 import androidx.compose.foundation.lazy.grid.items
@@ -175,6 +176,8 @@ fun RegularIssuesScreen(
                         // come nelle liste di Commemorative (un effetto arriverebbe un fotogramma dopo).
                         key(state.prefs.allOrder) {
                             val listState = rememberLazyListState()
+                            val thumbnailUrls = remember(state.all) { state.all.map { it.denomination.image.urlImmagineFonte } }
+                            PrefetchThumbnails(listState = listState, urls = thumbnailUrls, transformations = RegularThumbnailTransformations)
                             val scrollTarget by viewModel.scrollTo.collectAsState()
                             val highlight = rememberReturnHighlight<RegularPageKey>()
                             ScrollToRequestedItem(

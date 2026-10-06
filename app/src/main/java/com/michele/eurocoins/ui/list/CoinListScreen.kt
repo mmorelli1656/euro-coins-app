@@ -15,14 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import coil3.SingletonImageLoader
-import coil3.request.ImageRequest
-import coil3.request.transformations
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.key
@@ -72,6 +65,10 @@ import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.CollectionSheet
+import com.michele.eurocoins.ui.components.ListThumbnailSize
+import com.michele.eurocoins.ui.components.PrefetchThumbnails
+import com.michele.eurocoins.ui.components.rememberThumbnailPx
+import com.michele.eurocoins.ui.components.thumbnailRequest
 import com.michele.eurocoins.ui.components.ScrollToRequestedItem
 import com.michele.eurocoins.ui.components.rememberReturnHighlight
 import com.michele.eurocoins.ui.components.returnHighlight
@@ -181,7 +178,9 @@ fun CoinListContent(
     // Stato nuovo a ogni cambio d'ordinamento: con le chiavi stabili la lista
     // altrimenti "segue" la moneta ancorata nella nuova sequenza e salta.
     val listState = key(state.options.orderKey) { rememberLazyListState() }
-    PrefetchThumbnails(listState = listState, coins = state.coins)
+    // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
+    val thumbnailUrls = remember(state.coins) { state.coins.map { if (it.hasImage()) it.urlImmagineFonte else null } }
+    PrefetchThumbnails(listState = listState, urls = thumbnailUrls, transformations = CoinThumbnailTransformations, firstIndex = 1)
     val scrollTarget by viewModel.scrollTo.collectAsState()
     val highlight = rememberReturnHighlight<Long>()
     // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
@@ -222,8 +221,11 @@ fun CoinListContent(
     }
 }
 
-/** Lato della miniatura nell'elenco; il precaricamento usa la stessa misura. */
-private val ThumbnailSize = 64.dp
+/** Lato della miniatura nell'elenco; il precaricamento (`PrefetchThumbnails`) usa la stessa misura. */
+private val ThumbnailSize = ListThumbnailSize
+
+/** Trasformazioni della miniatura, nello stesso ordine per la riga e per il precaricamento (stessa chiave di cache in memoria). */
+private val CoinThumbnailTransformations = listOf<coil3.transform.Transformation>(ThumbnailSharpen)
 private val PlaceholderSize = 62.dp
 
 /** Altezza FISSA della card: miniatura + 2 dp di margine sopra e sotto + 6 dp di respiro. */
@@ -231,39 +233,6 @@ private val RowHeight = 80.dp
 
 /** Foto pubblicata dalla fonte (non placeholder e con URL): distinta dal caso "caricamento fallito a runtime". */
 private fun Coin.hasImage() = !immaginePlaceholder && urlImmagineFonte != null
-
-/** Quante monete oltre l'ultima visibile precaricare mentre si scorre. */
-private const val PREFETCH_AHEAD = 24
-
-/**
- * Scarica in anticipo le immagini delle monete appena sotto quelle visibili,
- * così quando la riga arriva sullo schermo la foto è già nella cache su disco
- * di Coil. Stessa dimensione della miniatura ([ThumbnailSize]) per riusare
- * anche la cache in memoria. Ogni moneta si accoda una volta sola.
- */
-@Composable
-private fun PrefetchThumbnails(listState: LazyListState, coins: List<Coin>) {
-    val context = LocalContext.current
-    val thumbPx = with(LocalDensity.current) { ThumbnailSize.roundToPx() }
-    val requested = remember { HashSet<Long>() }
-    LaunchedEffect(listState, coins) {
-        snapshotFlow {
-            val visible = listState.layoutInfo.visibleItemsInfo
-            // Indice 0 della lista è l'intestazione "N coins": la moneta i è l'elemento i + 1.
-            (visible.lastOrNull()?.index ?: 0)
-        }.collect { lastItem ->
-            val loader = SingletonImageLoader.get(context)
-            val from = (lastItem - 1).coerceAtLeast(0)
-            val to = (from + PREFETCH_AHEAD).coerceAtMost(coins.size)
-            for (i in from until to) {
-                val coin = coins[i]
-                val url = coin.urlImmagineFonte
-                if (coin.immaginePlaceholder || url == null || !requested.add(coin.id)) continue
-                loader.enqueue(ImageRequest.Builder(context).data(url).size(thumbPx).build())
-            }
-        }
-    }
-}
 
 @Composable
 private fun CoinRow(
@@ -399,11 +368,9 @@ private fun CoinThumbnail(coin: Coin) {
         } else {
             val context = LocalContext.current
             // ThumbnailSharpen: riduce alla misura della miniatura e rende nitido (vedi la classe).
-            val request = remember(coin.urlImmagineFonte) {
-                ImageRequest.Builder(context)
-                    .data(coin.urlImmagineFonte)
-                    .transformations(ThumbnailSharpen)
-                    .build()
+            val sizePx = rememberThumbnailPx()
+            val request = remember(coin.urlImmagineFonte, sizePx) {
+                thumbnailRequest(context, coin.urlImmagineFonte!!, sizePx, CoinThumbnailTransformations)
             }
             SubcomposeAsyncImage(
                 model = request,
