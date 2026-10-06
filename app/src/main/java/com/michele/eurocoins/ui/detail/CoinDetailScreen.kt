@@ -95,6 +95,9 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.ImageRequest
+import coil3.request.transformations
+import com.michele.eurocoins.ui.components.DetailSharpen
 import com.michele.eurocoins.data.Coin
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
@@ -248,8 +251,16 @@ private fun CoinHero(coin: Coin) {
             contentAlignment = Alignment.Center,
         ) {
             if (hasImage) {
+                val context = LocalContext.current
+                // DetailSharpen: nitidezza leggera alla risoluzione originale (la foto è ingrandita).
+                val request = remember(coin.urlImmagineFonte) {
+                    ImageRequest.Builder(context)
+                        .data(coin.urlImmagineFonte)
+                        .transformations(DetailSharpen)
+                        .build()
+                }
                 SubcomposeAsyncImage(
-                    model = coin.urlImmagineFonte,
+                    model = request,
                     contentDescription = coin.tema,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),

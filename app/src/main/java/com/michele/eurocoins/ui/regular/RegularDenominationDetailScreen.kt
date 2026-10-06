@@ -83,6 +83,7 @@ import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import coil3.request.ImageRequest
 import coil3.request.transformations
+import com.michele.eurocoins.ui.components.DetailSharpen
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
@@ -302,7 +303,7 @@ private fun DenominationHero(image: RegularIssueImage) {
                     // la moneta risulterebbe più piccola del riquadro, con l'alone bianco attorno.
                     model = ImageRequest.Builder(context)
                         .data(image.urlImmagineFonte)
-                        .transformations(RegularIssueImageTrim)
+                        .transformations(RegularIssueImageTrim, DetailSharpen)
                         .build(),
                     contentDescription = image.taglio,
                     contentScale = ContentScale.Fit,
