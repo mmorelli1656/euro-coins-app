@@ -23,8 +23,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.michele.eurocoins.ui.theme.linkColor
+import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.ui.theme.creditIconColor
 
 /** Una fonte nei crediti: "etichetta: valore", con un link opzionale (icona dopo il valore). */
 data class SourceItem(val label: String, val value: String, val url: String? = null)
@@ -64,7 +66,11 @@ fun SourceCredits(sources: List<SourceItem>, licenseLine: String?) {
                     ) {
                         Text(
                             text = "${source.label}: ${source.value}",
-                            style = MaterialTheme.typography.bodySmall,
+                            // 13 sp Medium (era 12 sp normale): i crediti stanno sul fondo grigio-verde, non in una
+                            // card bianca, e nel tema chiaro il testo sottile scuro sul mezzo tono "affondava"
+                            // anche con 9:1 di contrasto (nello scuro, su fondo quasi nero, no).
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                            fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         if (url != null) {
@@ -72,8 +78,8 @@ fun SourceCredits(sources: List<SourceItem>, licenseLine: String?) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                                 contentDescription = "Open ${source.value}",
-                                tint = linkColor(),
-                                modifier = Modifier.size(14.dp),
+                                tint = creditIconColor(),
+                                modifier = Modifier.size(16.dp),
                             )
                         }
                     }

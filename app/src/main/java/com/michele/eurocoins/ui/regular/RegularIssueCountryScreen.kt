@@ -228,7 +228,9 @@ private fun SeriesAbout(
         // (BCL, CFN, Monaco Tribune). Qui e non nel dettaglio del taglio, dove questo testo non c'è.
         Text(
             text = "Series text: ${series.displayTextSource()}",
-            style = MaterialTheme.typography.bodySmall,
+            // Stesso stile dei crediti dei dettagli (13 sp Medium): sta sul fondo grigio-verde.
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 4.dp),
         )

@@ -707,7 +707,9 @@ private fun ImageCreditFooter(coin: Coin) {
 fun FooterLine(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.bodySmall,
+        // Come le fonti sopra (SourceCredits): 13 sp Medium per leggersi sul fondo grigio-verde.
+        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+        fontWeight = FontWeight.Medium,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
     )

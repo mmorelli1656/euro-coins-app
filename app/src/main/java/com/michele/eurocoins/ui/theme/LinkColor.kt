@@ -12,3 +12,15 @@ private val LinkOnLight = Color(0xFF34503F)
 @Composable
 fun linkColor(): Color =
     if (MaterialTheme.colorScheme.background.luminance() > 0.5f) LinkOnLight else MaterialTheme.colorScheme.primary
+
+/**
+ * Verdigris ancora più scuro per le ICONE di link dei crediti (`SourceCredits`), che stanno sul fondo
+ * grigio-verde e non dentro una card bianca: 7:1 contro il ~5:1 di [LinkOnLight]. Separato da
+ * [linkColor] per non scurire anche le etichette di sezione e i pulsanti testuali, che stanno su card bianche.
+ */
+private val CreditIconOnLight = Color(0xFF253A2D)
+
+/** Colore delle icone di link dei crediti: nel tema chiaro il verdigris molto scuro, nello scuro il primario (già chiaro). */
+@Composable
+fun creditIconColor(): Color =
+    if (MaterialTheme.colorScheme.background.luminance() > 0.5f) CreditIconOnLight else MaterialTheme.colorScheme.primary
