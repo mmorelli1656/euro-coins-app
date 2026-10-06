@@ -77,7 +77,7 @@ import com.michele.eurocoins.ui.theme.PurpleFieldLight
 private val CoinQuality.descriptor: String
     get() = when (this) {
         CoinQuality.STANDARD -> "Circulation"
-        CoinQuality.BU -> "Brilliant Uncirculated"
+        CoinQuality.BU -> "Uncirculated"
         CoinQuality.PROOF -> "Mirror finish"
     }
 
@@ -253,6 +253,7 @@ fun FinishCard(
             // Casella compatta: l'intera card è già `toggleable`, quindi i 48 dp di area di tocco minima di Material
             // (che toglievano 28 dp alle scritte) non servono. Con il pulsante della data e il prezzo, su un telefono da
             // 375 dp la colonna delle scritte era di 89 dp e "Brilliant Uncirculated" si tagliava; ora ne ha ~120.
+            // Anche così sulla finitura non spuntata si tagliava ("Brilliant Uncirculat..."): il sottotitolo di BU è ora "Uncirculated".
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                 Checkbox(checked = checked, onCheckedChange = null)
             }
@@ -381,7 +382,10 @@ fun PriceField(
                 )
                 Box(modifier = Modifier.width(textWidth), contentAlignment = Alignment.CenterEnd) {
                     if (value.isEmpty()) {
-                        Text(text = "0.00", style = textStyle, color = colors.onSurfaceVariant)
+                        // Al 50% dell'inchiostro: prima era `onSurfaceVariant`, che nel tema è lo stesso colore delle
+                        // cifre, e un "0.00" vuoto accanto a un "3.00" vero si leggeva uguale. La larghezza non cambia
+                        // (la Box è fissa, vedi `textWidth`).
+                        Text(text = "0.00", style = textStyle, color = colors.onSurface.copy(alpha = PlaceholderAlpha))
                     }
                     inner()
                 }
@@ -392,6 +396,9 @@ fun PriceField(
 
 /** Campione che fissa la larghezza della pillola: il massimo consentito, 9999.99. */
 private const val PriceSample = "0000.00"
+
+/** Opacità del "0.00" del campo vuoto: ~3.2:1 su bianco nel tema chiaro, nettamente sotto le cifre vere. */
+private const val PlaceholderAlpha = 0.5f
 
 /**
  * Limita il prezzo a 9999.99: solo cifre e un separatore (`.` o `,`, mostrato sempre come `.`), al massimo

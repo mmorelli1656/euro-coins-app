@@ -308,7 +308,7 @@ fun RegularIssuesScreen(
             ) {
                 FilterGroupHeader("Sort")
                 ChoiceSection(
-                    title = "Group by",
+                    title = "Sort first by",
                     options = RegularAllGroup.entries,
                     selected = state.prefs.allOrder.group,
                     label = { it.label },

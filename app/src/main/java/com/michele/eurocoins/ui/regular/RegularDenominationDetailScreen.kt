@@ -113,6 +113,7 @@ import com.michele.eurocoins.ui.detail.SourceCredits
 import com.michele.eurocoins.ui.detail.SourceItem
 import com.michele.eurocoins.ui.detail.NotesCard
 import com.michele.eurocoins.ui.detail.NO_VALUE
+import com.michele.eurocoins.ui.detail.HeroOwnedBadge
 import com.michele.eurocoins.ui.detail.OwnedBadge
 import com.michele.eurocoins.ui.detail.SectionLabel
 import com.michele.eurocoins.ui.detail.ValueLabel
@@ -262,7 +263,7 @@ private fun RegularDenominationDetailPage(viewModel: RegularDenominationDetailVi
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DenominationHero(image)
+            DenominationHero(image, owned = state.items.isNotEmpty())
             RegularMintageCard(image = image, onViewByYear = { showMintageHistory = true })
             RegularCollectionCard(
                 items = state.items,
@@ -279,7 +280,7 @@ private fun RegularDenominationDetailPage(viewModel: RegularDenominationDetailVi
 
 /** Hero card bianca: foto grande del taglio (o segnaposto) + etichetta sotto. Stessa forma di `CoinHero`. */
 @Composable
-private fun DenominationHero(image: RegularIssueImage) {
+private fun DenominationHero(image: RegularIssueImage, owned: Boolean) {
     val shape = RoundedCornerShape(22.dp)
     Column(
         modifier = Modifier
@@ -316,6 +317,7 @@ private fun DenominationHero(image: RegularIssueImage) {
                     }
                 }
             }
+            if (owned) HeroOwnedBadge(modifier = Modifier.align(Alignment.TopEnd))
         }
         Text(
             text = image.taglio,

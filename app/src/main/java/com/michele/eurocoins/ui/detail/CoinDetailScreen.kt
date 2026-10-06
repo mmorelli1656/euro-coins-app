@@ -217,7 +217,7 @@ private fun CoinDetailPage(viewModel: CoinDetailViewModel) {
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            CoinHero(currentCoin)
+            CoinHero(currentCoin, owned = items.isNotEmpty())
             MintageCard(currentCoin)
             CollectionCard(items = items, onEdit = { showSheet = true })
             currentCoin.noteStoriche?.let { NotesCard(it, scrollState, viewport = { viewport }) }
@@ -234,7 +234,7 @@ private fun CoinDetailPage(viewModel: CoinDetailViewModel) {
  * righe in più allungano la card, che non ha altezza fissa.
  */
 @Composable
-private fun CoinHero(coin: Coin) {
+private fun CoinHero(coin: Coin, owned: Boolean) {
     val hasImage = !coin.immaginePlaceholder && coin.urlImmagineFonte != null
     val shape = RoundedCornerShape(22.dp)
     Column(
@@ -283,6 +283,7 @@ private fun CoinHero(coin: Coin) {
                     message = "Image not yet published by the source",
                 )
             }
+            if (owned) HeroOwnedBadge(modifier = Modifier.align(Alignment.TopEnd))
         }
         // Titolo sempre per intero (anche su 3 righe): niente ellissi né espansione.
         Text(
@@ -708,7 +709,9 @@ fun FooterLine(text: String) {
     Text(
         text = text,
         // Come le fonti sopra (SourceCredits): 13 sp Medium per leggersi sul fondo grigio-verde.
-        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+        // Interruzione bilanciata (`LineBreak.Heading`): la licenza ("Copyright of the issuing mint (editorial
+        // use)") andava a capo lasciando "use)" da solo; così le due righe hanno lunghezza simile.
+        style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineBreak = LineBreak.Heading),
         fontWeight = FontWeight.Medium,
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
@@ -843,6 +846,19 @@ fun OwnedBadge(dark: Boolean) {
         Spacer(Modifier.width(4.dp))
         Text(text = "OWNED", style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Default), fontWeight = FontWeight.Medium, color = fg)
     }
+}
+
+/**
+ * "✓ OWNED" sull'angolo in alto a destra della foto della Hero (dettaglio commemorativa e taglio Regular),
+ * perché lo stato di possesso si veda senza scorrere fino alla card COLLECTION. Sta DENTRO la pagina, quindi
+ * segue lo swipe del pager da solo (in barra servirebbe portare lì lo stato della pagina corrente).
+ * La Hero è bianca fissa anche nel tema scuro: qui servono sempre i colori del tema chiaro
+ * (`OwnedBadge(dark = false)`: verde scuro, testo bianco); quelli dello scuro (salvia chiaro) su bianco si
+ * leggerebbero male. Gli angoli del quadrato della foto sono liberi (la moneta è un disco inscritto).
+ */
+@Composable
+fun HeroOwnedBadge(modifier: Modifier = Modifier) {
+    Box(modifier = modifier) { OwnedBadge(dark = false) }
 }
 
 private const val NotesExpandMillis = 495

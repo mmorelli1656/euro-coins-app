@@ -239,7 +239,7 @@ private fun <T> CatalogCard(
     SettingsCard {
         SwitchRow(
             title = "Hide microstates",
-            subtitle = "Andorra, Monaco, San Marino, Vatican City",
+            subtitle = "Andorra, Monaco, San Marino, Vatican",
             checked = hideMicrostates,
             onCheckedChange = onHideMicrostatesChange,
         )

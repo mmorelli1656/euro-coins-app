@@ -101,7 +101,7 @@ fun BoxScope.CoinListSearchBar(
                 // "All": due assi (paese e anno), quindi tre scelte indipendenti invece di un solo ordine.
                 FilterGroupHeader("Sort")
                 ChoiceSection(
-                    title = "Group by",
+                    title = "Sort first by",
                     options = CoinGroup.entries,
                     selected = options.group,
                     label = { it.label },

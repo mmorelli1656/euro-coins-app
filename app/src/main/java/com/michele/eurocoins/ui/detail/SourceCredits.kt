@@ -46,10 +46,14 @@ data class SourceItem(val label: String, val value: String, val url: String? = n
 fun SourceCredits(sources: List<SourceItem>, licenseLine: String?) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        // Niente margine orizzontale sulla colonna: la riga della licenza ("License: Copyright of the issuing
+        // mint (editorial use)", ~330 dp a 13 sp) con 8 dp per lato non stava in 343 dp e andava a capo.
+        // Il margine resta sulla riga delle fonti.
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         FlowRow(
+            modifier = Modifier.padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
             verticalArrangement = Arrangement.Center,
         ) {
