@@ -118,6 +118,8 @@ interamente nella pipeline.
 - Credential Manager + Play Services Auth per il login Google del backup; Drive
   via REST diretto (nessuna libreria client Google)
 - Coil con `coil-network-okhttp` (Coil 3 non include il client di rete)
+- Google Play Billing 9.1 (`billing-ktx`), Mobile Ads SDK 25.5 (`play-services-ads`) e UMP 4.0
+  per il Pro e la pubblicità (§ Pro e pubblicità)
 - minSdk 26, target/compileSdk 37, AGP 9.4.0, Gradle 9.6.0 — stessi valori
   usati in BtAuto, per coerenza tra i progetti Android di questa macchina
 
@@ -164,7 +166,8 @@ app/src/main/java/com/michele/eurocoins/
 │   ├── RegularDenominationRows.kt # denominationRows(): le righe di un taglio in tutti i paesi (una per serie), per l'elenco di un taglio e le card Denominations
 │   ├── RegularAllRows.kt     # allDenominationRows()/RegularAllSort/matchesAllQuery(): l'elenco di tutte le righe (scheda All), ordine e ricerca, logica pura, testata
 │   ├── RegularIssueText.kt   # displayDescription() (senza la frase sul bordo esterno), seriesTitle()/seriesChipLabel()/seriesPeriod() — titoli e periodo delle serie
-│   └── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
+│   ├── backup/               # BackupFile, GoogleAccountManager, DriveBackupClient, BackupService
+│   └── pro/                  # Pro e pubblicità: ProBilling (Play Billing), AdsConsent (UMP), InterstitialAds, Monetization, ProState (logica pura testata)
 └── ui/
     ├── theme/                # palette "verdigris/bronzo" coerente col
     │                         # report di riconciliazione della pipeline dati
@@ -173,6 +176,7 @@ app/src/main/java/com/michele/eurocoins/
     │                         # PriceFormat, FloatingSearchBar (vetro/Haze), FilterSheet,
     │                         # CoinThumbnailRing (anello, qualità di ridimensionamento e contrasto delle miniature),
     │                         # ThumbnailSharpen/DetailSharpen + UnsharpMask (nitidezza locale di miniature e foto grande del dettaglio, logica pura testata)
+    │                         # + AdBanner (banner AdMob adattivo della Home)
     ├── home/                 # ingresso: due tile (commemorative / regular issues)
     ├── browse/               # commemorative: Years / Countries / All
     ├── list/                 # elenco filtrato (CoinFilter), CoinListOptions, ricerca
@@ -229,7 +233,7 @@ hanno spazi/accenti.
 
 Due schede di **pari peso** (14 dp tra le due; altezza: vedi sotto, con scroll di riserva),
 stessa struttura (`CardContent`): fascia di 4 monete a
-bordo scheda (fascia FISSA da 153 dp (era 160: -10% di aria sopra/sotto le monete). ALTEZZA delle schede: `heightIn(min = (spazio - 14 dp) / 2)` con tetto `CardMaxHeight` = 320 dp — dividono lo spazio disponibile, sugli schermi alti l'avanzo resta libero in fondo (dove andrà il banner, nel `bottomBar` dello Scaffold, uguale per base e Pro: nessun ramo Pro), e mai sotto il contenuto; la colonna ha `verticalScroll` di riserva per schermi bassi o banner. L'avanzo dentro la scheda va tra i testi (`SpaceEvenly`), non alla fascia. Storia: la fascia che prendeva tutto l'avanzo (~185 dp) lasciava le monete "perse in un deserto" (sono limitate dalla larghezza), schede compatte da 128 dp lasciavano la pagina vuota e la variante "superficie unica" con card `wrapContent` e monete su fondo pulito è stata provata e bocciata; 160 dp è il compromesso; cerchi sovrapposti di 14 dp, i due centrali più grandi), titolo,
+bordo scheda (fascia FISSA da 153 dp (era 160: -10% di aria sopra/sotto le monete). ALTEZZA delle schede: `heightIn(min = (spazio - 14 dp) / 2)` con tetto `CardMaxHeight` = 320 dp — dividono lo spazio disponibile, sugli schermi alti l'avanzo resta libero in fondo, e mai sotto il contenuto; con il banner AdMob nel `bottomBar` dello Scaffold (§ Pro e pubblicità) le schede si dividono lo spazio che resta; la colonna ha `verticalScroll` di riserva per schermi bassi. L'avanzo dentro la scheda va tra i testi (`SpaceEvenly`), non alla fascia. Storia: la fascia che prendeva tutto l'avanzo (~185 dp) lasciava le monete "perse in un deserto" (sono limitate dalla larghezza), schede compatte da 128 dp lasciavano la pagina vuota e la variante "superficie unica" con card `wrapContent` e monete su fondo pulito è stata provata e bocciata; 160 dp è il compromesso; cerchi sovrapposti di 14 dp, i due centrali più grandi), titolo,
 **riga unica di dati** (`StatsLine`, 15 sp, titolo 26 sp, numeri in grassetto: "**584** coins · **24** countries · **2004–2025**") e
 footer. La riga unica ha sostituito una griglia di tre statistiche a 22 sp (le colonne non
 stavano centrate e costavano ~50 dp che ora vanno alla fascia; in cambio i numeri pesano
@@ -391,7 +395,7 @@ nella card COLLECTION), così c'è un solo modo di registrare.
 ### Impostazioni
 
 Schermata unica (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro
-sotto, senza titolo proprio), Commemorative, Regular Issues, Appearance, Danger zone.
+sotto, senza titolo proprio; § Pro e pubblicità), Commemorative, Regular Issues, Appearance, Danger zone.
 Ordine interno delle card, uguale in ogni sezione: prima gli interruttori (`SwitchRow`), poi i selettori a segmenti (`SegmentedChoice`), separati da un filetto. Titoli con "and", non "&" (coerenza con "Account and backup").
 
 **Palette: tre livelli visibili** — neutro (sfondi, testi, titoli), lilla (selezioni) e
@@ -535,12 +539,8 @@ collezione su Drive.
   accorge ha un giorno). Il dialog di "Restore" offre "Restore the previous version (data)
   instead" se esiste. Limite: dopo 24 ore la precedente è quella dell'ultimo salvataggio di più di
   un giorno fa, non una cronologia.
-- **Banner "Go Pro"** (rimozione pubblicità; card neutra come le altre, sotto quella del
-  backup, senza titolo di sezione; l'accento è solo la corona nel viola `PurpleField*` su
-  un cerchio `secondaryContainer`, non più il bronzo): oggi solo
-  segnaposto, il tocco apre un avviso "coming soon". Non esistono ancora
-  Play Billing, AdMob né consenso GDPR (UMP); l'app non è pubblica. Quando
-  ci saranno: acquisto dal banner, banner nascosto per gli utenti Pro.
+- **Pro e pubblicità**: card Go Pro sotto quella del backup, banner nella Home e annuncio a tutto
+  schermo — vedi § Pro e pubblicità.
 - **Sovrascrittura del backup**: "Back up now" controlla prima se su Drive
   esiste già un backup (`BackupViewModel.execute`, flag `confirmed`); se sì
   apre "Overwrite existing backup?" con la data e il numero di monete locali
@@ -1191,6 +1191,192 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
 - **Non ancora fatto** (vedi anche § Backlog): nessun "due esemplari dello stesso anno e finitura"
   (una voce per anno, finitura e varietà, come per le commemorative).
 
+## Pro e pubblicità
+
+Deciso il 2026-10-06 dal proprietario (la mia raccomandazione era togliere il banner "Go Pro" dalla v1
+e riaggiungerlo quando c'è qualcosa da vendere; scelto invece di costruire tutto prima della
+pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile Ads 25.5, UMP 4.0).
+
+- **Cosa compra il Pro: solo l'assenza di pubblicità.** Prodotto in-app NON consumabile
+  `euro_coins_pro` (`BuildConfig.PRO_PRODUCT_ID`, da creare con lo stesso ID in Play Console: un ID
+  eliminato non si riusa). Funzioni Pro future (più esemplari della stessa moneta, quantità, export
+  CSV) non esistono ancora: se arrivano, lo stesso acquisto le sblocca (oggi la card dice solo
+  "Remove all ads").
+- **`ProBilling`**: Play è l'unica fonte di verità, in locale c'è una copia (SharedPreferences `pro`,
+  `is_pro`) perché un utente Pro offline non deve rivedere gli annunci. Riallineamento a ogni ritorno in
+  primo piano (`MainActivity`, `repeatOnLifecycle(STARTED)`) e dal pulsante Restore. **Una verifica
+  fallita non toglie il Pro** (`resolveCachedPro`: solo un esito certo di "nessun acquisto", cioè un
+  rimborso, lo toglie); un pagamento in sospeso non sblocca niente; gli acquisti completati si
+  confermano (`acknowledgePurchase`: senza, Play rimborsa dopo 3 giorni). **Nessuna verifica lato
+  server delle ricevute**: per un acquisto che toglie un banner è un rischio accettato; da rivedere se
+  il Pro sbloccasse funzioni a pagamento. Debug: la chiave `debug_pro` in `shared_prefs/pro.xml` simula
+  il Pro (solo `BuildConfig.DEBUG`, sparisce in release).
+  **Provato sul telefono (release)**: connessione a Play, "Restore purchase" ("No purchase found…") e
+  tocco su Go Pro senza prodotto in Play (messaggio d'uso, nessun crash). **NON provato: l'acquisto
+  vero** (serve l'app in Play Console con il prodotto attivo e un tester di licenza), il rimborso, il
+  pagamento in sospeso.
+- **`AdsConsent`** (UMP): il messaggio di consenso e i testi si configurano nella console AdMob
+  (Privacy e messaggi → GDPR; senza non compare nessun modulo). `MobileAds.initialize` parte SOLO
+  dopo `canRequestAds` (l'SDK raccoglie dati da quando parte). "Ad privacy choices" nelle Impostazioni
+  compare solo dove UMP lo richiede (UE/Regno Unito). **Un utente Pro non passa dal consenso.** Provato
+  sul telefono (in Italia) con il messaggio di test di Google: il modulo compare, rifiutando non
+  compare nessun annuncio, con il consenso arrivano gli annunci. Così deve essere: chi rifiuta non vede
+  pubblicità (non è un difetto).
+- **Banner** (`ui/components/AdBanner.kt`): adattivo ancorato, SOLO nella Home, nel `bottomBar` dello
+  Scaffold (le due schede si dividono lo spazio che resta: con il banner entrano ancora per intero sul
+  telefono dell'utente). Spazio riservato mentre carica (le schede non saltano quando arriva), altezza 0
+  se non c'è nessun annuncio, nuovo tentativo dopo 60 s. Scartato negli elenchi e nei dettagli: dove si
+  consulta e si registra, e collide con la barra flottante di ricerca/filtri.
+  `getCurrentOrientationAnchoredAdaptiveBannerAdSize` è deprecata in favore di
+  `getLargeAnchoredAdaptiveBannerAdSize` (più alta, ~40 dp in più alla Home): se sparisse dall'SDK, passare
+  a quella e rivedere l'altezza delle schede.
+- **Annuncio a tutto schermo** (`InterstitialAds`): ogni **10 monete guardate E almeno 3 minuti**
+  dall'ultimo annuncio (e dall'avvio dell'app: mai nei primi minuti), `isInterstitialDue`, costanti
+  `INTERSTITIAL_EVERY_COINS`/`INTERSTITIAL_MIN_GAP_MS`. Si conta ogni moneta guardata (si entra nel dettaglio,
+  si scorre a una pagina nuova), NON i tocchi: spuntare una casella o salvare non lo avvicina. Compare
+  SOLO uscendo dal dettaglio (un unico `OnDestinationChangedListener` in `EuroCoinsNavHost`: copre freccia e
+  gesto indietro), mai mentre si guarda o si registra, mai all'apertura. Si precarica a metà strada; se non
+  è pronto non compare (nessuna attesa). Contatore e orologio in memoria: un nuovo avvio riparte da zero.
+  Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno
+  ritoccate guardando il feedback reale, 10 monete e 3 minuti sono una partenza prudente.
+- **ID AdMob**: `local.properties` (non versionato) `admob.appId`, `admob.bannerUnitId`,
+  `admob.interstitialUnitId`. **Debug usa SEMPRE gli ID di test pubblici di Google** (mai impressioni
+  né clic veri durante lo sviluppo: rischio di sospensione dell'account AdMob); la release usa quelli
+  veri se ci sono, altrimenti quelli di test. `bundleRelease` FALLISCE senza ID veri
+  (`checkAdmobIds`), salvo `-PallowTestAds` per un pacchetto di prova: un .aab con gli annunci di test
+  non va pubblicato. **Mai cliccare sugli annunci veri dal proprio telefono.** Il manifest ha l'ID app
+  (`com.google.android.gms.ads.APPLICATION_ID`, obbligatorio: senza l'SDK manda in crash l'app).
+- **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo un mockup): sotto il backup, "Go Pro" /
+  "Remove all ads · {prezzo di Play, nella valuta dell'utente}" (senza prezzo se il prodotto non si carica),
+  sotto "Restore purchase" a sinistra e "Ad privacy choices" a destra (solo UE/UK); l'esito di un
+  ripristino o acquisto è una riga di testo sotto la card. Con il Pro attivo la card diventa "Euro
+  Coins Pro" / "No ads. Thank you!", bordo 2 dp e cerchio verdigris, spunta a destra, e sparisce la riga
+  dei pulsanti. L'icona è sempre `WorkspacePremium` (non una corona). Regola del proprietario per questi
+  testi: corti, una riga, niente a capo.
+- **Privacy**: gli annunci aggiungono al manifest `AD_ID`, `ACCESS_ADSERVICES_*`, `WAKE_LOCK`, più
+  `com.android.vending.BILLING`. La **scheda Data safety** di Play Console e la **privacy policy** vanno
+  scritte di conseguenza (identificatore pubblicitario, dati di utilizzo e del dispositivo raccolti da
+  AdMob, acquisti): non è lavoro di questo repo.
+
+## Rilascio
+
+Costruire e pubblicare su Google Play. Stato al 2026-10-06. **Il lint NON è stato eseguito**
+(`lint-gradle` non è in cache offline): `lintVital*` si salta con `-x`. Non dire di averlo fatto.
+
+- **Versione**: `versionCode = 1`, `versionName = "1.0"` in `app/build.gradle.kts`. Ogni pacchetto
+  caricato su Play deve avere un `versionCode` PIÙ ALTO del precedente.
+- **R8** (`optimization { enable = true }` + `proguardFiles("proguard-rules.pro")`): codice, risorse e
+  offuscamento. Le regole dell'app (`app/proguard-rules.pro`) tengono i serializzatori
+  `kotlinx.serialization` delle classi `@Serializable` (`CoinJson`, `RegularIssueJson`, `BackupFile`, i blob
+  JSON di Room come `RegularIssueImage`), i nomi delle costanti degli enum salvati per nome (`CoinQuality`,
+  `ThemeMode`…), Room, e i `-dontwarn` attesi di OkHttp; le altre librerie (Billing, Ads, UMP, Credential
+  Manager, Coil, Haze, Compose) portano le loro. **Il rischio vero è che R8 rompa in silenzio il parsing JSON o
+  Room**: dopo ogni modifica delle regole o delle dipendenze si prova una release sul telefono (sotto).
+  Il `mapping.txt` (~76 MB, comprende tutte le librerie) viaggia dentro l'.aab
+  (`BUNDLE-METADATA/…/proguard.map`) e Play lo usa per decodificare gli stack trace. Nessun avviso di R8
+  nell'ultima build.
+- **Chiave di upload**: `C:\Users\mik16\EuroCoinsKeys\euro-coins-upload.jks` (PKCS12, RSA 4096, alias
+  `euro-coins-upload`, valida fino al 2054), con `keystore.properties` accanto (percorso e password,
+  generate casualmente). **Fuori dal repo e ignorati da git** (`*.jks` e `keystore.properties` in
+  `.gitignore`); `app/build.gradle.kts` legge `keystore.properties` dalla radice del progetto: in un
+  worktree o in un altro clone va copiato lì (il percorso del `.jks` è assoluto, il file si copia tale e
+  quale). **Fare subito un backup sicuro del `.jks` e del suo `keystore.properties`** (gestore di password,
+  non il repo): perderli vuol dire non poter più firmare gli aggiornamenti con la stessa chiave. Con Play
+  App Signing (obbligatorio per i nuovi .aab) la perdita della chiave di UPLOAD si risolve con un reset
+  chiesto a Play, ma la chiave di FIRMA vera la tiene Google. Per rigenerarla: `keytool -genkeypair -v
+  -keystore <file>.jks -alias euro-coins-upload -keyalg RSA -keysize 4096 -validity 10000` (in PKCS12 la
+  password della chiave è quella del keystore: `keyPassword` = `storePassword`).
+- **Build del pacchetto per Play** (.aab firmato con la chiave di upload):
+
+  ```bash
+  export JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
+  ./gradlew.bat :app:bundleRelease -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease
+  # per un pacchetto di PROVA con gli annunci di test: aggiungere -PallowTestAds
+  ```
+
+  Esce in `app/build/outputs/bundle/release/app-release.aab` (~10 MB). Verificare la firma:
+  `jarsigner -verify -certs app-release.aab` (deve nominare `CN=Euro Coins Upload`; l'avviso "invalid
+  certificate chain" è normale, il certificato è autofirmato).
+- **Prova sul telefono: MAI con la chiave di upload.** Il telefono ha l'app firmata con la chiave di
+  DEBUG; una firma diversa non si installa sopra (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) e l'unica via
+  sarebbe disinstallare, che CANCELLA la collezione reale. **Non disinstallare mai l'app.** Per le prove si
+  costruisce la release e la si firma a mano con la chiave di debug:
+
+  ```bash
+  ./gradlew.bat :app:assembleRelease -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease
+  BT="$LOCALAPPDATA/Android/Sdk/build-tools/36.0.0"
+  "$BT/zipalign.exe" -f -p 4 app/build/outputs/apk/release/app-release.apk allineato.apk   # app-release-unsigned.apk senza keystore.properties
+  "$BT/apksigner.bat" sign --ks ~/.android/debug.keystore --ks-pass pass:android --key-pass pass:android \
+      --ks-key-alias androiddebugkey --out prova.apk allineato.apk
+  adb -s 487e0cf2 install -r prova.apk
+  ```
+
+  Prima di installare, copia del database sul PC (`adb shell "run-as com.michele.eurocoins base64
+  databases/coins.db" | tr -d '\r' | base64 -d`, anche `-wal`/`-shm`). Con `keystore.properties` presente
+  `assembleRelease` firma già con la chiave di upload: l'`apksigner sign` sopra la RIFIRMA (sostituisce la
+  firma). **Per esercitare il seeding da zero sotto R8 senza toccare la collezione** (è in tabelle
+  separate): aggiungere un a-capo finale a `coins.json` e `regular_issues.json` in una build di prova (l'hash
+  cambia, le tabelle del catalogo si ripopolano), poi `git checkout` degli asset. **Il telefono è
+  condiviso con altre sessioni**: se un'altra build è stata installata nel frattempo la schermata è quella
+  sbagliata (controllare `dumpsys package com.michele.eurocoins | grep lastUpdateTime`). Lo schermo si
+  blocca da solo dopo poco: da script non si sblocca né si cambia il timeout.
+- **Verificato sul telefono con la release ottimizzata (R8, ID di test)**: avvio, seeding di
+  `coins.json` e `regular_issues.json` (584 monete, 328 righe Regular, hash cambiato), collezione intatta
+  (2 commemorative, 4 Regular), Home con banner, Countries, elenco di un paese con le foto di Coil, dettaglio
+  a pagine con tirature e dati Numista, Impostazioni con la card Pro, Restore purchase, Go Pro senza
+  prodotto, modulo di consenso UMP, serie e dettaglio di un taglio Regular (Andorra: tirature, zecche, dati Numista,
+card COLLECTION con gli anni, pannello di collezione aperto e annullato), annuncio a tutto schermo (dopo 10
+monete guardate e 3 minuti, uscendo dal dettaglio: compare, si chiude con la X, si torna alla lista).
+- **`allowBackup="false"`** (scelta del proprietario, raccomandata): senza, Android ripristinerebbe da solo
+  su un telefono nuovo il database, l'istantanea `backup_snapshot.json` e le preferenze, incoerenti con il
+  catalogo seminato e con il backup su Drive (che resta l'unica via di ripristino: si accede con Google e si
+  usa Restore). Costo: tema e scheda iniziale non tornano da soli su un telefono nuovo; niente
+  trasferimento da telefono a telefono dei dati dell'app.
+- **Controlli finali fatti**: `debuggable` assente nel manifest unito della release (falso); nome app "Euro
+  Coins" e icona adattiva con monocromatica (`mipmap-anydpi-v26`, minSdk 26 quindi nessun PNG di ripiego);
+  nessun `Log.*` né `println` nel codice; permessi del manifest unito: INTERNET, BILLING, AD_ID,
+  ACCESS_ADSERVICES_*, WAKE_LOCK, ACCESS_NETWORK_STATE, USE_BIOMETRIC/FINGERPRINT (queste ultime dalle
+  librerie Google, da riportare nella Data safety).
+
+### Checklist OAuth / Google Sign-In in produzione (non fattibile da codice)
+
+Il client OAuth **Android** della Google Cloud Console è legato a package + SHA-1 della chiave di
+firma. Con Play App Signing l'app installata dallo store è firmata con la chiave di Google, non con
+quella di upload né con quella di debug:
+
+1. Play Console → l'app → Test e rilascio → **Integrità dell'app** (App integrity) → "Firma delle app":
+   copiare lo **SHA-1 del certificato di firma** (e anche quello del certificato di upload).
+2. Google Cloud Console → API e servizi → Credenziali → il client OAuth **Android** `com.michele.eurocoins`:
+   aggiungere (o creare un secondo client Android con) lo SHA-1 della chiave di firma di Play. Lo SHA-1
+   della chiave di DEBUG di questa macchina è `84:FF:C7:96:40:B6:51:AC:10:64:4A:08:EC:CA:EE:03:22:7E:02:81`
+   (serve alle build locali: verificare che ci sia già nel client, il login in debug funziona oggi).
+3. **Schermata di consenso OAuth** → portarla da "Test" a **"In produzione"**: in test i token scadono
+   dopo 7 giorni e può accedere solo chi è tra gli utenti di test. Lo scope `drive.appdata` è
+   "non sensibile": di solito non richiede la verifica di Google, ma va controllato in console.
+4. Provare il login e il backup da una build installata da Play (test interno), non da quella locale.
+
+### Cosa resta in Play Console (fuori da questo repo)
+
+- Creare l'app, il prodotto in-app `euro_coins_pro` (non consumabile, prezzo) e attivarlo; aggiungere i
+  tester di licenza per provare l'acquisto; collegare l'app all'ID app AdMob e creare le unità annuncio
+  (banner e interstitial, poi i loro ID in `local.properties`); configurare il messaggio GDPR in AdMob
+  (Privacy e messaggi) e `app-ads.txt` se c'è un sito.
+- **Privacy policy** (URL pubblico) e scheda **Data safety**; classificazione dei contenuti; categoria;
+  materiali dello store (icona 512, grafica in primo piano, schermate).
+- **Test chiuso**: con un account personale recente servono almeno 12 tester per 14 giorni prima di
+  poter richiedere l'accesso alla produzione.
+- Dati: le commemorative del 2026 mancano nel dataset (lavoro della pipeline).
+- Accessibilità: ci sono ~24 `contentDescription = null` da rivedere; non verificati tema chiaro, font
+  ingrandito, landscape e TalkBack sulla build di rilascio.
+- **Licenze**: foto BCE in hotlink ("uso editoriale") e dati Numista nell'asset e nel repo pubblico:
+  decisione del proprietario del 2026-10-06 (§ Backlog, "Gate da ricontrollare").
+
+### Non provato con la release ottimizzata (da fare prima di pubblicare)
+
+Rotazione e ripresa dell'app, acquisto vero (§ Pro e pubblicità), salvataggio di una moneta dal
+pannello (si è solo aperto e annullato, per non toccare la collezione reale), backup/ripristino su Drive (il parsing di `BackupFile` sotto R8 è coperto solo dalle regole,
+non da una prova: serve un backup vero), `-ExcludeNumista`.
+
 ## Lingua
 
 L'app (chrome UI e contenuto mostrato) è in inglese, hardcoded direttamente
@@ -1354,6 +1540,9 @@ lingua da servire.
 ## Test
 
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
+`ProStateTest` (proprietà del Pro, una verifica fallita non lo toglie, pagamento in sospeso) e
+`InterstitialPolicyTest` (10 monete E 3 minuti, né una né l'altra da sole) coprono la logica pura di Pro e
+annuncio a tutto schermo; il billing e gli annunci veri non sono testabili in JVM. Oggi 176 test, nessuno saltato.
 `UnsharpMaskTest` copre `unsharpMask()` (immagine uniforme invariata, intensità 0 = identità, bordo
 netto accentuato dai due lati e invariato lontano, valori nel campo 0-255, alfa intatta); il
 rendering con `Bitmap` di `ThumbnailSharpen` non è testabile in JVM.
@@ -1383,7 +1572,8 @@ né di backup (serve un account Google reale). Il lint non gira offline
 
 ## Verifica su emulatore e telefono
 
-Non descritta nei file di build, utile per non rifare gli stessi giri:
+Non descritta nei file di build, utile per non rifare gli stessi giri. **Richiesta esplicita del proprietario (2026-10-06): niente emulatore, solo il telefono** (la sezione sull'emulatore sotto resta come riferimento storico). Il telefono è condiviso con altre sessioni e si blocca da solo: vedi § Rilascio.
+
 
 - **Analisi di una registrazione schermo** (`adb shell screenrecord`, 60 s max, schermo sbloccato): senza ffmpeg né python si serve la cartella con `jwebserver.exe` del JBR (`-d <cartella> -p 8765`) e una pagina con `<video>` + `requestVideoFrameCallback` che disegna i fotogrammi su un canvas, poi si legge lo screenshot nel browser integrato. Il seek non funziona (il server non supporta Range): si riproduce il video, e a riquadro nascosto si mette in pausa da solo (rilanciare `play()`).
 - **Emulatore**: AVD `euro_coins_test` (Pixel 6, Android 15 / API 35,
@@ -1902,13 +2092,18 @@ Nell'**app**:
   logica del rischio già accettato). Per le divisionali il piano B è già pronto:
   `scripts/export-regular-issues.ps1 -ExcludeNumista` — **ma dal 2026-10-05 l'asset committato è l'export COMPLETO** (decisione del proprietario, repo pubblico: `regular_issues.json` e `coins.json` su GitHub contengono dati Numista, rischio noto e accettato). Nell'app restano visibili "Source:
   Numista N#…" e il link (§4 dei Termini API).
+  **Decisione del proprietario del 2026-10-06, per la pubblicazione su Google Play**: si assume lui la
+  responsabilità delle licenze, cioè le foto BCE in hotlink (licenza "uso editoriale", mai ospitate) e i
+  dati Numista nell'asset e nel repo pubblico. Non è un compito dell'assistente: il gate non è chiuso da un
+  permesso ma da questa scelta. Il piano B per le divisionali resta pronto (`-ExcludeNumista`).
 - Backup: fatto il confronto con la collezione locale ("Up to date"), il salvataggio automatico e
   la versione precedente su Drive (§ Backup su Google Drive). Non verificati end-to-end con un account
   Drive reale; il salvataggio automatico in particolare dipende dal sistema che lascia vivere il
   processo qualche secondo dopo l'uscita dall'app. Il Reset mostra nel dialog se la collezione è
   ripristinabile e da quando (`resetBackupNote`).
-- Monetizzazione: Play Billing, AdMob e consenso GDPR (UMP) — oggi solo il banner
-  segnaposto "Go Pro".
+- Monetizzazione: fatti Play Billing, banner, annuncio a tutto schermo e consenso UMP (§ Pro e pubblicità);
+  restano da provare end-to-end in Play Console. Funzioni Pro future (più esemplari della stessa moneta,
+  quantità, export CSV) oggi NON esistono: il Pro toglie solo la pubblicità.
 
 ## Setup
 
