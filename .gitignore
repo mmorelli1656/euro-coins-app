@@ -51,3 +51,6 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 lint/reports/
+
+# Release signing (chiave di upload per Play: mai nel repo, vedi CLAUDE.md § Rilascio)
+keystore.properties

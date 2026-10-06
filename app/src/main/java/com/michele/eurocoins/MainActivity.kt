@@ -14,6 +14,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import com.michele.eurocoins.ui.home.preloadHomeShowcase
 import com.michele.eurocoins.ui.navigation.EuroCoinsNavHost
 import com.michele.eurocoins.ui.theme.EuroCoinsTheme
@@ -34,6 +40,19 @@ class MainActivity : ComponentActivity() {
         val app = application as EuroCoinsApplication
         // Decodifica delle foto della Home già adesso, in parallelo alla prima composizione.
         preloadHomeShowcase(this, app.userSettings)
+
+        // Ogni volta che l'app torna in primo piano: si riallinea il Pro con Play (un rimborso o un
+        // acquisto fatto su un altro telefono) e, se l'utente NON è Pro, si controlla il consenso
+        // GDPR (UMP mostra il modulo solo se serve). Gli utenti Pro non vedono mai il modulo.
+        val monetization = app.monetization
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                monetization.billing.refresh()
+                monetization.billing.state.map { it.isPro }.distinctUntilChanged().collect { pro ->
+                    if (!pro) monetization.consent.gatherConsent(this@MainActivity)
+                }
+            }
+        }
 
         setContent {
             val themeMode by app.themePreference.mode.collectAsState()
@@ -68,6 +87,7 @@ class MainActivity : ComponentActivity() {
                         autoBackup = app.autoBackup,
                         themePreference = app.themePreference,
                         userSettings = app.userSettings,
+                        monetization = app.monetization,
                     )
                 }
             }

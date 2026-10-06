@@ -1,5 +1,6 @@
 package com.michele.eurocoins.ui.settings
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +40,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.ui.components.DialogTitle
 import androidx.compose.runtime.collectAsState
@@ -51,10 +53,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.pro.Monetization
 import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.data.backup.BackupStatus
 import com.michele.eurocoins.ui.backup.BackupUiState
@@ -76,6 +80,7 @@ import com.michele.eurocoins.ui.theme.appBarColors
 fun SettingsScreen(
     settingsViewModel: SettingsViewModel,
     backupViewModel: BackupViewModel,
+    monetization: Monetization,
     onBack: () -> Unit,
 ) {
     val hideCommemorativeMicrostates by settingsViewModel.hideCommemorativeMicrostates.collectAsState()
@@ -87,7 +92,6 @@ fun SettingsScreen(
     val owned by settingsViewModel.ownedCounts.collectAsState()
     val backupState by backupViewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
-    var showProInfo by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -111,7 +115,7 @@ fun SettingsScreen(
             BackupSection(backupViewModel)
 
             Spacer(Modifier.height(12.dp))
-            ProBanner(onClick = { showProInfo = true })
+            ProSection(monetization)
 
             // Una sezione per catalogo, ciascuna con le sue due impostazioni (interruttore, poi selettore):
             // i microstati si nascondono in modo indipendente e la scheda iniziale è quella del catalogo.
@@ -195,17 +199,6 @@ fun SettingsScreen(
         )
     }
 
-    // Segnaposto finché non c'è l'acquisto (Play Billing): quando ci sarà, il tocco avvia l'acquisto
-    // e il banner sparisce per gli utenti Pro.
-    if (showProInfo) {
-        AlertDialog(
-            containerColor = MaterialTheme.colorScheme.surface,
-            onDismissRequest = { showProInfo = false },
-            title = { DialogTitle("Euro Coins Pro") },
-            text = { Text("Pro will remove ads and support the development of the app. It's coming soon.") },
-            confirmButton = { TextButton(onClick = { showProInfo = false }) { Text("OK") } },
-        )
-    }
 }
 
 @Composable
@@ -299,18 +292,61 @@ private fun <T> SegmentedChoice(
     }
 }
 
-/** Invito a diventare Pro (rimozione pubblicità): card neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app. */
+/**
+ * Pro (rimozione della pubblicità): la card, e sotto — solo senza Pro — il ripristino dell'acquisto e, dove la
+ * legge lo richiede (UE/Regno Unito), la riapertura delle scelte sulla privacy. Il prezzo è quello di Play,
+ * nella valuta dell'utente.
+ */
 @Composable
-private fun ProBanner(onClick: () -> Unit) {
+private fun ProSection(monetization: Monetization) {
+    val activity = LocalContext.current as Activity
+    val pro by monetization.billing.state.collectAsState()
+    val privacyRequired by monetization.consent.privacyOptionsRequired.collectAsState()
+    // L'esito di un ripristino/acquisto resta finché si è qui; uscendo dalla schermata sparisce.
+    DisposableEffect(Unit) { onDispose { monetization.billing.clearMessage() } }
+
+    ProCard(
+        isPro = pro.isPro,
+        price = pro.price,
+        busy = pro.busy,
+        onClick = { monetization.billing.purchase(activity) },
+    )
+    if (!pro.isPro) {
+        pro.message?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = { monetization.billing.restore() }, enabled = !pro.busy) { Text("Restore purchase") }
+            if (privacyRequired) {
+                TextButton(onClick = { monetization.consent.showPrivacyOptions(activity) }) { Text("Ad privacy choices") }
+            }
+        }
+    }
+}
+
+/** Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e cerchio verdigris, come ogni "posseduto". */
+@Composable
+private fun ProCard(isPro: Boolean, price: String?, busy: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val primary = MaterialTheme.colorScheme.primary
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .alpha(if (busy) 0.6f else 1f)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, MaterialTheme.colorScheme.outline, shape)
-            .clickable(onClick = onClick)
+            .border(if (isPro) 2.dp else 1.dp, if (isPro) primary else MaterialTheme.colorScheme.outline, shape)
+            .clickable(enabled = !isPro && !busy, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -319,25 +355,34 @@ private fun ProBanner(onClick: () -> Unit) {
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondaryContainer),
+                .background(if (isPro) primary else MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Filled.WorkspacePremium,
                 contentDescription = null,
-                tint = if (dark) PurpleFieldDark else PurpleFieldFocusLight,
+                tint = if (isPro) MaterialTheme.colorScheme.onPrimary else if (dark) PurpleFieldDark else PurpleFieldFocusLight,
                 modifier = Modifier.size(22.dp),
             )
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text("Go Pro", style = MaterialTheme.typography.titleMedium)
+            Text(if (isPro) "Euro Coins Pro" else "Go Pro", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Remove ads and support the app",
+                when {
+                    isPro -> "No ads. Thank you!"
+                    price != null -> "Remove all ads · $price"
+                    else -> "Remove all ads"
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (isPro) {
+            Icon(Icons.Filled.Check, contentDescription = "Active", tint = primary)
+        } else {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

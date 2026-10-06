@@ -9,6 +9,7 @@ import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.BackupSnapshotStore
 import com.michele.eurocoins.data.backup.DriveBackupClient
 import com.michele.eurocoins.data.backup.GoogleAccountManager
+import com.michele.eurocoins.data.pro.Monetization
 import com.michele.eurocoins.ui.settings.UserSettings
 import com.michele.eurocoins.ui.theme.ThemePreference
 
@@ -29,6 +30,9 @@ class EuroCoinsApplication : Application() {
     val themePreference: ThemePreference by lazy { ThemePreference(this) }
 
     val userSettings: UserSettings by lazy { UserSettings(this) }
+
+    /** Pro (acquisto in-app), consenso GDPR e pubblicità: vedi [Monetization]. */
+    val monetization: Monetization by lazy { Monetization(this) }
 
     val backupService: BackupService by lazy {
         val db = CoinDatabase.getInstance(this)

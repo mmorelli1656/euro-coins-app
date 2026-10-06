@@ -5,12 +5,17 @@
 
     <application
         android:name=".EuroCoinsApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.EuroCoins">
+        <!-- ID app AdMob: obbligatorio, senza il Mobile Ads SDK manda in crash l'app all'avvio.
+             Il valore viene da build.gradle.kts (ID di test in debug, quelli veri da local.properties in release). -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

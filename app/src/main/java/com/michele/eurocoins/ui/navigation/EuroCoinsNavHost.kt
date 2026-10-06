@@ -1,5 +1,6 @@
 package com.michele.eurocoins.ui.navigation
 
+import android.app.Activity
 import android.net.Uri
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
@@ -7,6 +8,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavController
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -20,6 +26,7 @@ import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupService
 import com.michele.eurocoins.data.backup.GoogleAccountManager
+import com.michele.eurocoins.data.pro.Monetization
 import com.michele.eurocoins.ui.settings.SettingsScreen
 import com.michele.eurocoins.ui.settings.SettingsViewModel
 import com.michele.eurocoins.ui.settings.UserSettings
@@ -76,12 +83,31 @@ fun EuroCoinsNavHost(
     autoBackup: AutoBackup,
     themePreference: ThemePreference,
     userSettings: UserSettings,
+    monetization: Monetization,
 ) {
     val navController = rememberNavController()
     // Elenco ordinato della lista da cui si apre un dettaglio (per scorrere tra le monete): vedi CoinPagerSession.
     val pagerSession: CoinPagerSession = viewModel()
     // Lo stesso per Regular Issues: le righe (taglio di una serie) della lista da cui si apre il dettaglio.
     val regularPagerSession: RegularPagerSession = viewModel()
+
+    // Annuncio a tutto schermo: si conta ogni moneta guardata (si entra nel dettaglio) e, quando si esce dal
+    // dettaglio, se è il momento (abbastanza monete e abbastanza tempo) compare sopra la lista. Un solo
+    // punto per tutte le uscite (freccia, gesto indietro): le schermate non sanno niente di pubblicità.
+    val activity = LocalContext.current as Activity
+    DisposableEffect(navController) {
+        var previousRoute: String? = null
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            val route = destination.route
+            val wasDetail = previousRoute.isDetailRoute()
+            val isDetail = route.isDetailRoute()
+            if (!wasDetail && isDetail) monetization.interstitial.onCoinViewed()
+            if (wasDetail && !isDetail) monetization.interstitial.showIfDue(activity)
+            previousRoute = route
+        }
+        navController.addOnDestinationChangedListener(listener)
+        onDispose { navController.removeOnDestinationChangedListener(listener) }
+    }
 
     fun openDetail(id: Long) = navController.navigate("detail/$id")
 
@@ -102,6 +128,7 @@ fun EuroCoinsNavHost(
         popExitTransition = { exitFade },
     ) {
         composable(ROUTE_HOME) {
+            val adsEnabled by monetization.adsEnabled.collectAsState()
             val viewModel: HomeViewModel = viewModel(
                 factory = viewModelFactory { initializer { HomeViewModel(repository, regularIssueRepository, userSettings) } },
             )
@@ -110,6 +137,7 @@ fun EuroCoinsNavHost(
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
                 onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
+                showAds = adsEnabled,
             )
         }
         composable(ROUTE_SETTINGS) {
@@ -122,6 +150,7 @@ fun EuroCoinsNavHost(
             SettingsScreen(
                 settingsViewModel = settingsViewModel,
                 backupViewModel = backupViewModel,
+                monetization = monetization,
                 onBack = { navController.popBackStack() },
             )
         }
@@ -192,7 +221,10 @@ fun EuroCoinsNavHost(
                         factory = viewModelFactory { initializer { CoinDetailViewModel(repository, id) } },
                     )
                 },
-                onPageShown = pagerSession::onPageShown,
+                onPageShown = { id ->
+                    pagerSession.onPageShown(id)
+                    monetization.interstitial.onCoinViewed()
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -296,9 +328,15 @@ fun EuroCoinsNavHost(
                         },
                     )
                 },
-                onPageShown = regularPagerSession::onPageShown,
+                onPageShown = { page ->
+                    regularPagerSession.onPageShown(page)
+                    monetization.interstitial.onCoinViewed()
+                },
                 onBack = { navController.popBackStack() },
             )
         }
     }
 }
+
+/** Le due schermate di dettaglio: una moneta commemorativa e il taglio di una serie Regular Issues. */
+private fun String?.isDetailRoute(): Boolean = this == ROUTE_DETAIL || this == ROUTE_REGULAR_DENOMINATION
