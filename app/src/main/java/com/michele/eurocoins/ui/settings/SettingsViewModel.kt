@@ -56,11 +56,14 @@ class SettingsViewModel(
 data class OwnedCounts(val commemorative: Int, val regular: Int) {
     val total: Int get() = commemorative + regular
 
-    /** "85 commemorative coins and 4 Regular Issues coins", saltando la sezione vuota. */
-    fun describe(): String = listOfNotNull(
-        commemorative.takeIf { it > 0 }?.let { "$it commemorative ${coinWord(it)}" },
-        regular.takeIf { it > 0 }?.let { "$it Regular Issues ${coinWord(it)}" },
-    ).joinToString(" and ")
-
-    private fun coinWord(n: Int) = if (n == 1) "coin" else "coins"
+    /**
+     * Una voce per sezione non vuota, per l'elenco del dialog di Reset sotto "This removes the following coins:":
+     * "85 Commemorative", "4 Regular Issues" (i nomi dei cataloghi come nel resto dell'app, senza "coins" in coda:
+     * lo dice l'intestazione, e così non c'è nemmeno un plurale da accordare). Era una frase che andava a capo a
+     * metà nome ("2 coins from Commemorative and 4 coins from Regular Issues"); con un elenco ogni riga è corta.
+     */
+    fun lines(): List<String> = listOfNotNull(
+        commemorative.takeIf { it > 0 }?.let { "$it Commemorative" },
+        regular.takeIf { it > 0 }?.let { "$it Regular Issues" },
+    )
 }
