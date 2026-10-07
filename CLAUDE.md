@@ -1356,6 +1356,49 @@ quella di upload né con quella di debug:
    "non sensibile": di solito non richiede la verifica di Google, ma va controllato in console.
 4. Provare il login e il backup da una build installata da Play (test interno), non da quella locale.
 
+### Stato della pubblicazione (aggiornato il 2026-10-07)
+
+**Fatto**
+- Account sviluppatore Play (nome pubblico `mik1656`), app "Euro Coins" creata in Play Console con
+  package `com.michele.eurocoins`, gratuita. Da verificare che sia stata creata come "App" e non come
+  "Gioco" (i testi della Dashboard dicono "gioco"; la voce "Impostazioni dello store" si vede solo dopo
+  le attività iniziali).
+- **Test interno**: caricato `euro-coins-1.0-vc1.aab` (versione 1, 1.0), tester = lista "Io" (l'email
+  del Play Store del telefono). Un solo avviso, innocuo: mancano i simboli di debug del codice nativo
+  (si possono aggiungere più avanti per leggere meglio crash e ANR). Play App Signing accettato.
+- **Prodotto Pro**: "Prodotti a pagamento singolo" → ID prodotto `euro_coins_pro` (verificato identico
+  a `BuildConfig.PRO_PRODUCT_ID`), nome "Euro Coins Pro", opzione di acquisto `acquisto-pro` (tipo
+  "Acquista", con "compatibilità con le versioni precedenti"), ATTIVO in 174 paesi. **Prezzo: 2,99 €**
+  deciso dal proprietario, con i prezzi ritoccati a mano per paese perché Google aveva letto il 2,99
+  come NETTO e aggiunto l'IVA (Italia 3,69 €): verificare in tabella che Italia e area euro mostrino
+  il prezzo finale voluto. Il prezzo si cambia dopo senza ricreare il prodotto, vale per i nuovi acquisti.
+- **Profilo pagamenti** completato (nome sull'estratto conto "EURO COINS APP"; dati fiscali e conto
+  bancario inseriti dal proprietario, non passano da qui). **Registrato alla commissione di servizio del
+  15%** (gruppo di account creato, nessun account associato). Questioni fiscali (partita IVA, imposte
+  sugli incassi): il proprietario deve sentire un commercialista, l'assistente non può consigliare.
+- **AdMob**: app e unità create, messaggio GDPR (UMP, Google CMP) **pubblicato** il 2026-10-07 con
+  "Nega il consenso" in primo piano, link alla privacy policy, elenco predefinito di 198 partner e
+  "aggiungi automaticamente le origini annuncio"; l'anteprima diceva "0 partners" ma l'elenco è
+  quello predefinito. Il modulo può comparire nell'app fino a un'ora dopo.
+- **Privacy policy** pubblicata (vedi sopra) e ID AdMob veri già nell'app (`euro-coins-1.0-vc1.aab`).
+
+**Da fare, in quest'ordine**
+1. **Dichiarazioni dell'app** (Dashboard di Play Console): privacy policy (URL sopra), annunci = sì,
+   accesso all'app = nessun login obbligatorio (il login Google è facoltativo, solo per il backup),
+   classificazione dei contenuti (questionario), pubblico di destinazione = non bambini, e la **scheda
+   Data safety** (identificatore pubblicitario e dati AdMob, acquisti, email per il login, nessuna
+   analisi propria; coerente con la privacy policy).
+2. **Prova del modulo di consenso sul telefono** con la release che ha gli ID veri (`rel4.apk` nello
+   scratchpad della sessione, già costruita ma NON installata; la release `rel3` oggi sul telefono ha gli
+   ID di test). Non cliccare mai sul banner con gli ID veri; meglio registrare il telefono come
+   dispositivo di test in AdMob.
+3. **Prova dell'acquisto vero** dal link del test interno, con il proprio account come tester di licenza.
+4. **Test chiuso**: se l'account è personale e recente, 12 tester per 14 giorni prima della produzione.
+5. Dopo la pubblicazione: collegare l'app alla scheda dello store in AdMob; checklist OAuth/SHA-1 di
+   Play App Signing (§ Checklist OAuth sopra) e schermata di consenso OAuth in produzione.
+6. Scheda dello store (testi EN/IT, icona 512, grafica 1024×500, schermate), `versionCode` più alto per
+   ogni nuovo .aab.
+
 ### Cosa resta in Play Console (fuori da questo repo)
 
 - Creare l'app, il prodotto in-app `euro_coins_pro` (non consumabile, prezzo) e attivarlo; aggiungere i
