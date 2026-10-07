@@ -1298,6 +1298,11 @@ Costruire e pubblicare su Google Play. Stato al 2026-10-06. **Il lint NON è sta
   Esce in `app/build/outputs/bundle/release/app-release.aab` (~10 MB). Verificare la firma:
   `jarsigner -verify -certs app-release.aab` (deve nominare `CN=Euro Coins Upload`; l'avviso "invalid
   certificate chain" è normale, il certificato è autofirmato).
+- **Cartella di lavoro nuova (worktree) = copiare `local.properties`** da `C:\Users\mik16\Github\euro-coins-app\local.properties`
+  (`sdk.dir`, `google.webClientId`, ID AdMob; non è nel repo). Senza, la build non trova l'SDK o ha il login Google
+  disabilitato ("Google sign-in isn't set up"): una build così NON va installata sul telefono del proprietario.
+  Il worktree ha anche la sua cartella `build`: il primo build è lento. `keystore.properties` serve solo per
+  l'.aab di Play (percorso della chiave di upload già dentro).
 - **Prova sul telefono: MAI con la chiave di upload.** Il telefono ha l'app firmata con la chiave di
   DEBUG; una firma diversa non si installa sopra (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) e l'unica via
   sarebbe disinstallare, che CANCELLA la collezione reale. **Non disinstallare mai l'app.** Per le prove si
