@@ -1382,6 +1382,24 @@ quella di upload né con quella di debug:
   quello predefinito. Il modulo può comparire nell'app fino a un'ora dopo.
 - **Privacy policy** pubblicata (vedi sopra) e ID AdMob veri già nell'app (`euro-coins-1.0-vc1.aab`).
 
+**Aggiornamento serale del 2026-10-07**
+- Scheda dello store compilata (EN), icona, immagine in primo piano e screenshot caricati (file in
+  `C:\Users\mik16\EuroCoins-release\store\`, 9:16 per i tablet in `tablet-9x16\`); categoria "Libri e
+  consultazione" (l'app era stata creata come "Gioco" e il proprietario l'ha corretta in "App"); pubblico
+  13+; classificazione contenuti, annunci, sicurezza dei dati, ID pubblicità e le altre dichiarazioni sono
+  compilati e in "Modifiche non ancora inviate per la revisione" (si inviano solo dopo i passaggi del test chiuso).
+- **BLOCCO ATTUALE: test chiuso.** L'account è personale e recente: servono 12 tester attivi per 14 giorni
+  CONSECUTIVI prima di poter richiedere la produzione (se scendono sotto 12 il conto riparte). Il pulsante
+  "Invia app per la revisione" resta grigio finché non si configura il canale "Test chiusi - Alpha" (paesi,
+  tester, release; riusare l'.aab 1.0 da libreria). **Il proprietario non ha ancora i tester e ha
+  sospeso questa parte** ("mi è passata la voglia"): non insistere, riprendere solo se lo chiede.
+  Valutato AppHive (scambio di test tra sviluppatori, Google Group `apphive-testers@googlegroups.com`):
+  probabilmente 16 app sempre le stesse da aprire ogni giorno per 14 giorni, da NON fare sul profilo
+  principale (telefono personale con la collezione vera); non verificato. Servizi a pagamento: sconsigliati.
+  Alternativa: persone conosciute e gruppi di collezionisti.
+- Il codice dell'app NON è cambiato oggi dopo `euro-coins-1.0-vc1.aab` (versionCode 1): ogni nuovo .aab
+  per Play deve avere versionCode > 1 (e `-PallowTestAds` NON va usato per quello da pubblicare).
+
 **Da fare, in quest'ordine**
 1. **Dichiarazioni dell'app** (Dashboard di Play Console): privacy policy (URL sopra), annunci = sì,
    accesso all'app = nessun login obbligatorio (il login Google è facoltativo, solo per il backup),
