@@ -1239,6 +1239,7 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   è pronto non compare (nessuna attesa). Contatore e orologio in memoria: un nuovo avvio riparte da zero.
   Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno
   ritoccate guardando il feedback reale, 10 monete e 3 minuti sono una partenza prudente.
+- **AdMob: app e unità create il 2026-10-07** (app "Euro Coins", Android, "non ancora pubblicata"; stato "Richiede revisione" normale finché non è collegata allo store). Gli ID veri sono già in `local.properties` della cartella principale e del worktree (non versionati); sono identificativi pubblici, finiscono comunque nell'app. **Dopo la pubblicazione su Play**: in AdMob collegare l'app alla scheda dello store, così parte la revisione per gli annunci veri (di solito un paio di giorni; fino ad allora gli annunci veri sono limitati). Primo .aab con gli ID veri: `~/EuroCoins-release/euro-coins-1.0-vc1.aab` (versionCode 1, firmato con la chiave di upload, nessun ID di test dentro).
 - **ID AdMob**: `local.properties` (non versionato) `admob.appId`, `admob.bannerUnitId`,
   `admob.interstitialUnitId`. **Debug usa SEMPRE gli ID di test pubblici di Google** (mai impressioni
   né clic veri durante lo sviluppo: rischio di sospensione dell'account AdMob); la release usa quelli
