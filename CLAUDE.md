@@ -1572,8 +1572,18 @@ lingua da servire.
 - **Lingua**: commenti/KDoc, `CLAUDE.md` e messaggi di commit in italiano; testi
   mostrati dall'app in inglese (vedi § Lingua).
 - **Commit**: messaggi lunghi che spiegano il *perché* e le alternative scartate,
-  con il trailer `Co-Authored-By`. Progetto personale: si pubblica direttamente
-  su `main`.
+  con il trailer `Co-Authored-By`. **Dal 2026-10-07 (app in pubblicazione su Google Play) NON si
+  pubblica più direttamente su `main`**: ogni chat lavora su un ramo/worktree suo e NON fa merge né
+  push su `main` senza che il proprietario lo chieda esplicitamente in quella chat (un'approvazione
+  data in un'altra chat non vale). Motivo: `main` è ciò da cui si costruisce il pacchetto per Play, e una
+  modifica non voluta o non provata finirebbe in produzione. Il proprietario fa il merge da sé o
+  autorizza la chat a farlo.
+- **Modifiche all'app che devono arrivare agli utenti** (grafica, funzioni, correzioni): dopo il merge
+  serve un NUOVO pacchetto per Play con `versionCode` PIÙ ALTO di quello caricato (oggi 1 → 2, e così via;
+  `versionName` a piacere), costruito senza `-PallowTestAds` e firmato con la chiave di upload (§ Rilascio).
+  Ricordarlo al proprietario a fine lavoro: fino al nuovo .aab, la modifica resta solo nel repo. Prima di un
+  nuovo .aab: test, release di prova sul telefono firmata con la chiave di debug (§ Rilascio), e mai
+  disinstallare l'app dal telefono.
 - **Pareri su UI/UX**: quando si chiede un parere su una scelta grafica o di
   interazione (forme, colori, gerarchie, layout), dare sempre una raccomandazione
   tecnica esplicita e motivata, come un consulente UI/UX — non limitarsi a
