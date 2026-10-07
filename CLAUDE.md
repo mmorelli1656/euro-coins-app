@@ -1361,7 +1361,7 @@ quella di upload né con quella di debug:
   tester di licenza per provare l'acquisto; collegare l'app all'ID app AdMob e creare le unità annuncio
   (banner e interstitial, poi i loro ID in `local.properties`); configurare il messaggio GDPR in AdMob
   (Privacy e messaggi) e `app-ads.txt` se c'è un sito.
-- **Privacy policy** (URL pubblico) e scheda **Data safety**; classificazione dei contenuti; categoria;
+- **Privacy policy: FATTA il 2026-10-07**, pubblicata con GitHub Pages (cartella `docs/` di `main`, sorgente `docs/privacy/index.html`, EN + IT) all'URL `https://mmorelli1656.github.io/euro-coins-app/privacy/`: è quello da incollare in Play Console. Contatto pubblico `jacko1656@gmail.com`, sviluppatore "mik1656". **Va aggiornata** (e la data in cima ritoccata) se l'app cambia: nuovi SDK, analisi dei crash, nuovi dati. Restano la scheda **Data safety** classificazione dei contenuti; categoria;
   materiali dello store (icona 512, grafica in primo piano, schermate).
 - **Test chiuso**: con un account personale recente servono almeno 12 tester per 14 giorni prima di
   poter richiedere l'accesso alla produzione.
