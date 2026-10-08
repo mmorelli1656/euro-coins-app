@@ -1211,7 +1211,13 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   confermano (`acknowledgePurchase`: senza, Play rimborsa dopo 3 giorni). **Nessuna verifica lato
   server delle ricevute**: per un acquisto che toglie un banner è un rischio accettato; da rivedere se
   il Pro sbloccasse funzioni a pagamento. Debug: la chiave `debug_pro` in `shared_prefs/pro.xml` simula
-  il Pro (solo `BuildConfig.DEBUG`, sparisce in release).
+  il Pro (solo `BuildConfig.DEBUG`, sparisce in release). **Interruttore "Simulate Pro"** (2026-10-08, mockup A): nelle
+  Impostazioni delle build di sviluppo, sezione "Developer" con etichetta "DEBUG ONLY" e bordo tratteggiato, prima di
+  Danger zone (`DeveloperSection`, `ProBilling.setDebugProSimulated`): toglie banner e annuncio a tutto schermo e fa
+  diventare "Euro Coins Pro" la card Pro subito, senza `adb` né riavvio. Serve a vedere l'app con e senza pubblicità.
+  Nella release non esiste (`BuildConfig.DEBUG` falso, R8 toglie il ramo). Per vedere gli annunci della VERSIONE DI
+  PLAY senza rischio, registrare il telefono come dispositivo di test in AdMob (Impostazioni → Dispositivi di test, ID
+  dal log: `Use RequestConfiguration.Builder().setTestDeviceIds(...)`): mai cliccare gli annunci veri.
   **Provato sul telefono (release)**: connessione a Play, "Restore purchase" ("No purchase found…") e
   tocco su Go Pro senza prodotto in Play (messaggio d'uso, nessun crash). **NON provato: l'acquisto
   vero** (serve l'app in Play Console con il prodotto attivo e un tester di licenza), il rimborso, il

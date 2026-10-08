@@ -64,6 +64,21 @@ class ProBilling(context: Context) {
     private fun storedPro(): Boolean =
         (BuildConfig.DEBUG && prefs.getBoolean(KEY_DEBUG_PRO, false)) || prefs.getBoolean(KEY_IS_PRO, false)
 
+    /** Debug: l'interruttore "Simulate Pro" delle Impostazioni è acceso (sempre falso nelle build di release). */
+    val debugProSimulated: Boolean
+        get() = BuildConfig.DEBUG && prefs.getBoolean(KEY_DEBUG_PRO, false)
+
+    /**
+     * Debug: accende o spegne il Pro simulato (la stessa chiave `debug_pro` di prima, ma da un interruttore invece che da
+     * `adb`) e riallinea subito lo stato, quindi banner e annuncio compaiono o spariscono senza riavviare. Non fa niente
+     * nelle build di release: `BuildConfig.DEBUG` è falso e R8 toglie il ramo.
+     */
+    fun setDebugProSimulated(value: Boolean) {
+        if (!BuildConfig.DEBUG) return
+        prefs.edit().putBoolean(KEY_DEBUG_PRO, value).apply()
+        _state.update { it.copy(isPro = value || prefs.getBoolean(KEY_IS_PRO, false)) }
+    }
+
     /** Riallinea prezzo e acquisti con Play: all'avvio, al ritorno nell'app e dal pulsante di ripristino. */
     fun refresh() {
         scope.launch { sync(userInitiated = false) }
