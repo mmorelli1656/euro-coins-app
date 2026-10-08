@@ -1251,10 +1251,12 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   dell'utente: con 10 chi guarda una serie sola non lo vedrebbe mai; `InterstitialPolicyTest` lo fissa). Si conta
   ogni moneta guardata (si entra nel dettaglio, si scorre a una pagina nuova), NON i tocchi: spuntare una casella
   o salvare non lo avvicina. **Compare in due punti**: uscendo dal dettaglio (un unico
-  `OnDestinationChangedListener` in `EuroCoinsNavHost`: copre freccia e gesto indietro) e SFOGLIANDO, ma solo
-  dopo che una pagina è rimasta ferma 1,5 secondi (`showWhenSettled`: uno scorrimento successivo annulla
-  l'attesa, quindi chi scorre veloce non viene interrotto e il dito non è più sullo schermo: rischio di tocco
-  accidentale sull'annuncio, vietato dalle policy). Mai mentre si scrive o si registra, mai all'apertura, mai
+  `OnDestinationChangedListener` in `EuroCoinsNavHost`: copre freccia e gesto indietro) e SFOGLIANDO, SUBITO appena una
+  pagina si assesta (`showWhenSettled`; scelta del proprietario del 2026-10-08: la prima versione aspettava 1,5 s di
+  pagina ferma, ma ogni scorrimento successivo annullava l'attesa e chi sfogliava di continuo, 23 monete di fila, lo
+  vedeva solo quando si fermava; rischio noto: l'annuncio può comparire mentre inizia lo scorrimento successivo e un
+  tocco può finirci sopra, cosa che le policy di Google non gradiscono, da tenere d'occhio). Mai mentre si scrive o si
+  registra, mai all'apertura, mai
   se l'app non è in primo piano. Si precarica a metà strada; se non è pronto non compare (nessuna attesa).
   Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno ritoccate
   guardando il feedback reale. Verificato sul telefono con gli ID di test: dopo 90 s e 6 monete sfogliate

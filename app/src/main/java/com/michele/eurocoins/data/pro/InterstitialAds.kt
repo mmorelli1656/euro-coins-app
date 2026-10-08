@@ -2,8 +2,6 @@ package com.michele.eurocoins.data.pro
 
 import android.app.Activity
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.google.android.gms.ads.AdError
@@ -14,7 +12,6 @@ import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import com.michele.eurocoins.BuildConfig
 import kotlinx.coroutines.flow.StateFlow
-import java.lang.ref.WeakReference
 
 /**
  * Ogni quante monete guardate può comparire un annuncio a tutto schermo. Sotto le 8 monete di una serie
@@ -24,9 +21,6 @@ internal const val INTERSTITIAL_EVERY_COINS = 6
 
 /** Pausa minima tra due annunci a tutto schermo, anche tra un avvio dell'app e l'altro. */
 internal const val INTERSTITIAL_MIN_GAP_MS = 90 * 1000L
-
-/** Quanto si aspetta ferma una pagina del dettaglio prima di mostrare l'annuncio (mai a metà di un gesto). */
-internal const val INTERSTITIAL_SETTLE_MS = 1_500L
 
 /** Un annuncio caricato scade dopo un'ora: oltre questa età lo si scarta invece di mostrarlo. */
 internal const val INTERSTITIAL_MAX_AGE_MS = 55 * 60 * 1000L
@@ -52,10 +46,9 @@ internal fun elapsedSince(last: Long, now: Long): Long = if (last > now) 0L else
 /**
  * Annuncio a tutto schermo ("interstitial"). Regole scelte per rispettare le policy di Google e
  * l'utente:
- * - solo in un PUNTO DI PAUSA naturale: quando si esce dal dettaglio di una moneta, oppure mentre si
- *   sfoglia, ma solo dopo che una pagina è rimasta ferma [INTERSTITIAL_SETTLE_MS] (mai a metà di uno
- *   scorrimento, con il dito ancora sullo schermo), mai mentre si scrive o si registra qualcosa, mai
- *   all'apertura dell'app;
+ * - solo in un punto di TRANSIZIONE: quando si esce dal dettaglio di una moneta, oppure mentre si sfoglia, SUBITO
+ *   dopo che una pagina si è assestata (dito già alzato; vedi [showWhenSettled] per il rischio noto), mai mentre si
+ *   scrive o si registra qualcosa, mai all'apertura dell'app;
  * - conta le monete GUARDATE (aperte dall'elenco e le pagine scorse nel dettaglio), non i tocchi:
  *   spuntare una casella o salvare una moneta non avvicina l'annuncio;
  * - contatore e ora dell'ultimo annuncio sono SALVATI (SharedPreferences `interstitial`): le sessioni
@@ -69,13 +62,10 @@ internal fun elapsedSince(last: Long, now: Long): Long = if (last > now) 0L else
 class InterstitialAds(context: Context, private val enabled: StateFlow<Boolean>) {
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences("interstitial", Context.MODE_PRIVATE)
-    private val handler = Handler(Looper.getMainLooper())
     private var ad: InterstitialAd? = null
     private var adLoadedAt = 0L
     private var loading = false
     private var lastLoadFailedAt = 0L
-    private var pendingActivity: WeakReference<Activity>? = null
-    private val showPending = Runnable { pendingActivity?.get()?.let(::showIfDue) }
 
     private var coinsViewed = prefs.getInt(KEY_COINS, 0)
     private var lastShownAt = prefs.getLong(KEY_LAST_SHOWN, 0L).takeIf { it > 0L }
@@ -90,20 +80,16 @@ class InterstitialAds(context: Context, private val enabled: StateFlow<Boolean>)
     }
 
     /**
-     * Si sta sfogliando il dettaglio: se è il momento, l'annuncio compare dopo che la pagina è rimasta ferma
-     * [INTERSTITIAL_SETTLE_MS]. Un altro scorrimento prima annulla l'attesa (chi scorre veloce non viene
-     * interrotto: aspetta una pausa).
+     * Si sta sfogliando il dettaglio e una pagina si è appena assestata (il dito ha già lasciato lo schermo): se è
+     * il momento, l'annuncio compare SUBITO. Scelta del proprietario (2026-10-08). La prima versione aspettava 1,5 s
+     * di pagina ferma, ma ogni nuovo scorrimento annullava l'attesa e chi sfoglia di continuo (23 monete di fila)
+     * non lo vedeva finché non si fermava. Rischio noto: l'annuncio può comparire mentre inizia lo scorrimento
+     * successivo e un tocco può finirci sopra.
      */
-    fun showWhenSettled(activity: Activity) {
-        handler.removeCallbacks(showPending)
-        if (!isDueNow()) return
-        pendingActivity = WeakReference(activity)
-        handler.postDelayed(showPending, INTERSTITIAL_SETTLE_MS)
-    }
+    fun showWhenSettled(activity: Activity) = showIfDue(activity)
 
-    /** L'utente ha lasciato il dettaglio: se è il momento, mostra l'annuncio (già caricato) sopra la lista. */
+    /** L'utente ha lasciato il dettaglio (o una pagina si è assestata): se è il momento, mostra l'annuncio (già caricato). */
     fun showIfDue(activity: Activity) {
-        handler.removeCallbacks(showPending)
         if (!enabled.value || !isDueNow()) return
         // Non si consuma il turno se l'app non è davanti all'utente (schermo spento, altra app): riproverà.
         if ((activity as? LifecycleOwner)?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) != true) return
