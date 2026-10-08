@@ -99,7 +99,6 @@ import coil3.request.ImageRequest
 import coil3.request.transformations
 import com.michele.eurocoins.ui.components.DetailSharpen
 import com.michele.eurocoins.data.Coin
-import com.michele.eurocoins.data.displayNotes
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.anyPurchaseDate
@@ -221,7 +220,7 @@ private fun CoinDetailPage(viewModel: CoinDetailViewModel) {
             CoinHero(currentCoin, owned = items.isNotEmpty())
             MintageCard(currentCoin)
             CollectionCard(items = items, onEdit = { showSheet = true })
-            currentCoin.displayNotes()?.let { NotesCard(it, scrollState, viewport = { viewport }) }
+            currentCoin.noteStoriche?.let { NotesCard(it, scrollState, viewport = { viewport }) }
             ImageCreditFooter(currentCoin)
         }
     }

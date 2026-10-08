@@ -1501,14 +1501,14 @@ lingua da servire.
   mostrato come "National issuer" nei crediti; `eurlex_notice` = "EU Official Journal" quando usciranno gli
   avvisi UE). **Senza foto** (`url_immagine_fonte` nullo: segnaposto `€`), **senza dati Numista** (tirature per
   finitura, zecca, incisore: "—"), e 7 con `tiratura` nulla (Francia Petit Prince, Malta x2, Lussemburgo x2,
-  Vaticano x2). **Note in lingua diversa dall'inglese**: 12 note 2026 della pipeline erano in
-  spagnolo/francese/italiano (7 con prefisso `[es]`/`[fr]`/`[it]`, 5 riassunti italiani "Sintesi…") e nell'app,
-  solo inglese, sarebbero comparsi così. In `coins.json` (non in `ecb_coins.jsonl`) sono stati messi a `null`:
-  ABOUT THIS COIN manca per quelle monete (19 delle 29 del 2026 non hanno nota; `CoinNotesTest` fissa che ogni
-  nota esportata sia una frase). **Rifacendo l'export vanno azzerate di nuovo** (`^\[[a-z]{2}\]` e `^Sintesi`)
-  finché la pipeline non fornisce il testo in inglese. **ABOUT THIS COIN è sempre una frase** (`Coin.displayNotes()`
-  / `String.asSentence()`: iniziale maiuscola e punto finale, anche nei tagli Regular; solo in visualizzazione).
-  Mancano ancora Lituania, Grecia, Belgio, Andorra, Monaco, Lettonia (elenco in
+  Vaticano x2). **Le note delle 2026 sono state sistemate nel dato**, non in
+  visualizzazione (scelta del proprietario: la regola "iniziale maiuscola e punto finale" vale solo per le nuove
+  2026, le 584 vecchie restano com'erano): 22 note con testo; 12 erano in spagnolo/francese/italiano (7 con
+  prefisso `[es]`/`[fr]`/`[it]`, 5 riassunti italiani "Sintesi…" della pipeline) e sono state **tradotte in
+  inglese a mano** (traduzione nostra, non della fonte), 6 solo maiuscola (4 già a posto). Le traduzioni sono
+  solo in `coins.json`: `ecb_coins.jsonl` ha ancora gli originali, quindi **rifacendo l'export vanno
+  riapplicate** (`NewCoinNotesTest` fallisce se tornano testi non inglesi o minuscoli). 7 monete 2026 non hanno
+  nota (Malta x2, Italia Collodi, Lussemburgo x2, Vaticano x2). Mancano ancora Lituania, Grecia, Belgio, Andorra, Monaco, Lettonia (elenco in
   `NOTES.md` della pipeline). **`coins_with_mintages.jsonl` NON include ancora le 2026** (il passo Numista
   richiede Python e la chiave API, non disponibili qui): l'export di `coins.json` è stato fatto unendo a mano
   i 584 record di `coins_with_mintages.jsonl` con i 29 record 2026 di `ecb_coins.jsonl` (PowerShell,
