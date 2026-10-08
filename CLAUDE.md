@@ -1249,8 +1249,12 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   (`com.google.android.gms.ads.APPLICATION_ID`, obbligatorio: senza l'SDK manda in crash l'app).
 - **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo un mockup): sotto il backup, "Go Pro" /
   "Remove all ads · {prezzo di Play, nella valuta dell'utente}" (senza prezzo se il prodotto non si carica),
-  sotto "Restore purchase" a sinistra e "Ad privacy choices" a destra (solo UE/UK); l'esito di un
-  ripristino o acquisto è una riga di testo sotto la card. Con il Pro attivo la card diventa "Euro
+  un PIEDE della card (filetto, poi due metà uguali separate da un filetto verticale, testo verdigris):
+  "Restore purchase" a sinistra e "Ad privacy choices" a destra (solo UE/UK; fuori, Restore prende tutta la
+  larghezza). Prima erano due `TextButton` liberi sul fondo, uno a sinistra e uno a destra, che "sembravano
+  messi a caso" (2026-10-08, variante A dopo mockup; scartate B card a righe con icona e freccia, C due
+  pulsanti a contorno). Solo la parte alta della card avvia l'acquisto; l'esito di un
+  ripristino o acquisto è una riga di testo sotto la card. Verificato sul telefono (tema scuro, UE). Con il Pro attivo la card diventa "Euro
   Coins Pro" / "No ads. Thank you!", bordo 2 dp e cerchio verdigris, spunta a destra, e sparisce la riga
   dei pulsanti. L'icona è sempre `WorkspacePremium` (non una corona). Regola del proprietario per questi
   testi: corti, una riga, niente a capo.
