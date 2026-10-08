@@ -1258,8 +1258,8 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   due metà con filetto verticale (scartato: troppo peso per azioni rare). Scartate: B pulsante a tutta
   larghezza o a misura di testo sotto il titolo (centrato, allineato al testo, a destra: "non mi piace
   nessuna"), C azioni nella riga sotto il testo, card a righe con icona e freccia, due pulsanti a contorno.
-  L'esito di un ripristino o acquisto è una riga di testo sotto la card. Non verificato a schermo sul
-  telefono (schermo bloccato durante la sessione). Con il Pro attivo la card diventa "Euro
+  L'esito di un ripristino o acquisto è una riga di testo sotto la card. Verificato sul telefono (tema scuro, UE; pillola con padding 22×10 dp, resa più larga su richiesta); non il
+  tema chiaro né il font ingrandito. Con il Pro attivo la card diventa "Euro
   Coins Pro" / "No ads. Thank you!", bordo 2 dp e cerchio verdigris, spunta a destra, e sparisce la riga
   dei pulsanti. L'icona è sempre `WorkspacePremium` (non una corona). Regola del proprietario per questi
   testi: corti, una riga, niente a capo.

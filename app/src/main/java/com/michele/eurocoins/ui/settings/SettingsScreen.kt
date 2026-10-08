@@ -399,7 +399,7 @@ private fun ProCard(
                         .clip(CircleShape)
                         .background(primary)
                         .clickable(enabled = !busy, onClick = onClick)
-                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                        .padding(horizontal = 22.dp, vertical = 10.dp),
                 ) {
                     Text(
                         price ?: "Remove ads",
