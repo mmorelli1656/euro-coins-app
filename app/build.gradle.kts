@@ -27,6 +27,11 @@ val realAdmobBannerUnitId = localProps.getProperty("admob.bannerUnitId").orEmpty
 val realAdmobInterstitialUnitId = localProps.getProperty("admob.interstitialUnitId").orEmpty()
 val hasRealAdmobIds = realAdmobAppId.isNotBlank() && realAdmobBannerUnitId.isNotBlank() && realAdmobInterstitialUnitId.isNotBlank()
 
+// -PallowTestAds: un pacchetto di release con le pubblicita' di TEST anche se local.properties ha gli ID veri (per il test chiuso con
+// dei tester: un loro clic su un annuncio vero conta come traffico non valido per il tuo account AdMob). Prima il flag
+// saltava soltanto il controllo e, con gli ID veri presenti, la release li usava lo stesso.
+val useTestAdsInRelease = providers.gradleProperty("allowTestAds").isPresent
+
 android {
     namespace = "com.michele.eurocoins"
     compileSdk {
@@ -37,7 +42,7 @@ android {
         applicationId = "com.michele.eurocoins"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -80,9 +85,9 @@ android {
             }
             proguardFiles("proguard-rules.pro")
             signingConfigs.findByName("upload")?.let { signingConfig = it }
-            buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${realAdmobBannerUnitId.ifBlank { testAdmobBannerUnitId }}\"")
-            buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"${realAdmobInterstitialUnitId.ifBlank { testAdmobInterstitialUnitId }}\"")
-            manifestPlaceholders["admobAppId"] = realAdmobAppId.ifBlank { testAdmobAppId }
+            buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"${if (useTestAdsInRelease) testAdmobBannerUnitId else realAdmobBannerUnitId.ifBlank { testAdmobBannerUnitId }}\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"${if (useTestAdsInRelease) testAdmobInterstitialUnitId else realAdmobInterstitialUnitId.ifBlank { testAdmobInterstitialUnitId }}\"")
+            manifestPlaceholders["admobAppId"] = if (useTestAdsInRelease) testAdmobAppId else realAdmobAppId.ifBlank { testAdmobAppId }
         }
     }
     compileOptions {

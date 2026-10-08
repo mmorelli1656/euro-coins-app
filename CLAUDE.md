@@ -1278,8 +1278,10 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   `admob.interstitialUnitId`. **Debug usa SEMPRE gli ID di test pubblici di Google** (mai impressioni
   né clic veri durante lo sviluppo: rischio di sospensione dell'account AdMob); la release usa quelli
   veri se ci sono, altrimenti quelli di test. `bundleRelease` FALLISCE senza ID veri
-  (`checkAdmobIds`), salvo `-PallowTestAds` per un pacchetto di prova: un .aab con gli annunci di test
-  non va pubblicato. **Mai cliccare sugli annunci veri dal proprio telefono.** Il manifest ha l'ID app
+  (`checkAdmobIds`), salvo `-PallowTestAds`: **dal 2026-10-08 il flag FORZA gli ID di test anche se local.properties ha quelli veri**
+  (prima saltava solo il controllo e, con gli ID veri presenti, la release usava i veri: un .aab "di prova" avrebbe avuto annunci
+  veri). Serve al test chiuso: un clic di un tester su un annuncio vero conta come traffico non valido per il TUO account AdMob.
+  Un .aab con gli annunci di test non va pubblicato in produzione. **Mai cliccare sugli annunci veri dal proprio telefono.** Il manifest ha l'ID app
   (`com.google.android.gms.ads.APPLICATION_ID`, obbligatorio: senza l'SDK manda in crash l'app).
 - **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo due giri di mockup, 2026-10-08): sotto il backup,
   "Go Pro" / "Remove all ads", a destra un **pulsante pieno verdigris a pillola col prezzo di Play, nella
@@ -1307,8 +1309,10 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
 Costruire e pubblicare su Google Play. Stato al 2026-10-06. **Il lint NON è stato eseguito**
 (`lint-gradle` non è in cache offline): `lintVital*` si salta con `-x`. Non dire di averlo fatto.
 
-- **Versione**: `versionCode = 1`, `versionName = "1.0"` in `app/build.gradle.kts`. Ogni pacchetto
-  caricato su Play deve avere un `versionCode` PIÙ ALTO del precedente.
+- **Versione**: `versionCode = 2`, `versionName = "1.0"` in `app/build.gradle.kts` (il 2 dal 2026-10-08: il telefono di prova ha
+  l'app con `versionCode` 2, e Android RIFIUTA di installare sopra una versione più bassa — `INSTALL_FAILED_VERSION_DOWNGRADE` — mentre
+  disinstallare cancellerebbe la collezione; quindi `main` non deve scendere sotto il numero installato sul telefono). Ogni pacchetto
+  caricato su Play deve avere un `versionCode` PIÙ ALTO del precedente (il test interno ha il 1; il pacchetto del test chiuso è il 2, nel ramo `closed-test-vc2`).
 - **R8** (`optimization { enable = true }` + `proguardFiles("proguard-rules.pro")`): codice, risorse e
   offuscamento. Le regole dell'app (`app/proguard-rules.pro`) tengono i serializzatori
   `kotlinx.serialization` delle classi `@Serializable` (`CoinJson`, `RegularIssueJson`, `BackupFile`, i blob
