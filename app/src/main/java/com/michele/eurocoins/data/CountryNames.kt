@@ -37,3 +37,12 @@ fun Coin.displayCountry(): String {
     val raw = zeccaRaw
     return if (raw == raw.uppercase()) raw.lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } } else raw
 }
+
+/**
+ * Ordine di base del catalogo: anno decrescente, poi il nome del paese COME MOSTRATO. Il database
+ * ordina per `paese` (nome italiano), e per "Città del Vaticano" e "Paesi Bassi" l'ordine non coincide
+ * con quello dei nomi inglesi ("Vatican City" finiva tra le C invece che in fondo, "Croatia" dopo
+ * "Cyprus" restava prima di Cipro...). `sortedWith` è stabile: a parità di anno e paese resta l'ordine del database.
+ */
+fun List<Coin>.inCatalogOrder(): List<Coin> =
+    sortedWith(compareByDescending<Coin> { it.anno }.thenBy { it.displayCountry() })

@@ -159,8 +159,8 @@ class CoinListViewModel(
 /**
  * Ordine dell'elenco "All": [CoinListOptions.group] dice quale asse ha la precedenza, le altre due la
  * direzione di paese (nome mostrato) e anno. Con il predefinito si lascia l'ordine del database
- * (anno decrescente, poi `paese`): coincide quasi sempre con quello calcolato, ma `paese` e nome
- * mostrato differiscono per due paesi ("Città del Vaticano", "Paesi Bassi"), e chi non tocca niente
+ * (anno decrescente, poi nome del paese mostrato, `inCatalogOrder()`): coincide con quello calcolato; `paese` e nome
+ * mostrato differivano per alcuni paesi ("Città del Vaticano", "Paesi Bassi"), e chi non tocca niente
  * non deve vedere cambiare nulla. `sortedWith` è stabile: a parità di paese e anno resta l'ordine del database.
  */
 internal fun sortAll(coins: List<Coin>, opts: CoinListOptions): List<Coin> {

@@ -38,7 +38,7 @@ class CoinRepository(
 
     /** Catalogo visibile: senza i microstati quando l'utente li ha nascosti dalle Impostazioni. */
     val coins: SharedFlow<List<Coin>> = combine(dao.observeAll(), hideMicrostates) { all, hide ->
-        if (hide) all.filterNot { it.isMicrostate } else all
+        (if (hide) all.filterNot { it.isMicrostate } else all).inCatalogOrder()
     }.shareIn(scope, SharingStarted.Eagerly, replay = 1)
     val paesi: Flow<List<String>> = combine(dao.observePaesi(), hideMicrostates) { all, hide ->
         if (hide) all.filterNot { it in MICROSTATE_PAESI } else all
