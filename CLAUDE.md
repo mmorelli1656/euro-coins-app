@@ -1047,7 +1047,7 @@ catalogo completo.
     dove passa; l'app riapplica la regola completa con `MintNames.kt`. Nota sotto la tabella
     sugli anni divisi: i BU senza lettera sono contati con la zecca nazionale e comprendono
     pezzi dei set (la pipeline segnala 5.000 BU "Dutch Mint - Set" per taglio in 2002).
-  - **Buchi noti**: Bulgaria (nessun type Numista: tirature vuote, testo BCE), Francia 2022 2 euro
+  - **Buchi noti**: Bulgaria (nessun type Numista: tirature vuote, testo BCE; nel dettaglio sotto i tre trattini di MINTAGES compare la stessa `InfoNote` con "Mintage data isn't available yet.", per ogni taglio con `tirature` vuote), Francia 2022 2 euro
     (Lussemburgo 2026 2 euro ora presente, N#585823), Monaco serie 3 dei centesimi (Numista
     tiene i cent 2025 nel type della serie 2 e dice che cambiano solo 1/2 euro, la BCE dice tutti
     gli 8: conflitto della pipeline non risolto — le tirature 2025 dei cent restano alla serie 2,
@@ -1525,7 +1525,7 @@ lingua da servire.
 
 ## Cose da sapere sul dataset (non ovvie dal codice)
 
-- **613 monete dal 2026-10-08** (584 + 29 del 2026). **Come sono entrate**: la BCE non ha ancora la pagina
+- **613 monete dal 2026-10-08** (584 + 29 del 2026). **Nota nella lista dell'anno 2026** (`InfoNote`, `ui/components/`: icona "i" `primary` da 16 dp + testo grigio da 13 sp, senza riquadro; scelta dopo mockup, testo C): "More coins and details are on the way." sotto "N coins", solo per `CoinFilter.Year(2026)` senza `commonOnly` (`IN_PROGRESS_YEAR`/`IN_PROGRESS_NOTE` in `CoinListScreen.kt`, `headerNote`); a 2026 completo si cancellano le due costanti. Scartati i testi più lunghi (andavano a due righe) e "coming soon". **Come sono entrate**: la BCE non ha ancora la pagina
   2026, quindi la pipeline le ha prese dagli emittenti nazionali (`fonte_dati = "emittente_nazionale"`,
   mostrato come "National issuer" nei crediti; `eurlex_notice` = "EU Official Journal" quando usciranno gli
   avvisi UE). **Senza foto** (`url_immagine_fonte` nullo: segnaposto `€`), **senza dati Numista** (tirature per
