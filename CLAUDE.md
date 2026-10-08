@@ -1251,11 +1251,11 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   "Go Pro" / "Remove all ads", a destra un **pulsante pieno verdigris a pillola col prezzo di Play, nella
   valuta dell'utente** ("Remove ads" se il prodotto non si carica): è l'unico invito a pagare e SOLO lui avvia
   l'acquisto (prima la riga intera, con una freccia `>` che prometteva una navigazione e non un pagamento).
-  Sotto un filetto e una riga discreta: "Restore Pro" a sinistra e "Ad privacy" a destra (solo UE/UK; fuori,
-  resta Restore da solo), testo verdigris allineato ai 14 dp dell'icona. Testi accorciati: "Restore purchase"
+  Sotto un filetto e DUE METÀ uguali con le scritte centrate, separate da un filetto verticale corto da 18 dp: "Restore Pro" e "Ad privacy" (solo UE/UK; fuori,
+  Restore occupa tutta la larghezza), testo verdigris. Provati e scartati come piede: scritte agli estremi (a sinistra/destra, "non allineate e amalgamate": due cose a caso), centrate con un punto, sull'asse del testo senza filetto. Testi accorciati: "Restore purchase"
   non diceva cosa si recupera, "Ad privacy choices" era gergo legale; scartato "Manage ad consent", troppo
-  lungo. Prima erano due `TextButton` liberi sul fondo che "sembravano messi a caso": provato prima un piede a
-  due metà con filetto verticale (scartato: troppo peso per azioni rare). Scartate: B pulsante a tutta
+  lungo. Prima erano due `TextButton` liberi sul fondo che "sembravano messi a caso": la prima versione del piede era già a
+  due metà ma con filetto a tutta altezza (48 dp), poi alleggerita. Scartate: B pulsante a tutta
   larghezza o a misura di testo sotto il titolo (centrato, allineato al testo, a destra: "non mi piace
   nessuna"), C azioni nella riga sotto il testo, card a righe con icona e freccia, due pulsanti a contorno.
   L'esito di un ripristino o acquisto è una riga di testo sotto la card. Verificato sul telefono (tema scuro, UE; pillola con padding 22×10 dp, resa più larga su richiesta); non il

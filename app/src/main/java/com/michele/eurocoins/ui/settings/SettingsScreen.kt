@@ -39,6 +39,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.unit.sp
@@ -332,8 +334,8 @@ private fun ProSection(monetization: Monetization) {
 /**
  * Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e
  * cerchio verdigris, come ogni "posseduto". Senza Pro, a destra un pulsante pieno col prezzo di Play (l'unico
- * invito a pagare: la freccia prometteva una navigazione) e sotto un filetto e una riga discreta con
- * "Restore Pro" e (solo UE/UK) "Ad privacy": dentro la card, non scritte libere sul fondo.
+ * invito a pagare: la freccia prometteva una navigazione) e sotto un filetto e due metà con
+ * "Restore Pro" e (solo UE/UK) "Ad privacy" centrate: dentro la card, non scritte libere sul fondo.
  * Solo il pulsante avvia l'acquisto.
  */
 @Composable
@@ -413,15 +415,17 @@ private fun ProCard(
         }
         if (!isPro) {
             HorizontalDivider(color = hairline)
-            // 2 dp + i 12 dp interni del TextButton = i 14 dp di margine del corpo della card: i testi sono allineati all'icona.
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(onClick = onRestore, enabled = !busy) { Text("Restore Pro", maxLines = 1, softWrap = false) }
+            // Due metà uguali con le scritte centrate e un filetto verticale CORTO (18 dp, non a tutta altezza):
+            // sotto, il corpo della card ha già icona, testo e pillola, e i due estremi staccati si leggevano come due cose a caso.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onRestore, enabled = !busy, shape = RectangleShape, modifier = Modifier.weight(1f)) {
+                    Text("Restore Pro", maxLines = 1, softWrap = false)
+                }
                 if (privacyRequired) {
-                    TextButton(onClick = onPrivacy) { Text("Ad privacy", maxLines = 1, softWrap = false) }
+                    VerticalDivider(modifier = Modifier.height(18.dp), color = hairline)
+                    TextButton(onClick = onPrivacy, shape = RectangleShape, modifier = Modifier.weight(1f)) {
+                        Text("Ad privacy", maxLines = 1, softWrap = false)
+                    }
                 }
             }
         }
