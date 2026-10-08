@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 internal const val INTERSTITIAL_EVERY_COINS = 6
 
 /** Pausa minima tra due annunci a tutto schermo, anche tra un avvio dell'app e l'altro. */
-internal const val INTERSTITIAL_MIN_GAP_MS = 90 * 1000L
+internal const val INTERSTITIAL_MIN_GAP_MS = 30 * 1000L
 
 /** Un annuncio caricato scade dopo un'ora: oltre questa età lo si scarta invece di mostrarlo. */
 internal const val INTERSTITIAL_MAX_AGE_MS = 55 * 60 * 1000L
@@ -54,7 +54,7 @@ internal fun elapsedSince(last: Long, now: Long): Long = if (last > now) 0L else
  * - contatore e ora dell'ultimo annuncio sono SALVATI (SharedPreferences `interstitial`): le sessioni
  *   brevi si sommano invece di ripartire da zero a ogni avvio (prima l'orologio partiva all'apertura
  *   dell'app e chi la usava meno di 3 minuti non vedeva mai niente). Alla prima installazione l'orologio
- *   parte da ora: nessun annuncio nei primi 90 secondi;
+ *   parte da ora: nessun annuncio nei primi 30 secondi;
  * - si precarica a metà strada; se non è pronto (o è scaduto) non compare, senza attese né rotelle, e il
  *   caricamento si ritenta alla moneta successiva, non più spesso di ogni [INTERSTITIAL_LOAD_RETRY_MS].
  * Solo quando [enabled] (non Pro e consenso a posto). Chiamare dal thread principale.

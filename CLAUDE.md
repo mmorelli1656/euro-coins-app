@@ -1236,7 +1236,7 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   `getCurrentOrientationAnchoredAdaptiveBannerAdSize` è deprecata in favore di
   `getLargeAnchoredAdaptiveBannerAdSize` (più alta, ~40 dp in più alla Home): se sparisse dall'SDK, passare
   a quella e rivedere l'altezza delle schede.
-- **Annuncio a tutto schermo** (`InterstitialAds`): ogni **6 monete guardate E almeno 90 secondi**
+- **Annuncio a tutto schermo** (`InterstitialAds`): ogni **6 monete guardate E almeno 30 secondi**
   dall'ultimo annuncio, `isInterstitialDue`, costanti `INTERSTITIAL_EVERY_COINS`/`INTERSTITIAL_MIN_GAP_MS`.
   **Riscritto il 2026-10-08** (prima 10 monete e 3 minuti, solo all'uscita dal dettaglio, tutto in memoria):
   l'utente lo vedeva "molto di rado e dopo più di 10 monete". Tre cause, tutte corrette: (1) compariva SOLO uscendo
@@ -1258,8 +1258,13 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   tocco può finirci sopra, cosa che le policy di Google non gradiscono, da tenere d'occhio). Mai mentre si scrive o si
   registra, mai all'apertura, mai
   se l'app non è in primo piano. Si precarica a metà strada; se non è pronto non compare (nessuna attesa).
+  **Pausa portata da 90 a 30 secondi il 2026-10-08** (scelta del proprietario): a ~4 s a moneta le 6 monete sono
+  pronte dopo ~24 s e comandava la pausa, quindi l'annuncio compariva dopo ~23 monete, non ogni 6 (misurato dai
+  log dell'SDK: partito esattamente 90 s dopo l'azzeramento di prova). Con 30 s parte ogni ~7-8 monete a quel
+  ritmo; ancora un freno contro due annunci ravvicinati. Altre pause valutate: 20 s (più fastidioso), 60 s (rado),
+  nessuna (sconsigliato). Il contatore perde al massimo una moneta con scorrimenti simulati molto veloci (10 su 11).
   Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno ritoccate
-  guardando il feedback reale. Verificato sul telefono con gli ID di test: dopo 90 s e 6 monete sfogliate
+  guardando il feedback reale. Verificato sul telefono con gli ID di test: dopo la pausa e 6 monete sfogliate
   l'annuncio compare da solo, senza uscire dal dettaglio, e contatore e orario si azzerano. Non provato con
   gli ID veri (riempimento basso finché l'app non è pubblicata e collegata allo store in AdMob).
 - **AdMob: app e unità create il 2026-10-07** (app "Euro Coins", Android, "non ancora pubblicata"; stato "Richiede revisione" normale finché non è collegata allo store). Gli ID veri sono già in `local.properties` della cartella principale e del worktree (non versionati); sono identificativi pubblici, finiscono comunque nell'app. **Dopo la pubblicazione su Play**: in AdMob collegare l'app alla scheda dello store, così parte la revisione per gli annunci veri (di solito un paio di giorni; fino ad allora gli annunci veri sono limitati). Primo .aab con gli ID veri: `~/EuroCoins-release/euro-coins-1.0-vc1.aab` (versionCode 1, firmato con la chiave di upload, nessun ID di test dentro).
@@ -1670,7 +1675,7 @@ lingua da servire.
 
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
 `ProStateTest` (proprietà del Pro, una verifica fallita non lo toglie, pagamento in sospeso) e
-`InterstitialPolicyTest` (6 monete E 90 secondi, né una né l'altra da sole, più l'orologio portato indietro) coprono la logica pura di Pro e
+`InterstitialPolicyTest` (6 monete E 30 secondi, né una né l'altra da sole, più l'orologio portato indietro) coprono la logica pura di Pro e
 annuncio a tutto schermo; il billing e gli annunci veri non sono testabili in JVM. Oggi 176 test, nessuno saltato.
 `UnsharpMaskTest` copre `unsharpMask()` (immagine uniforme invariata, intensità 0 = identità, bordo
 netto accentuato dai due lati e invariato lontano, valori nel campo 0-255, alfa intatta); il
