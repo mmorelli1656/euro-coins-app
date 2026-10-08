@@ -10,6 +10,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.michele.eurocoins.ui.home.preloadHomeShowcase
+import com.michele.eurocoins.ui.detail.LocalSwipeHint
 import com.michele.eurocoins.ui.navigation.EuroCoinsNavHost
 import com.michele.eurocoins.ui.theme.EuroCoinsTheme
 import com.michele.eurocoins.ui.theme.ThemeMode
@@ -79,16 +81,18 @@ class MainActivity : ComponentActivity() {
 
             EuroCoinsTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    EuroCoinsNavHost(
-                        repository = app.repository,
-                        regularIssueRepository = app.regularIssueRepository,
-                        backupService = app.backupService,
-                        accountManager = app.accountManager,
-                        autoBackup = app.autoBackup,
-                        themePreference = app.themePreference,
-                        userSettings = app.userSettings,
-                        monetization = app.monetization,
-                    )
+                    CompositionLocalProvider(LocalSwipeHint provides app.swipeHint) {
+                        EuroCoinsNavHost(
+                            repository = app.repository,
+                            regularIssueRepository = app.regularIssueRepository,
+                            backupService = app.backupService,
+                            accountManager = app.accountManager,
+                            autoBackup = app.autoBackup,
+                            themePreference = app.themePreference,
+                            userSettings = app.userSettings,
+                            monetization = app.monetization,
+                        )
+                    }
                 }
             }
         }

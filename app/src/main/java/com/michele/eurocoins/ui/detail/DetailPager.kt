@@ -1,6 +1,10 @@
 package com.michele.eurocoins.ui.detail
 
+import android.provider.Settings
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -11,14 +15,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 
 /**
  * Pager dei dettagli (commemorativa e Regular Issues): le pagine si sovrappongono a "mazzo" (vedi
@@ -35,6 +45,7 @@ internal fun StackedPager(
 ) {
     // Sfondo opaco: la pagina sotto non deve trasparire da quella che esce.
     val background = MaterialTheme.colorScheme.background
+    SwipeHintEffect(state)
     HorizontalPager(
         state = state,
         modifier = modifier,
@@ -49,6 +60,48 @@ internal fun StackedPager(
         ) {
             content(page)
         }
+    }
+}
+
+/** Attesa a pagina ferma prima del rimbalzo: si lascia il tempo di guardare la card, e alla foto di caricarsi. */
+private const val SWIPE_HINT_DELAY_MS = 700L
+
+/** Quanto si sposta la card nel rimbalzo (dp): scopre la pagina sotto senza avvicinarsi a metà pagina (che la cambierebbe). */
+private const val SWIPE_HINT_DISTANCE_DP = 56f
+
+/**
+ * Suggerisce che la card si scorre: una volta ferma, si sposta di poco e torna indietro con un secondo piccolo
+ * rimbalzo, e l'effetto "mazzo" ([stackedPage]) fa il resto (inclina, scopre la pagina vicina). Muove il pager
+ * con `animateScrollBy`, quindi non cambia pagina (la pagina "assestata" resta la stessa: non conta come
+ * moneta guardata e non avvicina l'annuncio). Se l'utente tocca o trascina l'animazione si interrompe da sola
+ * (il suo gesto ha la precedenza). Solo con più pagine, finché non ha mai scorso e al massimo 3 volte
+ * ([SwipeHint]); non parte con le animazioni di sistema disattivate. Un vero scorrimento lo registra come "capito".
+ */
+@Composable
+private fun SwipeHintEffect(state: PagerState) {
+    val hint = LocalSwipeHint.current ?: return
+    val context = LocalContext.current
+    LaunchedEffect(state) {
+        snapshotFlow { state.settledPage }.drop(1).collect { hint.onSwiped() }
+    }
+    LaunchedEffect(state) {
+        if (!hint.shouldShow(state.pageCount)) return@LaunchedEffect
+        val start = state.currentPage
+        delay(SWIPE_HINT_DELAY_MS)
+        if (state.currentPage != start || state.isScrollInProgress || !hint.shouldShow(state.pageCount)) return@LaunchedEffect
+        val animationsOn = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+        if (!animationsOn) return@LaunchedEffect
+        hint.onShown()
+        // Verso la pagina che c'è: sull'ultima, indietro.
+        val direction = if (start < state.pageCount - 1) 1f else -1f
+        val distance = direction * with(Density(context)) { SWIPE_HINT_DISTANCE_DP.dp.toPx() }
+        // Solo spostamenti nella direzione scelta: un rimbalzo "oltre" lo zero farebbe entrare la pagina dall'altro lato.
+        state.animateScrollBy(distance, tween(340, easing = FastOutSlowInEasing))
+        delay(220)
+        state.animateScrollBy(-distance, tween(380, easing = FastOutSlowInEasing))
+        delay(80)
+        state.animateScrollBy(distance * 0.35f, tween(200, easing = FastOutSlowInEasing))
+        state.animateScrollBy(-distance * 0.35f, tween(260, easing = FastOutSlowInEasing))
     }
 }
 
