@@ -34,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -54,12 +55,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.BuildConfig
 import com.michele.eurocoins.data.pro.Monetization
 import com.michele.eurocoins.ui.backup.BackupSection
 import com.michele.eurocoins.data.backup.BackupStatus
@@ -176,6 +182,9 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // Solo nelle build di sviluppo: nella release `BuildConfig.DEBUG` è falso e R8 toglie tutto.
+            if (BuildConfig.DEBUG) DeveloperSection(monetization)
 
             SectionHeader("Danger zone")
             ResetRow(owned = owned, onClick = { confirmReset = true })
@@ -294,6 +303,58 @@ private fun <T> SegmentedChoice(
                 label = { Text(label(option)) },
             )
         }
+    }
+}
+
+/**
+ * Sezione "Developer", SOLO nelle build di sviluppo (mockup A del 2026-10-08): l'interruttore "Simulate Pro" toglie
+ * banner e annuncio a tutto schermo e fa diventare "Euro Coins Pro" la card Pro, senza `adb` né acquisti, per vedere
+ * l'app con e senza pubblicità. Bordo tratteggiato ed etichetta "DEBUG ONLY" perché non si scambi mai per una funzione
+ * vera: nessun utente la vede, il chiamante la mostra solo con `BuildConfig.DEBUG`.
+ */
+@Composable
+private fun DeveloperSection(monetization: Monetization) {
+    var simulated by remember { mutableStateOf(monetization.billing.debugProSimulated) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        SectionHeader("Developer")
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = MaterialTheme.colorScheme.secondaryContainer,
+            modifier = Modifier.padding(start = 10.dp, top = 16.dp),
+        ) {
+            Text(
+                "DEBUG ONLY",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.6.sp),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+            )
+        }
+    }
+    val outline = MaterialTheme.colorScheme.outline
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .drawBehind {
+                drawRoundRect(
+                    color = outline,
+                    cornerRadius = CornerRadius(14.dp.toPx()),
+                    style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 8f))),
+                )
+            }
+            .padding(14.dp),
+    ) {
+        SwitchRow(
+            title = "Simulate Pro",
+            subtitle = "Hides ads. Not in release.",
+            checked = simulated,
+            onCheckedChange = {
+                simulated = it
+                monetization.billing.setDebugProSimulated(it)
+            },
+        )
     }
 }
 
