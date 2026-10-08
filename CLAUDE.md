@@ -1217,7 +1217,7 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   pagamento in sospeso.
 - **`AdsConsent`** (UMP): il messaggio di consenso e i testi si configurano nella console AdMob
   (Privacy e messaggi → GDPR; senza non compare nessun modulo). `MobileAds.initialize` parte SOLO
-  dopo `canRequestAds` (l'SDK raccoglie dati da quando parte). "Ad privacy choices" nelle Impostazioni
+  dopo `canRequestAds` (l'SDK raccoglie dati da quando parte). "Ad privacy" nelle Impostazioni
   compare solo dove UMP lo richiede (UE/Regno Unito). **Un utente Pro non passa dal consenso.** Provato
   sul telefono (in Italia) con il messaggio di test di Google: il modulo compare, rifiutando non
   compare nessun annuncio, con il consenso arrivano gli annunci. Così deve essere: chi rifiuta non vede
@@ -1247,10 +1247,19 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   (`checkAdmobIds`), salvo `-PallowTestAds` per un pacchetto di prova: un .aab con gli annunci di test
   non va pubblicato. **Mai cliccare sugli annunci veri dal proprio telefono.** Il manifest ha l'ID app
   (`com.google.android.gms.ads.APPLICATION_ID`, obbligatorio: senza l'SDK manda in crash l'app).
-- **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo un mockup): sotto il backup, "Go Pro" /
-  "Remove all ads · {prezzo di Play, nella valuta dell'utente}" (senza prezzo se il prodotto non si carica),
-  sotto "Restore purchase" a sinistra e "Ad privacy choices" a destra (solo UE/UK); l'esito di un
-  ripristino o acquisto è una riga di testo sotto la card. Con il Pro attivo la card diventa "Euro
+- **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo due giri di mockup, 2026-10-08): sotto il backup,
+  "Go Pro" / "Remove all ads", a destra un **pulsante pieno verdigris a pillola col prezzo di Play, nella
+  valuta dell'utente** ("Remove ads" se il prodotto non si carica): è l'unico invito a pagare e SOLO lui avvia
+  l'acquisto (prima la riga intera, con una freccia `>` che prometteva una navigazione e non un pagamento).
+  Sotto un filetto e DUE METÀ uguali con le scritte centrate, separate da un filetto verticale corto da 18 dp: "Restore Pro" e "Ad privacy" (solo UE/UK; fuori,
+  Restore occupa tutta la larghezza), testo verdigris. Provati e scartati come piede: scritte agli estremi (a sinistra/destra, "non allineate e amalgamate": due cose a caso), centrate con un punto, sull'asse del testo senza filetto. Testi accorciati: "Restore purchase"
+  non diceva cosa si recupera, "Ad privacy choices" era gergo legale; scartato "Manage ad consent", troppo
+  lungo. Prima erano due `TextButton` liberi sul fondo che "sembravano messi a caso": la prima versione del piede era già a
+  due metà ma con filetto a tutta altezza (48 dp), poi alleggerita. Scartate: B pulsante a tutta
+  larghezza o a misura di testo sotto il titolo (centrato, allineato al testo, a destra: "non mi piace
+  nessuna"), C azioni nella riga sotto il testo, card a righe con icona e freccia, due pulsanti a contorno.
+  L'esito di un ripristino o acquisto è una riga di testo sotto la card. Verificato sul telefono (tema scuro, UE; pillola con padding 22×10 dp, resa più larga su richiesta); non il
+  tema chiaro né il font ingrandito. Con il Pro attivo la card diventa "Euro
   Coins Pro" / "No ads. Thank you!", bordo 2 dp e cerchio verdigris, spunta a destra, e sparisce la riga
   dei pulsanti. L'icona è sempre `WorkspacePremium` (non una corona). Regola del proprietario per questi
   testi: corti, una riga, niente a capo.

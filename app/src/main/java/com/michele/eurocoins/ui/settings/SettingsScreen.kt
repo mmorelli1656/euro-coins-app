@@ -39,6 +39,8 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.unit.sp
@@ -312,7 +314,10 @@ private fun ProSection(monetization: Monetization) {
         isPro = pro.isPro,
         price = pro.price,
         busy = pro.busy,
+        privacyRequired = privacyRequired,
         onClick = { monetization.billing.purchase(activity) },
+        onRestore = { monetization.billing.restore() },
+        onPrivacy = { monetization.consent.showPrivacyOptions(activity) },
     )
     if (!pro.isPro) {
         pro.message?.let {
@@ -323,68 +328,106 @@ private fun ProSection(monetization: Monetization) {
                 modifier = Modifier.padding(start = 4.dp, top = 8.dp),
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = { monetization.billing.restore() }, enabled = !pro.busy) { Text("Restore purchase") }
-            if (privacyRequired) {
-                TextButton(onClick = { monetization.consent.showPrivacyOptions(activity) }) { Text("Ad privacy choices") }
-            }
-        }
     }
 }
 
-/** Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e cerchio verdigris, come ogni "posseduto". */
+/**
+ * Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e
+ * cerchio verdigris, come ogni "posseduto". Senza Pro, a destra un pulsante pieno col prezzo di Play (l'unico
+ * invito a pagare: la freccia prometteva una navigazione) e sotto un filetto e due metà con
+ * "Restore Pro" e (solo UE/UK) "Ad privacy" centrate: dentro la card, non scritte libere sul fondo.
+ * Solo il pulsante avvia l'acquisto.
+ */
 @Composable
-private fun ProCard(isPro: Boolean, price: String?, busy: Boolean, onClick: () -> Unit) {
+private fun ProCard(
+    isPro: Boolean,
+    price: String?,
+    busy: Boolean,
+    privacyRequired: Boolean,
+    onClick: () -> Unit,
+    onRestore: () -> Unit,
+    onPrivacy: () -> Unit,
+) {
     val shape = RoundedCornerShape(14.dp)
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val primary = MaterialTheme.colorScheme.primary
-    Row(
+    val hairline = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .alpha(if (busy) 0.6f else 1f)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
-            .border(if (isPro) 2.dp else 1.dp, if (isPro) primary else MaterialTheme.colorScheme.outline, shape)
-            .clickable(enabled = !isPro && !busy, onClick = onClick)
-            .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .border(if (isPro) 2.dp else 1.dp, if (isPro) primary else MaterialTheme.colorScheme.outline, shape),
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(if (isPro) primary else MaterialTheme.colorScheme.secondaryContainer),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(
-                Icons.Filled.WorkspacePremium,
-                contentDescription = null,
-                tint = if (isPro) MaterialTheme.colorScheme.onPrimary else if (dark) PurpleFieldDark else PurpleFieldFocusLight,
-                modifier = Modifier.size(22.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(if (isPro) primary else MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.WorkspacePremium,
+                    contentDescription = null,
+                    tint = if (isPro) MaterialTheme.colorScheme.onPrimary else if (dark) PurpleFieldDark else PurpleFieldFocusLight,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(if (isPro) "Euro Coins Pro" else "Go Pro", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    when {
+                        isPro -> "No ads. Thank you!"
+                        else -> "Remove all ads"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+            if (isPro) {
+                Icon(Icons.Filled.Check, contentDescription = "Active", tint = primary)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(primary)
+                        .clickable(enabled = !busy, onClick = onClick)
+                        .padding(horizontal = 22.dp, vertical = 10.dp),
+                ) {
+                    Text(
+                        price ?: "Remove ads",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
+            }
         }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(if (isPro) "Euro Coins Pro" else "Go Pro", style = MaterialTheme.typography.titleMedium)
-            Text(
-                when {
-                    isPro -> "No ads. Thank you!"
-                    price != null -> "Remove all ads · $price"
-                    else -> "Remove all ads"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
-        if (isPro) {
-            Icon(Icons.Filled.Check, contentDescription = "Active", tint = primary)
-        } else {
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!isPro) {
+            HorizontalDivider(color = hairline)
+            // Due metà uguali con le scritte centrate e un filetto verticale CORTO (18 dp, non a tutta altezza):
+            // sotto, il corpo della card ha già icona, testo e pillola, e i due estremi staccati si leggevano come due cose a caso.
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onRestore, enabled = !busy, shape = RectangleShape, modifier = Modifier.weight(1f)) {
+                    Text("Restore Pro", maxLines = 1, softWrap = false)
+                }
+                if (privacyRequired) {
+                    VerticalDivider(modifier = Modifier.height(18.dp), color = hairline)
+                    TextButton(onClick = onPrivacy, shape = RectangleShape, modifier = Modifier.weight(1f)) {
+                        Text("Ad privacy", maxLines = 1, softWrap = false)
+                    }
+                }
+            }
         }
     }
 }
