@@ -42,6 +42,7 @@ class CoinListViewModel(
     private val options = MutableStateFlow(CoinListOptions())
 
     val sortChoices: List<CoinSort> = filter.sortChoices()
+    val defaultSort: CoinSort = filter.defaultSort()
 
     val uiState: StateFlow<CoinListUiState> = combine(
         repository.coins,

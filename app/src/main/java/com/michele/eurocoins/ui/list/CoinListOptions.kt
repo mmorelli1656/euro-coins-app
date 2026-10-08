@@ -26,7 +26,10 @@ enum class OwnershipFilter(val label: String) {
 
 /**
  * Ordine delle liste di un anno o di un paese (una sola scelta: l'altro asse è costante).
- * [DEFAULT] = ordine del database (anno decrescente, poi paese).
+ * [DEFAULT] = ordine del database (anno decrescente, poi nome del paese mostrato): NON è più una scelta mostrata
+ * nel pannello (2026-10-08: il pulsante "Default" era inutile, coincide con la prima voce: "Country A → Z" in una
+ * lista di anno, "Newest first" in una di paese). Resta come valore interno "l'utente non ha scelto", così `CoinListOptions()`
+ * resta il predefinito, il Reset funziona e il pallino del FILTER non si accende per una scelta che non cambia nulla.
  */
 enum class CoinSort(val label: String) {
     DEFAULT("Default"),
@@ -62,12 +65,18 @@ data class CoinListOptions(
     val isDefaultAllOrder: Boolean get() = group == CoinGroup.YEAR && countryAscending && newestFirst
 }
 
-/** Ordinamenti sensati per le liste di un anno o di un paese; "All" ha invece le tre scelte di [CoinListOptions]. */
+/** Ordinamenti sensati per le liste di un anno o di un paese (la prima voce è il predefinito); "All" ha invece le tre scelte di [CoinListOptions]. */
 fun CoinFilter.sortChoices(): List<CoinSort> = when (this) {
     CoinFilter.All -> emptyList()
-    is CoinFilter.Year -> listOf(CoinSort.DEFAULT, CoinSort.COUNTRY_AZ, CoinSort.COUNTRY_ZA)
-    is CoinFilter.Country -> listOf(CoinSort.DEFAULT, CoinSort.YEAR_DESC, CoinSort.YEAR_ASC)
+    is CoinFilter.Year -> listOf(CoinSort.COUNTRY_AZ, CoinSort.COUNTRY_ZA)
+    is CoinFilter.Country -> listOf(CoinSort.YEAR_DESC, CoinSort.YEAR_ASC)
 }
+
+/**
+ * La voce di [sortChoices] che coincide con l'ordine di base ([CoinSort.DEFAULT]): selezionata finché non si sceglie altro,
+ * e scegliendola di nuovo si torna a [CoinSort.DEFAULT] (stessa lista, filtro non attivo).
+ */
+fun CoinFilter.defaultSort(): CoinSort = sortChoices().firstOrNull() ?: CoinSort.DEFAULT
 
 /** Barra flottante + pannello filtri di una lista di monete, collegati al suo [viewModel]. */
 @Composable
@@ -126,9 +135,9 @@ fun BoxScope.CoinListSearchBar(
                 ChoiceSection(
                     title = "Sort by",
                     options = viewModel.sortChoices,
-                    selected = options.sort,
+                    selected = if (options.sort == CoinSort.DEFAULT) viewModel.defaultSort else options.sort,
                     label = { it.label },
-                    onSelect = { viewModel.onOptionsChange(options.copy(sort = it)) },
+                    onSelect = { viewModel.onOptionsChange(options.copy(sort = if (it == viewModel.defaultSort) CoinSort.DEFAULT else it)) },
                 )
             }
             ChoiceSection(
