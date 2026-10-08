@@ -27,4 +27,7 @@ class Monetization(context: Context) {
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
     val interstitial = InterstitialAds(context, adsEnabled)
+
+    /** Il banner della Home, tenuto vivo fuori dalla composizione: vedi [BannerAd]. */
+    val banner = BannerAd(context)
 }

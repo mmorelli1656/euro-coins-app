@@ -138,6 +138,7 @@ fun EuroCoinsNavHost(
                 onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                 showAds = adsEnabled,
+                banner = monetization.banner,
             )
         }
         composable(ROUTE_SETTINGS) {
@@ -224,6 +225,7 @@ fun EuroCoinsNavHost(
                 onPageShown = { id ->
                     pagerSession.onPageShown(id)
                     monetization.interstitial.onCoinViewed()
+                    monetization.interstitial.showWhenSettled(activity)
                 },
                 onBack = { navController.popBackStack() },
             )
@@ -331,6 +333,7 @@ fun EuroCoinsNavHost(
                 onPageShown = { page ->
                     regularPagerSession.onPageShown(page)
                     monetization.interstitial.onCoinViewed()
+                    monetization.interstitial.showWhenSettled(activity)
                 },
                 onBack = { navController.popBackStack() },
             )
