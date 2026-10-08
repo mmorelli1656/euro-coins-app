@@ -5,40 +5,51 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SwipeHintCurveTest {
+    private val samples = (0..2000).map { it / 2000f }
+
     @Test
     fun startsAndEndsAtRest() {
-        assertEquals(0f, swipeHintBump(0f), 1e-6f)
-        assertEquals(0f, swipeHintBump(1f), 1e-6f)
+        assertEquals(0f, swipeHintBounce(0f), 1e-6f)
+        assertEquals(0f, swipeHintBounce(1f), 1e-6f)
     }
 
     @Test
-    fun peaksAtTheMiddle() {
-        assertEquals(1f, swipeHintBump(0.5f), 1e-6f)
-    }
-
-    @Test
-    fun isSymmetricSoOutAndBackFeelTheSame() {
-        for (t in listOf(0.1f, 0.25f, 0.4f)) assertEquals(swipeHintBump(t), swipeHintBump(1f - t), 1e-5f)
-    }
-
-    @Test
-    fun risesWithoutAnyPauseOrDipOnTheWayOut() {
-        var previous = swipeHintBump(0f)
-        for (i in 1..50) {
-            val value = swipeHintBump(i / 100f)
-            assertTrue("t=${i / 100f}", value > previous)
-            previous = value
+    fun neverGoesBelowRestNorAboveTheFirstPeak() {
+        for (t in samples) {
+            val v = swipeHintBounce(t)
+            assertTrue("t=$t v=$v", v >= 0f)
+            assertTrue("t=$t v=$v", v <= 1.0001f)
         }
+    }
+
+    @Test
+    fun hasExactlyThreeBouncesThatShrink() {
+        val peaks = mutableListOf<Float>()
+        for (i in 1 until samples.size - 1) {
+            val before = swipeHintBounce(samples[i - 1])
+            val here = swipeHintBounce(samples[i])
+            val after = swipeHintBounce(samples[i + 1])
+            if (here > before && here >= after && here > 0.01f) peaks += here
+        }
+        assertEquals(3, peaks.size)
+        assertTrue("peaks=$peaks", peaks[0] > peaks[1] && peaks[1] > peaks[2])
+        assertEquals(1f, peaks[0], 0.01f)
+        assertEquals(0.62f * 0.62f, peaks[1], 0.01f)
+        assertEquals(0.62f * 0.62f * 0.62f * 0.62f, peaks[2], 0.01f)
     }
 
     @Test
     fun startIsGentleNotAJump() {
         // Velocità quasi nulla alla partenza: nessuno scatto iniziale.
-        assertTrue(swipeHintBump(0.01f) < 0.01f)
+        assertTrue(swipeHintBounce(0.01f) < 0.01f)
     }
 
     @Test
-    fun neverGoesBelowRest() {
-        for (i in -10..110) assertTrue(swipeHintBump(i / 100f) >= 0f)
+    fun noJumpBetweenConsecutiveSamples() {
+        // Continua: tra due campioni vicini il valore non salta mai (nessuna pausa-e-ripartenza a scatti).
+        for (i in 1 until samples.size) {
+            val step = kotlin.math.abs(swipeHintBounce(samples[i]) - swipeHintBounce(samples[i - 1]))
+            assertTrue("t=${samples[i]} step=$step", step < 0.01f)
+        }
     }
 }

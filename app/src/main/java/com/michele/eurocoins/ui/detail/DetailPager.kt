@@ -68,7 +68,7 @@ internal fun StackedPager(
 private const val SWIPE_HINT_DELAY_MS = 700L
 
 /** Durata dell'intero movimento (andata e ritorno): abbastanza lungo da leggersi come un gesto, non come uno scatto. */
-private const val SWIPE_HINT_DURATION_MS = 1100f
+private const val SWIPE_HINT_DURATION_MS = 1500f
 
 /** Quanto si sposta la card nel rimbalzo (dp): scopre la pagina sotto senza avvicinarsi a metà pagina (che la cambierebbe). */
 private const val SWIPE_HINT_DISTANCE_DP = 56f
@@ -98,7 +98,7 @@ private fun SwipeHintEffect(state: PagerState) {
         // Verso la pagina che c'è: sull'ultima, indietro.
         val direction = if (start < state.pageCount - 1) 1f else -1f
         val distance = direction * with(Density(context)) { SWIPE_HINT_DISTANCE_DP.dp.toPx() }
-        // UN solo movimento continuo, calcolato a ogni fotogramma (prima erano quattro `animateScrollBy` separati, ognuno
+        // UN solo movimento continuo (tre rimbalzi smorzati), calcolato a ogni fotogramma (prima erano quattro `animateScrollBy` separati, ognuno
         // con partenza e arrivo da fermo e una pausa in mezzo: "macchinoso e poco smooth"). `scroll {}` ha la priorità
         // normale: il dito dell'utente la interrompe. Solo nella direzione scelta, mai oltre lo zero (farebbe entrare la
         // pagina dall'altro lato).
@@ -107,7 +107,7 @@ private fun SwipeHintEffect(state: PagerState) {
             var last = 0f
             while (true) {
                 val t = ((withFrameNanos { it } - start0) / 1_000_000f / SWIPE_HINT_DURATION_MS).coerceIn(0f, 1f)
-                val x = distance * swipeHintBump(t)
+                val x = distance * swipeHintBounce(t)
                 scrollBy(x - last)
                 last = x
                 if (t >= 1f) break
@@ -200,9 +200,27 @@ internal fun PagePositionPill(text: String) {
     }
 }
 
+/** Quanto "perde" ogni rimbalzo: ampiezza ×(E²) e durata ×E rispetto al precedente, come una palla che rimbalza. */
+private const val BOUNCE_RESTITUTION = 0.62f
+
 /**
- * Curva del suggerimento di scorrimento: 0 a t = 0, 1 a t = 0,5, 0 a t = 1, con velocità nulla alle due estremità
- * (nessuno scatto alla partenza né all'arrivo) e cima un po' piatta (la pagina sotto ha il tempo di leggersi).
- * `sin(πt)^1,6`: simmetrica, continua, senza pause né ripartenze in mezzo. Logica pura, testata.
+ * Curva del suggerimento di scorrimento, normalizzata su [0, 1]: tre rimbalzi che si smorzano (ampiezza 1, E², E⁴ con
+ * E = 0,62; durate 1, E, E² : come una palla, con le stesse leggi). Mai sotto zero: un rimbalzo "oltre" il riposo farebbe
+ * entrare la pagina dall'altro lato. Il primo parte dolce (`sin²`, velocità nulla) e sale al picco con velocità nulla,
+ * poi "cade" lungo una parabola; ogni rimbalzo successivo riparte dalla velocità con cui il precedente è arrivato
+ * (per questo non ci sono pause né ripartenze da fermo: l'unico difetto della prima versione, a quattro tratti
+ * separati). Logica pura, testata.
  */
-internal fun swipeHintBump(t: Float): Float = sin(PI * t.coerceIn(0f, 1f)).toFloat().coerceAtLeast(0f).pow(1.6f)
+internal fun swipeHintBounce(t: Float): Float {
+    val e = BOUNCE_RESTITUTION
+    val total = 1f + e + e * e
+    var u = t.coerceIn(0f, 1f) * total
+    fun parabola(v: Float) = 4f * v.coerceIn(0f, 1f) * (1f - v.coerceIn(0f, 1f))
+    if (u < 1f) {
+        return if (u < 0.5f) sin(PI * u).toFloat().pow(2) else parabola(u)
+    }
+    u -= 1f
+    if (u < e) return e * e * parabola(u / e)
+    u -= e
+    return e * e * e * e * parabola(u / (e * e))
+}
