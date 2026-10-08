@@ -129,7 +129,17 @@ private val LINE_BREAKS = Regex("""\s*[\r\n]+\s*""")
  */
 fun RegularIssueImage.displayCoinDescription(): String? {
     val text = descrizione?.replace(LINE_BREAKS, " ")?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-    val closers = "\"”’)"
-    val core = text.trimEnd { it in closers }
-    return if (core.isNotEmpty() && core.last() in ".!?") text else "$text."
+    return text.asSentence()
+}
+
+/**
+ * Testo di una card "ABOUT THIS COIN" come frase: iniziale maiuscola e punto finale (vedi
+ * [displayCoinDescription] per il punto). Le fonti scrivono il seguito di una frase ("the twelve stars
+ * of the European Union…": 18 note commemorative su 606 partono in minuscolo, a volte in minuscolo
+ * anche le descrizioni dei tagli). Solo in visualizzazione.
+ */
+internal fun String.asSentence(): String {
+    val capitalized = replaceFirstChar { it.uppercaseChar() }
+    val core = capitalized.trimEnd { it in "\"”’)" }
+    return if (core.isNotEmpty() && core.last() in ".!?") capitalized else "$capitalized."
 }

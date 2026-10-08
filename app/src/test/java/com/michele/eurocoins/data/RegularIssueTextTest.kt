@@ -113,6 +113,11 @@ class CoinDescriptionEndingTest {
     }
 
     @Test
+    fun startsWithACapital() {
+        assertEquals("The twelve stars of Europe.", image("the twelve stars of Europe").displayCoinDescription())
+    }
+
+    @Test
     fun leavesTheTextAloneWhenItAlreadyEnds() {
         for (text in listOf("Done.", "Really?", "Wow!", "He said \"stop.\"", "Lettering (in Dutch.)", "Done.”")) {
             assertEquals(text, image(text).displayCoinDescription())
