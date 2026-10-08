@@ -1247,14 +1247,19 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   (`checkAdmobIds`), salvo `-PallowTestAds` per un pacchetto di prova: un .aab con gli annunci di test
   non va pubblicato. **Mai cliccare sugli annunci veri dal proprio telefono.** Il manifest ha l'ID app
   (`com.google.android.gms.ads.APPLICATION_ID`, obbligatorio: senza l'SDK manda in crash l'app).
-- **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo un mockup): sotto il backup, "Go Pro" /
-  "Remove all ads · {prezzo di Play, nella valuta dell'utente}" (senza prezzo se il prodotto non si carica),
-  un PIEDE della card (filetto, poi due metà uguali separate da un filetto verticale, testo verdigris):
-  "Restore Pro" a sinistra e "Ad privacy" a destra (testi accorciati il 2026-10-08: "Restore purchase" non diceva cosa si recupera, "Ad privacy choices" era gergo legale; scartato "Manage ad consent", troppo lungo per mezza card) (solo UE/UK; fuori, Restore prende tutta la
-  larghezza). Prima erano due `TextButton` liberi sul fondo, uno a sinistra e uno a destra, che "sembravano
-  messi a caso" (2026-10-08, variante A dopo mockup; scartate B card a righe con icona e freccia, C due
-  pulsanti a contorno). Solo la parte alta della card avvia l'acquisto; l'esito di un
-  ripristino o acquisto è una riga di testo sotto la card. Verificato sul telefono (tema scuro, UE). Con il Pro attivo la card diventa "Euro
+- **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo due giri di mockup, 2026-10-08): sotto il backup,
+  "Go Pro" / "Remove all ads", a destra un **pulsante pieno verdigris a pillola col prezzo di Play, nella
+  valuta dell'utente** ("Remove ads" se il prodotto non si carica): è l'unico invito a pagare e SOLO lui avvia
+  l'acquisto (prima la riga intera, con una freccia `>` che prometteva una navigazione e non un pagamento).
+  Sotto un filetto e una riga discreta: "Restore Pro" a sinistra e "Ad privacy" a destra (solo UE/UK; fuori,
+  resta Restore da solo), testo verdigris allineato ai 14 dp dell'icona. Testi accorciati: "Restore purchase"
+  non diceva cosa si recupera, "Ad privacy choices" era gergo legale; scartato "Manage ad consent", troppo
+  lungo. Prima erano due `TextButton` liberi sul fondo che "sembravano messi a caso": provato prima un piede a
+  due metà con filetto verticale (scartato: troppo peso per azioni rare). Scartate: B pulsante a tutta
+  larghezza o a misura di testo sotto il titolo (centrato, allineato al testo, a destra: "non mi piace
+  nessuna"), C azioni nella riga sotto il testo, card a righe con icona e freccia, due pulsanti a contorno.
+  L'esito di un ripristino o acquisto è una riga di testo sotto la card. Non verificato a schermo sul
+  telefono (schermo bloccato durante la sessione). Con il Pro attivo la card diventa "Euro
   Coins Pro" / "No ads. Thank you!", bordo 2 dp e cerchio verdigris, spunta a destra, e sparisce la riga
   dei pulsanti. L'icona è sempre `WorkspacePremium` (non una corona). Regola del proprietario per questi
   testi: corti, una riga, niente a capo.

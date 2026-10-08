@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,8 +39,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.VerticalDivider
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.unit.sp
@@ -334,9 +331,10 @@ private fun ProSection(monetization: Monetization) {
 
 /**
  * Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e
- * cerchio verdigris, come ogni "posseduto". Senza Pro, un piede con "Restore Pro" e (solo UE/UK)
- * "Ad privacy", due metà uguali separate da un filetto: dentro la card, non scritte libere sul fondo.
- * Solo la parte alta avvia l'acquisto.
+ * cerchio verdigris, come ogni "posseduto". Senza Pro, a destra un pulsante pieno col prezzo di Play (l'unico
+ * invito a pagare: la freccia prometteva una navigazione) e sotto un filetto e una riga discreta con
+ * "Restore Pro" e (solo UE/UK) "Ad privacy": dentro la card, non scritte libere sul fondo.
+ * Solo il pulsante avvia l'acquisto.
  */
 @Composable
 private fun ProCard(
@@ -363,7 +361,6 @@ private fun ProCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(enabled = !isPro && !busy, onClick = onClick)
                 .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -387,7 +384,6 @@ private fun ProCard(
                 Text(
                     when {
                         isPro -> "No ads. Thank you!"
-                        price != null -> "Remove all ads · $price"
                         else -> "Remove all ads"
                     },
                     style = MaterialTheme.typography.bodyMedium,
@@ -398,32 +394,37 @@ private fun ProCard(
             if (isPro) {
                 Icon(Icons.Filled.Check, contentDescription = "Active", tint = primary)
             } else {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(primary)
+                        .clickable(enabled = !busy, onClick = onClick)
+                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                ) {
+                    Text(
+                        price ?: "Remove ads",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                }
             }
         }
         if (!isPro) {
             HorizontalDivider(color = hairline)
-            Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                ProFooterAction("Restore Pro", enabled = !busy, onClick = onRestore, modifier = Modifier.weight(1f))
+            // 2 dp + i 12 dp interni del TextButton = i 14 dp di margine del corpo della card: i testi sono allineati all'icona.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onRestore, enabled = !busy) { Text("Restore Pro", maxLines = 1, softWrap = false) }
                 if (privacyRequired) {
-                    VerticalDivider(color = hairline)
-                    ProFooterAction("Ad privacy", enabled = true, onClick = onPrivacy, modifier = Modifier.weight(1f))
+                    TextButton(onClick = onPrivacy) { Text("Ad privacy", maxLines = 1, softWrap = false) }
                 }
             }
         }
-    }
-}
-
-/** Metà del piede della card Pro: testo verdigris centrato, tocco su tutta la metà (nessun angolo arrotondato: la card ritaglia già). */
-@Composable
-private fun ProFooterAction(label: String, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = RectangleShape,
-        modifier = modifier.height(48.dp),
-    ) {
-        Text(label, maxLines = 1, softWrap = false)
     }
 }
 
