@@ -1235,15 +1235,30 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   `getCurrentOrientationAnchoredAdaptiveBannerAdSize` è deprecata in favore di
   `getLargeAnchoredAdaptiveBannerAdSize` (più alta, ~40 dp in più alla Home): se sparisse dall'SDK, passare
   a quella e rivedere l'altezza delle schede.
-- **Annuncio a tutto schermo** (`InterstitialAds`): ogni **10 monete guardate E almeno 3 minuti**
-  dall'ultimo annuncio (e dall'avvio dell'app: mai nei primi minuti), `isInterstitialDue`, costanti
-  `INTERSTITIAL_EVERY_COINS`/`INTERSTITIAL_MIN_GAP_MS`. Si conta ogni moneta guardata (si entra nel dettaglio,
-  si scorre a una pagina nuova), NON i tocchi: spuntare una casella o salvare non lo avvicina. Compare
-  SOLO uscendo dal dettaglio (un unico `OnDestinationChangedListener` in `EuroCoinsNavHost`: copre freccia e
-  gesto indietro), mai mentre si guarda o si registra, mai all'apertura. Si precarica a metà strada; se non
-  è pronto non compare (nessuna attesa). Contatore e orologio in memoria: un nuovo avvio riparte da zero.
-  Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno
-  ritoccate guardando il feedback reale, 10 monete e 3 minuti sono una partenza prudente.
+- **Annuncio a tutto schermo** (`InterstitialAds`): ogni **6 monete guardate E almeno 90 secondi**
+  dall'ultimo annuncio, `isInterstitialDue`, costanti `INTERSTITIAL_EVERY_COINS`/`INTERSTITIAL_MIN_GAP_MS`.
+  **Riscritto il 2026-10-08** (prima 10 monete e 3 minuti, solo all'uscita dal dettaglio, tutto in memoria):
+  l'utente lo vedeva "molto di rado e dopo più di 10 monete". Tre cause, tutte corrette: (1) compariva SOLO uscendo
+  dal dettaglio, ma il dettaglio a pagine serve proprio a sfogliare senza uscire, quindi chi guardava 30 monete di
+  fila lo vedeva una volta sola, all'uscita; (2) contatore e orologio ripartivano a ogni avvio dell'app e i 3
+  minuti si contavano dall'apertura: una sessione sotto i 3 minuti non lo vedeva mai (ora salvati in
+  SharedPreferences `interstitial`, `coins_since_last` e `last_shown_at` con l'orologio di sistema; alla prima
+  installazione l'orologio parte da ora; orario del telefono portato indietro = si riparte da zero,
+  `elapsedSince`); (3) se l'annuncio non era pronto saltava il turno senza ritentare il caricamento a dovere
+  (ora ritenta alla moneta successiva, non più spesso di ogni 30 s, e scarta quelli scaduti dopo 55 minuti,
+  Google li invalida a un'ora). **6 monete e non 10 perché una serie Regular Issues ne ha 8** (scelta
+  dell'utente: con 10 chi guarda una serie sola non lo vedrebbe mai; `InterstitialPolicyTest` lo fissa). Si conta
+  ogni moneta guardata (si entra nel dettaglio, si scorre a una pagina nuova), NON i tocchi: spuntare una casella
+  o salvare non lo avvicina. **Compare in due punti**: uscendo dal dettaglio (un unico
+  `OnDestinationChangedListener` in `EuroCoinsNavHost`: copre freccia e gesto indietro) e SFOGLIANDO, ma solo
+  dopo che una pagina è rimasta ferma 1,5 secondi (`showWhenSettled`: uno scorrimento successivo annulla
+  l'attesa, quindi chi scorre veloce non viene interrotto e il dito non è più sullo schermo: rischio di tocco
+  accidentale sull'annuncio, vietato dalle policy). Mai mentre si scrive o si registra, mai all'apertura, mai
+  se l'app non è in primo piano. Si precarica a metà strada; se non è pronto non compare (nessuna attesa).
+  Scelta del proprietario ("dopo un certo numero di tocchi o di monete aperte"); le soglie vanno ritoccate
+  guardando il feedback reale. Verificato sul telefono con gli ID di test: dopo 90 s e 6 monete sfogliate
+  l'annuncio compare da solo, senza uscire dal dettaglio, e contatore e orario si azzerano. Non provato con
+  gli ID veri (riempimento basso finché l'app non è pubblicata e collegata allo store in AdMob).
 - **AdMob: app e unità create il 2026-10-07** (app "Euro Coins", Android, "non ancora pubblicata"; stato "Richiede revisione" normale finché non è collegata allo store). Gli ID veri sono già in `local.properties` della cartella principale e del worktree (non versionati); sono identificativi pubblici, finiscono comunque nell'app. **Dopo la pubblicazione su Play**: in AdMob collegare l'app alla scheda dello store, così parte la revisione per gli annunci veri (di solito un paio di giorni; fino ad allora gli annunci veri sono limitati). Primo .aab con gli ID veri: `~/EuroCoins-release/euro-coins-1.0-vc1.aab` (versionCode 1, firmato con la chiave di upload, nessun ID di test dentro).
 - **ID AdMob**: `local.properties` (non versionato) `admob.appId`, `admob.bannerUnitId`,
   `admob.interstitialUnitId`. **Debug usa SEMPRE gli ID di test pubblici di Google** (mai impressioni
@@ -1643,7 +1658,7 @@ lingua da servire.
 
 Unit test JVM in `app/src/test` (`./gradlew.bat --offline :app:testDebugUnitTest`).
 `ProStateTest` (proprietà del Pro, una verifica fallita non lo toglie, pagamento in sospeso) e
-`InterstitialPolicyTest` (10 monete E 3 minuti, né una né l'altra da sole) coprono la logica pura di Pro e
+`InterstitialPolicyTest` (6 monete E 90 secondi, né una né l'altra da sole, più l'orologio portato indietro) coprono la logica pura di Pro e
 annuncio a tutto schermo; il billing e gli annunci veri non sono testabili in JVM. Oggi 176 test, nessuno saltato.
 `UnsharpMaskTest` copre `unsharpMask()` (immagine uniforme invariata, intensità 0 = identità, bordo
 netto accentuato dai due lati e invariato lontano, valori nel campo 0-255, alfa intatta); il

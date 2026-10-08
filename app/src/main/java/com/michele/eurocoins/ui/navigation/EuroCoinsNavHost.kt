@@ -225,6 +225,7 @@ fun EuroCoinsNavHost(
                 onPageShown = { id ->
                     pagerSession.onPageShown(id)
                     monetization.interstitial.onCoinViewed()
+                    monetization.interstitial.showWhenSettled(activity)
                 },
                 onBack = { navController.popBackStack() },
             )
@@ -332,6 +333,7 @@ fun EuroCoinsNavHost(
                 onPageShown = { page ->
                     regularPagerSession.onPageShown(page)
                     monetization.interstitial.onCoinViewed()
+                    monetization.interstitial.showWhenSettled(activity)
                 },
                 onBack = { navController.popBackStack() },
             )
