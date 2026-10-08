@@ -1408,6 +1408,22 @@ quella di upload né con quella di debug:
    "non sensibile": di solito non richiede la verifica di Google, ma va controllato in console.
 4. Provare il login e il backup da una build installata da Play (test interno), non da quella locale.
 
+**Stato della checklist (2026-10-08): passi 1-3 FATTI, il 4 NO.** Progetto Google Cloud **"Euro App"** (Google Auth Platform):
+- **Passo 1-2**: SHA-1 del certificato di FIRMA di Play `83:55:2F:28:6B:D1:26:06:F8:E0:68:97:BD:51:19:5C:75:EF:F0:4A` (la si trova in Play Console
+  → Protetto con Play → "Proteggi la chiave di firma dell'app" → "Gestisci la firma dell'app di Google Play"; la voce "Integrità dell'app" è stata spostata
+  lì e non contiene più la firma). Registrata in un **secondo client OAuth Android** (un client Android ammette UN solo SHA-1, quindi non si modifica
+  quello esistente): pacchetto `com.michele.eurocoins`. Il client Android originale (SHA-1 di debug) e quello "Applicazione web" (`google.webClientId`)
+  NON vanno toccati. La SHA-1 della chiave di CARICAMENTO è `0C:61:5E:9F:C2:77:70:4D:C6:BB:1D:97:E1:7B:50:17:1F:45:05:04` e non serve. Un client nuovo può
+  impiegare **alcune ore** per attivarsi.
+- **Passo 3**: schermata di consenso **In produzione** (era "Test": solo utenti di prova elencati e accesso che scade dopo 7 giorni). Per poter premere
+  "Pubblica app" non bastavano nome app e email: **Google ha richiesto anche "Home page" e "Link alle norme sulla privacy"** (senza asterisco ma
+  necessari, finché mancavano il pulsante restava grigio con il messaggio "completa la configurazione nella pagina Branding") e il dominio
+  `mmorelli1656.github.io` tra i **Domini autorizzati**. Entrambi i link puntano a `https://mmorelli1656.github.io/euro-coins-app/privacy/` (la radice del
+  sito dà 404: non esiste una vera home page). Nome mostrato "Euro Coins", email di assistenza e di contatto `jacko1656@gmail.com`; nessun logo (un logo
+  avvierebbe la verifica del marchio) e nessun termine di servizio. Il permesso `drive.appdata` è non sensibile: nessuna verifica di Google richiesta.
+- **Passo 4 (da fare)**: provare login e backup da un'app installata da Play, dopo qualche ora dall'attivazione del client. Non verificato finora.
+- Nota: `keytool` su questa macchina (lingua italiana) fallisce con `MissingFormatArgumentException`: aggiungere `-J-Duser.language=en`.
+
 ### Stato della pubblicazione (aggiornato il 2026-10-07)
 
 **Fatto**
