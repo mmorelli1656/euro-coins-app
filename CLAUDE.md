@@ -1225,7 +1225,12 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
 - **Banner** (`ui/components/AdBanner.kt`): adattivo ancorato, SOLO nella Home, nel `bottomBar` dello
   Scaffold (le due schede si dividono lo spazio che resta: con il banner entrano ancora per intero sul
   telefono dell'utente). Spazio riservato mentre carica (le schede non saltano quando arriva), altezza 0
-  se non c'è nessun annuncio, nuovo tentativo dopo 60 s. Scartato negli elenchi e nei dettagli: dove si
+  se non c'è nessun annuncio, nuovo tentativo dopo 15 s, poi 30, poi 60 (`bannerRetryDelayMs`). **La vista vive FUORI dalla
+  composizione** (`BannerAd` in `data/pro/`, tenuta da `Monetization`, con un `MutableContextWrapper` che punta
+  all'Activity solo mentre la Home è agganciata): prima la `AdView` nasceva a ogni ingresso nella Home e ogni
+  ritorno rifaceva la richiesta, quindi "ogni tanto solo lo spazio" per qualche secondo (misurato nei log
+  dell'SDK: 3 ritorni = 3 richieste; ora 0). Una nuova richiesta parte solo se l'annuncio ha più di 2 minuti o
+  l'ultimo tentativo è fallito. Scartato negli elenchi e nei dettagli: dove si
   consulta e si registra, e collide con la barra flottante di ricerca/filtri.
   `getCurrentOrientationAnchoredAdaptiveBannerAdSize` è deprecata in favore di
   `getLargeAnchoredAdaptiveBannerAdSize` (più alta, ~40 dp in più alla Home): se sparisse dall'SDK, passare

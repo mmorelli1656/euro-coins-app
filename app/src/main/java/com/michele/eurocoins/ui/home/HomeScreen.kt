@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.R
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.ui.regular.RegularIssueImageTrim
+import com.michele.eurocoins.data.pro.BannerAd
 import com.michele.eurocoins.ui.components.AdBanner
 import com.michele.eurocoins.ui.components.CollectionProgressBar
 import com.michele.eurocoins.ui.components.ProgressAnimation
@@ -86,6 +87,7 @@ fun HomeScreen(
     onRegularIssuesClick: () -> Unit,
     onSettingsClick: () -> Unit,
     showAds: Boolean,
+    banner: BannerAd,
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -157,7 +159,7 @@ fun HomeScreen(
             )
         },
         // Il banner sta nel bottomBar dello Scaffold: le schede dividono lo spazio che resta (vedi sotto).
-        bottomBar = { if (showAds) AdBanner() },
+        bottomBar = { if (showAds) AdBanner(banner) },
     ) { padding ->
         // Altezza delle schede: si dividono lo spazio disponibile ma mai oltre CardMaxHeight (sugli
         // schermi alti l'avanzo resta libero in fondo) e mai sotto il proprio

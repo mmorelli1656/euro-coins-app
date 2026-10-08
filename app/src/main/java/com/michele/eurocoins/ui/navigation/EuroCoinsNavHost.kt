@@ -138,6 +138,7 @@ fun EuroCoinsNavHost(
                 onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                 showAds = adsEnabled,
+                banner = monetization.banner,
             )
         }
         composable(ROUTE_SETTINGS) {
