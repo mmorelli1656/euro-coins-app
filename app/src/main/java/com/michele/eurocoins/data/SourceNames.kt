@@ -13,6 +13,9 @@ fun displaySourceName(fonte: String): String = when (fonte.lowercase(Locale.ENGL
     "ec_national_sides" -> "European Commission"
     "vaticanstate_cfn" -> "Vatican City State (CFN)"
     "monaco_tribune" -> "Monaco Tribune"
+    // Commemorative 2026 che la BCE non ha ancora pubblicato: banca centrale/zecca/ministero del paese.
+    "emittente_nazionale" -> "National issuer"
+    "eurlex_notice" -> "EU Official Journal"
     else -> fonte.uppercase(Locale.ENGLISH)
 }
 

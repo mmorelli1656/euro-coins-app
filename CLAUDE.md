@@ -1496,7 +1496,20 @@ lingua da servire.
 
 ## Cose da sapere sul dataset (non ovvie dal codice)
 
-- **584 monete**, non 499: include le 85 delle 5 emissioni congiunte
+- **613 monete dal 2026-10-08** (584 + 29 del 2026). **Come sono entrate**: la BCE non ha ancora la pagina
+  2026, quindi la pipeline le ha prese dagli emittenti nazionali (`fonte_dati = "emittente_nazionale"`,
+  mostrato come "National issuer" nei crediti; `eurlex_notice` = "EU Official Journal" quando usciranno gli
+  avvisi UE). **Senza foto** (`url_immagine_fonte` nullo: segnaposto `€`), **senza dati Numista** (tirature per
+  finitura, zecca, incisore: "—"), e 7 con `tiratura` nulla (Francia Petit Prince, Malta x2, Lussemburgo x2,
+  Vaticano x2). Mancano ancora Lituania, Grecia, Belgio, Andorra, Monaco, Lettonia (elenco in
+  `NOTES.md` della pipeline). **`coins_with_mintages.jsonl` NON include ancora le 2026** (il passo Numista
+  richiede Python e la chiave API, non disponibili qui): l'export di `coins.json` è stato fatto unendo a mano
+  i 584 record di `coins_with_mintages.jsonl` con i 29 record 2026 di `ecb_coins.jsonl` (PowerShell,
+  `@($m) + @($new)`). **Non usare `ecb_coins.jsonl` da solo**: `scrape_ecb.py` lo riscrive da zero e perde tutti
+  i campi Numista. Quando la pipeline rigenera `coins_with_mintages.jsonl` con le 2026 (e le loro foto), si
+  riesporta col comando di § Come i dati arrivano nell'app. Le chiavi di collezione dei record vecchi non
+  cambiano.
+- **584 monete (fino al 2025)**, non 499: include le 85 delle 5 emissioni congiunte
   dell'Eurozona (`Coin.emissioneComune = true` — 2007 Trattato di Roma, 2009
   EMU, 2012 dieci anni di euro, 2015 bandiera UE, 2022 Erasmus), aggiunte
   dalla pipeline via Wikipedia/EUR-Lex-Cellar/BCE dopo che l'app le ha

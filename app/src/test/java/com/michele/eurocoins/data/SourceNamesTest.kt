@@ -14,6 +14,8 @@ class SourceNamesTest {
         assertEquals("ECB", displaySourceName("ecb"))
         assertEquals("European Commission", displaySourceName("ec_national_sides"))
         assertEquals("BCL", displaySourceName("bcl"))
+        assertEquals("National issuer", displaySourceName("emittente_nazionale"))
+        assertEquals("EU Official Journal", displaySourceName("eurlex_notice"))
     }
 
     @Test
