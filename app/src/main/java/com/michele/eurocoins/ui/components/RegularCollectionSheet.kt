@@ -75,7 +75,24 @@ import com.michele.eurocoins.data.varietyFor
 import java.time.Year
 
 /** Una casella della bozza: un anno (con varietà) in una finitura. Chiave delle mappe di spunte e prezzi. */
-private data class DraftKey(val year: Int, val variety: String, val quality: CoinQuality)
+internal data class DraftKey(val year: Int, val variety: String, val quality: CoinQuality)
+
+/**
+ * La "scelta rapida": alla prima apertura di un taglio non posseduto, Standard è già spuntata sull'anno di partenza
+ * ([quickPick]). Finché l'utente non ha toccato niente (nessuna spunta, prezzo o data), quella spunta è solo un
+ * suggerimento: cambiando anno SI SPOSTA sul nuovo anno invece di restare, di nascosto, sull'anno lasciato (che
+ * "Save" avrebbe scritto) lasciando vuoto quello nuovo. Tocca [checked] e restituisce la nuova scelta rapida, che
+ * è `null` dopo che l'utente ha toccato una finitura: da lì in poi le spunte sono sue e nessun anno si
+ * preseleziona più (anche per registrare più annate dello stesso taglio senza che il pannello decida per lui).
+ */
+internal fun moveQuickPick(checked: MutableMap<DraftKey, Boolean>, quickPick: DraftKey?, to: YearOption): DraftKey? {
+    if (quickPick == null) return null
+    val moved = DraftKey(to.year, to.variety, CoinQuality.STANDARD)
+    if (moved == quickPick) return quickPick
+    checked.remove(quickPick)
+    checked[moved] = true
+    return moved
+}
 
 /**
  * Pannello per registrare una moneta circolante posseduta. **Stesso pannello delle commemorative**
@@ -115,12 +132,16 @@ fun RegularCollectionSheet(
     val options = remember(stateKey) { regularYearOptions(series, denomination, owned, currentYear) }
     val initial = remember(stateKey) { initialYear?.takeIf { it in options } ?: defaultYearOption(options, owned) }
     var selected by remember(stateKey) { mutableStateOf(initial) }
+    // Scelta rapida ancora intatta (vedi moveQuickPick): solo alla prima apertura di un taglio non posseduto.
+    var quickPick by remember(stateKey) {
+        mutableStateOf<DraftKey?>(if (currentItems.isEmpty()) DraftKey(initial.year, initial.variety, CoinQuality.STANDARD) else null)
+    }
 
     val checked = remember(stateKey) {
         mutableStateMapOf<DraftKey, Boolean>().apply {
             currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = true }
             // prima apertura: Standard già spuntata sull'anno di default, come nelle commemorative
-            if (currentItems.isEmpty()) this[DraftKey(initial.year, initial.variety, CoinQuality.STANDARD)] = true
+            quickPick?.let { this[it] = true }
         }
     }
     val prices = remember(stateKey) {
@@ -172,7 +193,10 @@ fun RegularCollectionSheet(
                 selected = selected,
                 withData = withData,
                 varietyDetail = { series.varietyFor(denomination.taglio, it.year)?.detail },
-                onSelect = { selected = it },
+                onSelect = {
+                    quickPick = moveQuickPick(checked, quickPick, it)
+                    selected = it
+                },
             )
 
             Spacer(Modifier.height(8.dp))
@@ -183,10 +207,11 @@ fun RegularCollectionSheet(
                         quality = quality,
                         checked = checked[key] == true,
                         price = prices[key].orEmpty(),
-                        onCheckedChange = { checked[key] = it },
-                        onPriceChange = { prices[key] = it },
+                        // Toccare una finitura rende le spunte dell'utente: la scelta rapida non si sposta più.
+                        onCheckedChange = { checked[key] = it; quickPick = null },
+                        onPriceChange = { prices[key] = it; quickPick = null },
                         date = dates[key],
-                        onDateChange = { dates[key] = it },
+                        onDateChange = { dates[key] = it; quickPick = null },
                     )
                 }
             }
