@@ -1,10 +1,10 @@
 package com.michele.eurocoins.ui.detail
 
 import android.provider.Settings
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
+import kotlin.math.PI
+import kotlin.math.pow
+import kotlin.math.sin
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
@@ -66,13 +67,15 @@ internal fun StackedPager(
 /** Attesa a pagina ferma prima del rimbalzo: si lascia il tempo di guardare la card, e alla foto di caricarsi. */
 private const val SWIPE_HINT_DELAY_MS = 700L
 
+/** Durata dell'intero movimento (andata e ritorno): abbastanza lungo da leggersi come un gesto, non come uno scatto. */
+private const val SWIPE_HINT_DURATION_MS = 1100f
+
 /** Quanto si sposta la card nel rimbalzo (dp): scopre la pagina sotto senza avvicinarsi a metà pagina (che la cambierebbe). */
 private const val SWIPE_HINT_DISTANCE_DP = 56f
 
 /**
- * Suggerisce che la card si scorre: una volta ferma, si sposta di poco e torna indietro con un secondo piccolo
- * rimbalzo, e l'effetto "mazzo" ([stackedPage]) fa il resto (inclina, scopre la pagina vicina). Muove il pager
- * con `animateScrollBy`, quindi non cambia pagina (la pagina "assestata" resta la stessa: non conta come
+ * Suggerisce che la card si scorre: una volta ferma, si sposta di poco e torna indietro in un solo movimento fluido, e l'effetto "mazzo" ([stackedPage]) fa il resto (inclina, scopre la pagina vicina). Muove il pager
+ * con `scroll {}` a ogni fotogramma, quindi non cambia pagina (la pagina "assestata" resta la stessa: non conta come
  * moneta guardata e non avvicina l'annuncio). Se l'utente tocca o trascina l'animazione si interrompe da sola
  * (il suo gesto ha la precedenza). Solo con più pagine, finché non ha mai scorso e al massimo 3 volte
  * ([SwipeHint]); non parte con le animazioni di sistema disattivate. Un vero scorrimento lo registra come "capito".
@@ -95,13 +98,21 @@ private fun SwipeHintEffect(state: PagerState) {
         // Verso la pagina che c'è: sull'ultima, indietro.
         val direction = if (start < state.pageCount - 1) 1f else -1f
         val distance = direction * with(Density(context)) { SWIPE_HINT_DISTANCE_DP.dp.toPx() }
-        // Solo spostamenti nella direzione scelta: un rimbalzo "oltre" lo zero farebbe entrare la pagina dall'altro lato.
-        state.animateScrollBy(distance, tween(340, easing = FastOutSlowInEasing))
-        delay(220)
-        state.animateScrollBy(-distance, tween(380, easing = FastOutSlowInEasing))
-        delay(80)
-        state.animateScrollBy(distance * 0.35f, tween(200, easing = FastOutSlowInEasing))
-        state.animateScrollBy(-distance * 0.35f, tween(260, easing = FastOutSlowInEasing))
+        // UN solo movimento continuo, calcolato a ogni fotogramma (prima erano quattro `animateScrollBy` separati, ognuno
+        // con partenza e arrivo da fermo e una pausa in mezzo: "macchinoso e poco smooth"). `scroll {}` ha la priorità
+        // normale: il dito dell'utente la interrompe. Solo nella direzione scelta, mai oltre lo zero (farebbe entrare la
+        // pagina dall'altro lato).
+        state.scroll {
+            val start0 = withFrameNanos { it }
+            var last = 0f
+            while (true) {
+                val t = ((withFrameNanos { it } - start0) / 1_000_000f / SWIPE_HINT_DURATION_MS).coerceIn(0f, 1f)
+                val x = distance * swipeHintBump(t)
+                scrollBy(x - last)
+                last = x
+                if (t >= 1f) break
+            }
+        }
     }
 }
 
@@ -188,3 +199,10 @@ internal fun PagePositionPill(text: String) {
         )
     }
 }
+
+/**
+ * Curva del suggerimento di scorrimento: 0 a t = 0, 1 a t = 0,5, 0 a t = 1, con velocità nulla alle due estremità
+ * (nessuno scatto alla partenza né all'arrivo) e cima un po' piatta (la pagina sotto ha il tempo di leggersi).
+ * `sin(πt)^1,6`: simmetrica, continua, senza pause né ripartenze in mezzo. Logica pura, testata.
+ */
+internal fun swipeHintBump(t: Float): Float = sin(PI * t.coerceIn(0f, 1f)).toFloat().coerceAtLeast(0f).pow(1.6f)
