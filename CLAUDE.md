@@ -1217,7 +1217,7 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
   pagamento in sospeso.
 - **`AdsConsent`** (UMP): il messaggio di consenso e i testi si configurano nella console AdMob
   (Privacy e messaggi → GDPR; senza non compare nessun modulo). `MobileAds.initialize` parte SOLO
-  dopo `canRequestAds` (l'SDK raccoglie dati da quando parte). "Ad privacy choices" nelle Impostazioni
+  dopo `canRequestAds` (l'SDK raccoglie dati da quando parte). "Ad privacy" nelle Impostazioni
   compare solo dove UMP lo richiede (UE/Regno Unito). **Un utente Pro non passa dal consenso.** Provato
   sul telefono (in Italia) con il messaggio di test di Google: il modulo compare, rifiutando non
   compare nessun annuncio, con il consenso arrivano gli annunci. Così deve essere: chi rifiuta non vede
@@ -1250,7 +1250,7 @@ pubblicazione). Codice in `data/pro/`, solo librerie Google (Billing 9.1, Mobile
 - **Card nelle Impostazioni** (`ProSection`/`ProCard`, dopo un mockup): sotto il backup, "Go Pro" /
   "Remove all ads · {prezzo di Play, nella valuta dell'utente}" (senza prezzo se il prodotto non si carica),
   un PIEDE della card (filetto, poi due metà uguali separate da un filetto verticale, testo verdigris):
-  "Restore purchase" a sinistra e "Ad privacy choices" a destra (solo UE/UK; fuori, Restore prende tutta la
+  "Restore Pro" a sinistra e "Ad privacy" a destra (testi accorciati il 2026-10-08: "Restore purchase" non diceva cosa si recupera, "Ad privacy choices" era gergo legale; scartato "Manage ad consent", troppo lungo per mezza card) (solo UE/UK; fuori, Restore prende tutta la
   larghezza). Prima erano due `TextButton` liberi sul fondo, uno a sinistra e uno a destra, che "sembravano
   messi a caso" (2026-10-08, variante A dopo mockup; scartate B card a righe con icona e freccia, C due
   pulsanti a contorno). Solo la parte alta della card avvia l'acquisto; l'esito di un

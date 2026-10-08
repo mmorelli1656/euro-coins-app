@@ -334,8 +334,8 @@ private fun ProSection(monetization: Monetization) {
 
 /**
  * Card Pro: neutra come le altre, l'accento è solo la corona nel viola dei campi dell'app; con il Pro attivo bordo e
- * cerchio verdigris, come ogni "posseduto". Senza Pro, un piede con "Restore purchase" e (solo UE/UK)
- * "Ad privacy choices", due metà uguali separate da un filetto: dentro la card, non scritte libere sul fondo.
+ * cerchio verdigris, come ogni "posseduto". Senza Pro, un piede con "Restore Pro" e (solo UE/UK)
+ * "Ad privacy", due metà uguali separate da un filetto: dentro la card, non scritte libere sul fondo.
  * Solo la parte alta avvia l'acquisto.
  */
 @Composable
@@ -404,10 +404,10 @@ private fun ProCard(
         if (!isPro) {
             HorizontalDivider(color = hairline)
             Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-                ProFooterAction("Restore purchase", enabled = !busy, onClick = onRestore, modifier = Modifier.weight(1f))
+                ProFooterAction("Restore Pro", enabled = !busy, onClick = onRestore, modifier = Modifier.weight(1f))
                 if (privacyRequired) {
                     VerticalDivider(color = hairline)
-                    ProFooterAction("Ad privacy choices", enabled = true, onClick = onPrivacy, modifier = Modifier.weight(1f))
+                    ProFooterAction("Ad privacy", enabled = true, onClick = onPrivacy, modifier = Modifier.weight(1f))
                 }
             }
         }
