@@ -1150,6 +1150,14 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
     datate prima dell'ingresso in circolazione), il default no. Standard già spuntata alla prima
     apertura, come nelle commemorative: aprire e premere Save sono due tocchi. Con qualcosa già in
     collezione il pannello si apre sulla prima voce posseduta.
+    **La scelta rapida segue l'anno** (2026-10-08, `moveQuickPick`, `RegularQuickPickTest`): prima, cambiando anno, la
+    Standard dell'anno di partenza restava spuntata di nascosto (e "Save" la scriveva) mentre quella del nuovo anno era
+    vuota da spuntare a mano. Ora, finché l'utente non ha toccato nessuna finitura (spunta, prezzo o data), la spunta
+    rapida SI SPOSTA sul nuovo anno (e sulla varietà, "2002 EFS" compreso) invece di restare sull'anno lasciato; dopo il
+    primo tocco a mano (`quickPick = null`) le spunte sono dell'utente e nessun anno si preseleziona più, per poter
+    registrare più annate dello stesso taglio senza che il pannello decida per lui. Solo alla prima apertura di un
+    taglio non posseduto: con voci già salvate non c'è scelta rapida. Verificato sul telefono (Croazia 2 euro: 2023 →
+    2025 sposta la spunta; BU toccata a mano nel 2025, poi 2026 senza preselezione).
   - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
     cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
     cambia nulla.
