@@ -322,6 +322,17 @@ nella card COLLECTION), così c'è un solo modo di registrare.
     lasciava un sottorettangolo visibile. Effetto collaterale: per TalkBack la
     card è un unico elemento e il campo non è separato.
 
+- **Tasto "Remove" nei pannelli della collezione** (2026-10-08, mockup approvato, `RemoveFromCollection.kt`, `RemoveMessageTest`): in
+  basso a SINISTRA, in testo rosso senza riquadro (il rosso è del distruttivo, come "Reset collection"; lontano da Cancel e Save),
+  **solo se la moneta ha già qualcosa di salvato** (alla prima apertura non c'è nulla da togliere). Toglie TUTTO ciò che il pannello
+  vede per quella moneta, dopo una conferma che dice cosa si perde: nelle commemorative le finiture ("This removes Standard and BU
+  for …"), nelle Regular le annate con il conto ("This removes all 3 years of 2 euro for Croatia · Series 1: 2023, 2024 and 2025.",
+  una sola annata nominata, oltre 6 abbreviata con "…", la varietà come "2002 EFS"). **Nelle Regular vale per il taglio della serie
+  GUARDATA**, cioè le annate nella sua finestra: quelle di un'altra serie (stessa moneta, altra riga) restano, come già fa il
+  salvataggio. Non serve nessuna funzione nuova nel database: è il salvataggio con zero spunte, che già sostituiva tutto (prima era
+  l'unico modo, ma poco scopribile e con una spunta per ogni annata nelle Regular). Verificato sul telefono con Croazia 2 euro (2023 e
+  2025) e una commemorativa del 2026: Cancel nella conferma non cambia niente, Remove riporta la riga a "Not owned", i contatori
+  della Home tornano a quelli di prima.
 - **Tabella separata `collection_items`** (`CollectionItem`), chiave
   primaria (`coinKey`, `quality`): sono dati dell'utente, non del catalogo, e
   non vengono mai toccati dal ripopolamento di `coins`.

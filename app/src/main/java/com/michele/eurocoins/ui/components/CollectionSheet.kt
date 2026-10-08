@@ -126,12 +126,21 @@ fun CollectionSheet(
             CoinQuality.entries.forEach { quality -> this[quality] = currentItems.firstOrNull { it.quality == quality }?.purchasedOn }
         }
     }
+    var confirmRemove by remember(coin.stableKey) { mutableStateOf(false) }
     val prices = remember(coin.stableKey) {
         mutableStateMapOf<CoinQuality, String>().apply {
             CoinQuality.entries.forEach { quality ->
                 this[quality] = formatPrice(currentItems.firstOrNull { it.quality == quality }?.priceCents)
             }
         }
+    }
+
+    if (confirmRemove) {
+        RemoveConfirmDialog(
+            message = commemorativeRemovalMessage(coin.displayTema(), currentItems.map { it.quality }),
+            onConfirm = { confirmRemove = false; onSave(emptyMap()) },
+            onDismiss = { confirmRemove = false },
+        )
     }
 
     ModalBottomSheet(
@@ -183,6 +192,11 @@ fun CollectionSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // Solo se la moneta ha già qualcosa di salvato: alla prima apertura non c'è niente da togliere.
+                if (currentItems.isNotEmpty()) {
+                    RemoveButton(onClick = { confirmRemove = true })
+                    Spacer(Modifier.weight(1f))
+                }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
                 Button(
                     onClick = {

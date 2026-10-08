@@ -127,6 +127,7 @@ fun RegularCollectionSheet(
     initialYear: YearOption? = null,
 ) {
     val stateKey = "${series.stableKey}|${denomination.taglio}"
+    var confirmRemove by remember(stateKey) { mutableStateOf(false) }
     val currentYear = remember { Year.now().value }
     val owned = remember(stateKey) { currentItems.map { YearOption(it.anno, it.variety) }.distinct() }
     val options = remember(stateKey) { regularYearOptions(series, denomination, owned, currentYear) }
@@ -157,6 +158,18 @@ fun RegularCollectionSheet(
         }
     }
     val withData: Set<YearOption> = checked.filterValues { it }.keys.map { YearOption(it.year, it.variety) }.toSet()
+
+    if (confirmRemove) {
+        RemoveConfirmDialog(
+            message = regularRemovalMessage(
+                denomination = denomination.taglio,
+                where = "$countryName · ${seriesTitle(seriesNumber)}",
+                years = owned,
+            ),
+            onConfirm = { confirmRemove = false; onSave(emptyList()) },
+            onDismiss = { confirmRemove = false },
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -221,6 +234,11 @@ fun RegularCollectionSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // Solo se il taglio ha già qualcosa di salvato (nella finestra di questa serie): vedi RemoveFromCollection.kt.
+                if (currentItems.isNotEmpty()) {
+                    RemoveButton(onClick = { confirmRemove = true })
+                    Spacer(Modifier.weight(1f))
+                }
                 TextButton(onClick = onDismiss) { Text("Cancel") }
                 Button(
                     onClick = {
