@@ -64,6 +64,7 @@ import com.michele.eurocoins.data.displayCountry
 import com.michele.eurocoins.data.displayTema
 import com.michele.eurocoins.data.stableKey
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
+import com.michele.eurocoins.ui.components.InfoNote
 import com.michele.eurocoins.ui.components.CollectionSheet
 import com.michele.eurocoins.ui.components.ListThumbnailSize
 import com.michele.eurocoins.ui.components.PrefetchThumbnails
@@ -116,6 +117,7 @@ fun CoinListScreen(
                 viewModel = viewModel,
                 onCoinClick = onCoinClick,
                 hazeState = hazeState,
+                headerNote = if (filter is CoinFilter.Year && !filter.commonOnly && filter.year == IN_PROGRESS_YEAR) IN_PROGRESS_NOTE else null,
             )
             CoinListSearchBar(
                 viewModel = viewModel,
@@ -143,6 +145,7 @@ fun CoinListContent(
     onCoinClick: (Long) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
+    headerNote: String? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
     var editing by remember { mutableStateOf<Coin?>(null) }
@@ -202,12 +205,15 @@ fun CoinListContent(
         contentPadding = PaddingValues(bottom = floatingBarClearance()),
     ) {
         item {
-            Text(
-                text = "${state.coins.size} ${if (state.coins.size == 1) "coin" else "coins"}" + if (filtering) " found" else "",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            Column {
+                Text(
+                    text = "${state.coins.size} ${if (state.coins.size == 1) "coin" else "coins"}" + if (filtering) " found" else "",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                headerNote?.let { InfoNote(it, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)) }
+            }
         }
         items(state.coins, key = { it.id }) { coin ->
             CoinRow(
@@ -220,6 +226,14 @@ fun CoinListContent(
         }
     }
 }
+
+/**
+ * L'anno ancora in corso di catalogazione: alcune monete (Lituania, Grecia, Belgio, Andorra, Monaco, Lettonia) non sono
+ * ancora uscite e quelle presenti non hanno ancora foto, tirature e descrizioni complete. Quando l'anno sarà completo
+ * si toglie la nota (basta cancellare queste due costanti e il parametro `headerNote`).
+ */
+private const val IN_PROGRESS_YEAR = 2026
+private const val IN_PROGRESS_NOTE = "More coins and details are on the way."
 
 /** Lato della miniatura nell'elenco; il precaricamento (`PrefetchThumbnails`) usa la stessa misura. */
 private val ThumbnailSize = ListThumbnailSize

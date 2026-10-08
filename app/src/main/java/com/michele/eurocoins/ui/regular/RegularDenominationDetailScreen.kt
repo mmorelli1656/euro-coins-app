@@ -88,6 +88,7 @@ import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.MintLevel
 import com.michele.eurocoins.data.RegularCollectionItem
 import com.michele.eurocoins.data.anyPurchaseDate
+import com.michele.eurocoins.ui.components.InfoNote
 import com.michele.eurocoins.ui.components.PurchaseDateLine
 import com.michele.eurocoins.data.RegularIssueImage
 import com.michele.eurocoins.data.RegularIssueSeries
@@ -385,6 +386,15 @@ private fun RegularMintageCard(image: RegularIssueImage, onViewByYear: () -> Uni
                     }
                 }
             }
+        }
+        // Nessuna tiratura in nessuna qualità (Bulgaria, che Numista non ha, e le serie senza dati): i tre trattini
+        // da soli sembrano un errore, la nota dice che è un dato che manca.
+        if (image.tirature.isEmpty()) {
+            InfoNote(
+                text = "Mintage data isn't available yet.",
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+            )
         }
         if (distinctYears > 1) {
             TextButton(
