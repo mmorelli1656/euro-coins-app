@@ -78,16 +78,6 @@ import java.time.Year
 internal data class DraftKey(val year: Int, val variety: String, val quality: CoinQuality)
 
 /**
- * La spunta iniziale: alla prima apertura di un taglio non posseduto, Standard è già spuntata sull'anno di partenza,
- * così aprire e premere Save bastano per chi registra proprio quell'anno. È una spunta VERA della bozza: non si
- * sposta e non sparisce cambiando anno (il chip dell'anno ha il puntino verde finché ha qualcosa spuntato), quindi per
- * aggiungere anche il 2003 basta andare sul 2003 e spuntarlo (Grecia 2002 + 2002 EFS lo stesso). Se invece si vuole
- * registrare un altro anno e non quello iniziale, la spunta iniziale si toglie a mano. Storia: spostarla da sola
- * obbligava a deselezionare e riselezionare, farla sparire al primo cambio di anno costringeva a tornare indietro.
- */
-internal fun initialDraftKey(initial: YearOption): DraftKey = DraftKey(initial.year, initial.variety, CoinQuality.STANDARD)
-
-/**
  * Pannello per registrare una moneta circolante posseduta. **Stesso pannello delle commemorative**
  * ([CollectionSheet]: tre card Standard / BU / Proof con il prezzo a destra, riuso di
  * [FinishCard]) più UN selettore dell'anno in cima: nelle commemorative l'anno è nel dataset, qui
@@ -98,9 +88,13 @@ internal fun initialDraftKey(initial: YearOption): DraftKey = DraftKey(initial.y
  *
  * - **L'anno si sceglie da una lista** ([regularYearOptions]: dal primo anno della serie fino
  *   all'ultimo o a oggi), mai scritto. Il 2002 greco ha due voci (normale ed EFS): sono due monete.
- * - **Default = il primo anno della serie** (scelta dell'utente; non prima del 2002), con Standard
- *   già spuntata alla prima apertura come nelle commemorative: aprire e premere Save sono due
- *   tocchi. Se qualcosa è già in collezione si apre sulla prima voce posseduta.
+ * - **Default = il primo anno della serie** (scelta dell'utente; non prima del 2002) come chip
+ *   selezionato, ma **senza nessuna finitura spuntata**: una spunta preselezionata (come nelle
+ *   commemorative, dove la moneta è una sola) qui è un'ipotesi sull'anno e non si distingue da una
+ *   scelta dell'utente, quindi o si sposta da sola, o sparisce, o resta e va tolta a mano per chi
+ *   vuole un altro anno (tre versioni provate il 2026-10-08/09). Registrare un anno costa tre tocchi
+ *   (apri, spunta, Save); più anni si spuntano uno per uno senza toccare niente due volte. Se
+ *   qualcosa è già in collezione si apre sulla prima voce posseduta.
  * - **Bozza per anno + Save**: cambiare anno non perde le spunte e i prezzi inseriti, "Save" scrive
  *   tutti gli anni insieme, chiudere senza salvare non cambia nulla (come [CollectionSheet]). Gli
  *   anni con almeno una finitura in bozza hanno un puntino verde sul chip ([YearStrip]).
@@ -128,9 +122,9 @@ fun RegularCollectionSheet(
     var selected by remember(stateKey) { mutableStateOf(initial) }
     val checked = remember(stateKey) {
         mutableStateMapOf<DraftKey, Boolean>().apply {
+            // Nessuna spunta preselezionata: l'anno di partenza è solo un'ipotesi (il primo della serie) e una spunta
+            // già messa lì non si distingue da una scelta dell'utente. Vedi la nota sul default qui sopra.
             currentItems.forEach { this[DraftKey(it.anno, it.variety, it.quality)] = true }
-            // prima apertura di un taglio non posseduto: Standard già spuntata sull'anno di default (vedi initialDraftKey)
-            if (currentItems.isEmpty()) this[initialDraftKey(initial)] = true
         }
     }
     val prices = remember(stateKey) {
