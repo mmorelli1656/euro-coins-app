@@ -1648,6 +1648,17 @@ lingua da servire.
 - 4 monete hanno `immaginePlaceholder = true` (BCE non ha ancora
   pubblicato l'immagine reale): l'app lo gestisce mostrando un'icona al
   posto dell'immagine, non un errore.
+- **Foto duplicate (controllo del 2026-10-09)**: hash del contenuto di tutti gli 877 URL immagine
+  (commemorative e Regular Issues). **Un solo errore vero: Monaco 2025**, dove la pagina BCE usa
+  `comm_2025/Monaco.jpg` (il Marquisat des Baux) anche per il Comté de Carladès: nel `coins.json`
+  il Carladès è stato lasciato **senza foto** (`url_immagine_fonte` nullo, `immagine_placeholder`
+  vero, licenza "Sconosciuta - da verificare", come i 4 del Vaticano) finché la BCE non pubblica la
+  sua. **Rifacendo l'export dalla pipeline va riapplicato** (`CoinImageDuplicatesTest` fallisce se
+  due monete tornano a condividere una foto); da correggere anche nella pipeline. Gli altri
+  duplicati sono legittimi: tagli diversi con lo stesso disegno nazionale (Bulgaria 2/5 cent,
+  Vaticano serie 5 1/2/5 cent, Monaco serie 1 10/20 cent, i file di gruppo BCL del Lussemburgo per i
+  centesimi: monete singole, solo quello di 1 e 2 euro ne ha due, già gestito). Nota a margine: le
+  foto BCE della Bulgaria sono da ~7000×7000 px (non 540), pesanti da scaricare.
 - **Distinto da quanto sopra**: un `urlImmagineFonte` presente ma che
   fallisce il caricamento a runtime (link scaduto, rete assente) usa la
   STESSA icona `€` (elenco e dettaglio: prima il dettaglio mostrava un
