@@ -1582,8 +1582,13 @@ lingua da servire.
   2026, quindi la pipeline le ha prese dagli emittenti nazionali (`fonte_dati = "emittente_nazionale"`,
   mostrato come "National issuer" nei crediti; `eurlex_notice` = "EU Official Journal" quando usciranno gli
   avvisi UE). **Senza foto** (`url_immagine_fonte` nullo: segnaposto `€`), **senza dati Numista** (tirature per
-  finitura, zecca, incisore: "—"), e 7 con `tiratura` nulla (Francia Petit Prince, Malta x2, Lussemburgo x2,
-  Vaticano x2). **Le note delle 2026 sono state sistemate nel dato**, non in
+  finitura, zecca, incisore: "—"), e **TUTTE con `tiratura` nulla dal 2026-10-09** (scelta del proprietario:
+  meglio "—" che un numero non vero; quello degli emittenti nazionali è un volume annunciato o un
+  contingente, es. Germania 30 milioni, e la riga Standard lo mostrava come tiratura; 22 azzerate a mano
+  nel `coins.json`, 7 lo erano già: **rifacendo l'export vanno azzerate di nuovo**, `NewCoinNotesTest`
+  fallisce se tornano). Tolti anche i segni editoriali tra parentesi quadre dalle due note di San Marino
+  ("[...]", "[from …]", stesso test). **Il testo sul "contingente autorizzato" non rimanda più a `NOTES.md`
+  della pipeline** (era una nota di sviluppo mostrata all'utente, anche sulle monete vecchie). **Le note delle 2026 sono state sistemate nel dato**, non in
   visualizzazione (scelta del proprietario: la regola "iniziale maiuscola e punto finale" vale solo per le nuove
   2026, le 584 vecchie restano com'erano): 22 note con testo; 12 erano in spagnolo/francese/italiano (7 con
   prefisso `[es]`/`[fr]`/`[it]`, 5 riassunti italiani "Sintesi…" della pipeline) e sono state **tradotte in

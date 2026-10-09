@@ -674,7 +674,7 @@ private fun MintageSection(coin: Coin) {
         Text(
             text = "For ${coin.displayCountry()}, this figure is most likely the country's " +
                 "authorized quota for the period, not the actual mintage of " +
-                "this specific coin — see NOTES.md in the data pipeline.",
+                "this specific coin.",
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Default),
             color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.padding(top = 8.dp),

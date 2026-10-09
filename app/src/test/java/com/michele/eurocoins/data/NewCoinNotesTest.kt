@@ -27,5 +27,19 @@ class NewCoinNotesTest {
         assertTrue(notes.all { it.first().isUpperCase() })
         assertTrue(notes.all { it.trimEnd('"', '”', '’', ')').last() in ".!?" })
         assertTrue(notes.none { it.startsWith("[") || it.contains("Sintesi") })
+        // Niente segni editoriali ("[...]", "[from …]") rimasti dalla traduzione dei testi.
+        assertTrue(notes.none { it.contains('[') || it.contains(']') })
+    }
+
+    /**
+     * Le 2026 non hanno ancora un dato di tiratura affidabile: quello degli emittenti nazionali è
+     * un volume annunciato o un contingente (Germania 30 milioni), che la riga Standard mostrerebbe
+     * come tiratura vera. Meglio "—" (scelta del proprietario, 2026-10-09). Rifacendo l'export dalla
+     * pipeline il numero torna: va azzerato di nuovo.
+     */
+    @Test
+    fun the2026CoinsShowNoMintage() {
+        assertTrue(coins2026.none { it.tiratura != null })
+        assertTrue(coins2026.none { it.tiraturaNumistaStandard != null || it.tiraturaNumistaBu != null || it.tiraturaNumistaProof != null })
     }
 }
