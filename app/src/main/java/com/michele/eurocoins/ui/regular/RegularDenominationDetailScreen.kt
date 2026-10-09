@@ -37,7 +37,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -115,6 +114,7 @@ import com.michele.eurocoins.ui.detail.SourceItem
 import com.michele.eurocoins.ui.detail.NotesCard
 import com.michele.eurocoins.ui.detail.NO_VALUE
 import com.michele.eurocoins.ui.detail.HeroOwnedBadge
+import com.michele.eurocoins.ui.detail.HeroPlaceholder
 import com.michele.eurocoins.ui.detail.OwnedBadge
 import com.michele.eurocoins.ui.detail.SectionLabel
 import com.michele.eurocoins.ui.detail.ValueLabel
@@ -297,7 +297,7 @@ private fun DenominationHero(image: RegularIssueImage, owned: Boolean) {
             contentAlignment = Alignment.Center,
         ) {
             if (image.urlImmagineFonte == null) {
-                DenominationHeroFallback(message = "Image not yet published by the source")
+                HeroPlaceholder("Image not yet published by the source")
             } else {
                 val context = LocalContext.current
                 SubcomposeAsyncImage(
@@ -313,7 +313,7 @@ private fun DenominationHero(image: RegularIssueImage, owned: Boolean) {
                 ) {
                     when (painter.state.collectAsState().value) {
                         is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                        is AsyncImagePainter.State.Error -> DenominationHeroFallback(message = "Couldn't load this image")
+                        is AsyncImagePainter.State.Error -> HeroPlaceholder("Couldn't load this image")
                         else -> Unit
                     }
                 }
@@ -327,25 +327,6 @@ private fun DenominationHero(image: RegularIssueImage, owned: Boolean) {
             color = InkLight,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun DenominationHeroFallback(message: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = Icons.Filled.EuroSymbol,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.fillMaxWidth(0.4f).aspectRatio(1f),
-        )
-        Text(
-            text = message,
-            style = MaterialTheme.typography.labelLarge,
-            color = InkLight,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
         )
     }
 }
