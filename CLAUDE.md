@@ -1158,17 +1158,22 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
     non fu coniato (es. alcuni cent): il prezzo di non dipendere da Numista.
   - **Default = il primo anno della serie** (scelta dell'utente), ma non prima del 2002: per Belgio,
     Finlandia, Francia, Paesi Bassi, Spagna (e Monaco, 2001) l'elenco parte da 1999/2001 (monete
-    datate prima dell'ingresso in circolazione), il default no. Standard già spuntata alla prima
-    apertura, come nelle commemorative: aprire e premere Save sono due tocchi. Con qualcosa già in
+    datate prima dell'ingresso in circolazione), il default no. Il chip è scelto ma NESSUNA finitura è spuntata (vedi sotto).
+    Con qualcosa già in
     collezione il pannello si apre sulla prima voce posseduta.
-    **La scelta rapida segue l'anno** (2026-10-08, `moveQuickPick`, `RegularQuickPickTest`): prima, cambiando anno, la
-    Standard dell'anno di partenza restava spuntata di nascosto (e "Save" la scriveva) mentre quella del nuovo anno era
-    vuota da spuntare a mano. Ora, finché l'utente non ha toccato nessuna finitura (spunta, prezzo o data), la spunta
-    rapida SI SPOSTA sul nuovo anno (e sulla varietà, "2002 EFS" compreso) invece di restare sull'anno lasciato; dopo il
-    primo tocco a mano (`quickPick = null`) le spunte sono dell'utente e nessun anno si preseleziona più, per poter
-    registrare più annate dello stesso taglio senza che il pannello decida per lui. Solo alla prima apertura di un
-    taglio non posseduto: con voci già salvate non c'è scelta rapida. Verificato sul telefono (Croazia 2 euro: 2023 →
-    2025 sposta la spunta; BU toccata a mano nel 2025, poi 2026 senza preselezione).
+    **Nessuna finitura preselezionata** (2026-10-09; prima c'era Standard già spuntata sull'anno di partenza, tolta). Storia
+    in quattro tempi, tutti con lo stesso nodo: la spunta preselezionata è un'ipotesi sull'anno (il primo della serie,
+    spesso sbagliato) e non si distingue da una scelta dell'utente, quindi chi voleva "2002 e 2003" e chi voleva "solo
+    il 2004" facevano lo stesso gesto: (1) restava sull'anno di partenza (fino all'8 ottobre: si temeva che "Save" la
+    scrivesse di nascosto); (2) la si fece SPOSTARE sull'anno scelto (per registrare Grecia 2002 e 2002 EFS serviva
+    deselezionare e riselezionare); (3) la si fece SPARIRE al primo cambio di anno (per tenere il 2002 e aggiungere il 2003
+    bisognava tornare indietro); (4) lasciata ferma e vera (per registrare solo il 2004 si doveva togliere il 2002). **Ora**:
+    il pannello si apre sul primo anno ma con tutto vuoto; registrare un anno costa tre tocchi (apri, spunta, Save), più
+    anni si spuntano uno per uno senza toccare niente due volte, e il puntino verde sul chip mostra quali anni hanno
+    qualcosa. Scelta consigliata e approvata dal proprietario. Scartata: una spunta "suggerita" con aspetto diverso
+    (tratteggiata, sparisce se si spunta un altro anno senza averla toccata): risolverebbe entrambi i casi ma aggiunge
+    uno stato visivo nuovo per risparmiare un tocco a chi registra l'anno iniziale. Nelle commemorative la
+    preselezione resta (la moneta è una sola, nessuna ambiguità).
   - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
     cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
     cambia nulla.
