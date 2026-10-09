@@ -1670,8 +1670,14 @@ lingua da servire.
   `MonetizationOn` a dollaro e l'elenco un vuoto offline). La distinzione sta
   solo nel testo del dettaglio: "Image not yet published by the source"
   (dato) contro "Couldn't load this image" (rete/link); mentre carica, o se
-  il caricamento resta in sospeso senza rete, solo l'icona senza testo. Misure: 26 dp nell'elenco,
-  22,5% della larghezza della card nel dettaglio (era 25%, ridotta del 10% su richiesta) — vedi
+  il caricamento resta in sospeso senza rete, solo l'icona senza testo. Misure: 26 dp nell'elenco;
+  **nel dettaglio (commemorative e Regular Issues) dal 2026-10-09 è un TONDO lilla con l'euro bronzo**
+  (`HeroPlaceholder`, `ui/detail/HeroPlaceholder.kt`, variante B dopo mockup: tondo al 76% della larghezza
+  della foto, euro al 45% del tondo, messaggio sotto), come nell'elenco ma in scala grande, per
+  uniformarsi al resto dell'app; prima era l'euro nudo al 40% della larghezza (22,5% ancora prima).
+  Colori FISSI (`LilacLight`/`BronzeLight`, non del tema): la Hero card è bianca anche nello scuro e il
+  lilla scuro starebbe male su bianco. Scartati il tondo al 58% (più piccolo della moneta che
+  sostituisce) e al 96% (un disco lilla pieno e pesante, con il messaggio costretto dentro). Vedi
   `AsyncImagePainter.State` in `CoinListScreen.kt`/`CoinDetailScreen.kt`. La pipeline dati ha uno
   script (`scripts/validate_image_links.py`) che controlla periodicamente
   se qualcuno dei 495 URL delle monete originali è morto, per distinguere
@@ -1994,8 +2000,8 @@ Non descritta nei file di build, utile per non rifare gli stessi giri. **Richies
   griglie (il significato della barra cambierebbe mentre si scrive). Il testo iniziale
   della barra si legge dai getter sincroni `currentQuery`/`yearsQueryNow`/
   `countriesQueryNow`, non da `uiState` (in ritardo di qualche fotogramma).
-- **Rifiniture dopo il giro in tema chiaro e scuro**: (a) `CoinHeroFallback` (dettaglio senza
-  foto): l'icona ha `fillMaxWidth(0.4f).aspectRatio(1f)` in QUESTO ordine, prima era invertito
+- **Rifiniture dopo il giro in tema chiaro e scuro**: (a) il segnaposto del dettaglio senza
+  foto (allora `CoinHeroFallback`, ora `HeroPlaceholder`, tondo lilla): l'icona aveva `fillMaxWidth(0.4f).aspectRatio(1f)` in QUESTO ordine, prima era invertito
   e il `€` riempiva tutta la card spingendo fuori il messaggio "Image not yet published by the
   source" (invisibile in entrambi i temi); (b) titoli di sezione delle Impostazioni 20 sp Bold,
   sopra i titoli delle voci (17 sp), che prima erano quasi uguali; (c) titoli dei dialog con

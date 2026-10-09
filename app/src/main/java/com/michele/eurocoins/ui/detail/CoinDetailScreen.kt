@@ -39,7 +39,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.EuroSymbol
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
@@ -71,7 +70,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
@@ -265,23 +263,17 @@ private fun CoinHero(coin: Coin, owned: Boolean) {
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    // Icona dell'euro solo se la foto non c'è o non si carica ("non ancora pubblicata" e
+                    // Tondo con l'euro solo se la foto non c'è o non si carica ("non ancora pubblicata" e
                     // "non caricata ora" si distinguono dal testo, vedi scripts/validate_image_links.py
                     // nella pipeline dati). Mentre la foto arriva resta la sola card bianca.
                     when (painter.state.collectAsState().value) {
                         is AsyncImagePainter.State.Success -> SubcomposeAsyncImageContent()
-                        is AsyncImagePainter.State.Error -> CoinHeroFallback(
-                            icon = Icons.Filled.EuroSymbol,
-                            message = "Couldn't load this image",
-                        )
+                        is AsyncImagePainter.State.Error -> HeroPlaceholder("Couldn't load this image")
                         else -> Unit
                     }
                 }
             } else {
-                CoinHeroFallback(
-                    icon = Icons.Filled.EuroSymbol,
-                    message = "Image not yet published by the source",
-                )
+                HeroPlaceholder("Image not yet published by the source")
             }
             if (owned) HeroOwnedBadge(modifier = Modifier.align(Alignment.TopEnd))
         }
@@ -294,27 +286,6 @@ private fun CoinHero(coin: Coin, owned: Boolean) {
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp),
         )
-    }
-}
-
-@Composable
-private fun CoinHeroFallback(icon: ImageVector, message: String?) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.fillMaxWidth(0.4f).aspectRatio(1f),
-        )
-        if (message != null) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.labelLarge,
-                color = InkLight,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp),
-            )
-        }
     }
 }
 
