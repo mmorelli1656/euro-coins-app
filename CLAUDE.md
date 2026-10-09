@@ -1161,17 +1161,16 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
     datate prima dell'ingresso in circolazione), il default no. Standard già spuntata alla prima
     apertura, come nelle commemorative: aprire e premere Save sono due tocchi. Con qualcosa già in
     collezione il pannello si apre sulla prima voce posseduta.
-    **La scelta rapida sparisce al primo cambio di anno** (`dropQuickPickOnYearChange`, `RegularQuickPickTest`). Storia in
-    due tempi: (1) fino al 2026-10-08 la Standard dell'anno di partenza restava spuntata di nascosto cambiando anno (e
-    "Save" la scriveva) mentre quella del nuovo anno era vuota; (2) corretto facendola SPOSTARE sul nuovo anno, ma il
-    2026-10-09 l'utente ha trovato il difetto opposto: per registrare Grecia 2002 e 2002 EFS (o due annate qualsiasi) la
-    spunta cambiava ad ogni scheda e serviva deselezionare e riselezionare. **Ora**: alla prima apertura di un taglio non
-    posseduto Standard è spuntata sull'anno di partenza (aprire e premere Save bastano per quell'anno); appena si
-    cambia anno quella spunta SPARISCE (non resta sull'anno lasciato e non si sposta sul nuovo): da lì ogni anno si
-    spunta a mano, quindi più annate dello stesso taglio non richiedono di toccare niente due volte. Lo stesso dopo
-    il primo tocco a una finitura (`quickPick = null`). Con voci già salvate non c'è scelta rapida. Scartato: lasciarla
-    ferma sull'anno di partenza (chi sceglie un altro anno salverebbe anche quello iniziale senza accorgersene) e
-    toglierla del tutto (un tocco in più per chi registra l'anno di partenza).
+    **La spunta iniziale di Standard è una spunta vera, non si sposta e non sparisce** (`initialDraftKey`,
+    `RegularQuickPickTest`). Storia in tre tempi: (1) fino al 2026-10-08 restava sull'anno di partenza, ma si
+    temeva che "Save" la scrivesse di nascosto cambiando anno; (2) il 2026-10-08 la si fece SPOSTARE sull'anno scelto, ma
+    per registrare Grecia 2002 e 2002 EFS (o due annate) serviva deselezionare e riselezionare; (3) il 2026-10-09 si provò
+    a farla SPARIRE al primo cambio di anno, ma l'utente voleva tenere il 2002 e aggiungere il 2003 senza tornare
+    indietro. **Ora**: alla prima apertura di un taglio non posseduto Standard è spuntata sull'anno di partenza e resta lì
+    (aprire e premere Save bastano per quell'anno; per aggiungerne un altro si va su quell'anno e lo si spunta, un solo
+    "Save" scrive tutto). Il chip dell'anno ha il puntino verde finché ha qualcosa di spuntato, quindi la spunta
+    iniziale si vede. **Prezzo accettato**: chi vuole registrare SOLO un altro anno (es. il 2015) deve togliere la
+    spunta dal 2002 iniziale. Con voci già salvate non c'è spunta iniziale.
   - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
     cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
     cambia nulla.
