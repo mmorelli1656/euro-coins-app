@@ -1161,14 +1161,17 @@ e un utente può avere più annate dello stesso taglio (es. Belgio serie 2, 1 eu
     datate prima dell'ingresso in circolazione), il default no. Standard già spuntata alla prima
     apertura, come nelle commemorative: aprire e premere Save sono due tocchi. Con qualcosa già in
     collezione il pannello si apre sulla prima voce posseduta.
-    **La scelta rapida segue l'anno** (2026-10-08, `moveQuickPick`, `RegularQuickPickTest`): prima, cambiando anno, la
-    Standard dell'anno di partenza restava spuntata di nascosto (e "Save" la scriveva) mentre quella del nuovo anno era
-    vuota da spuntare a mano. Ora, finché l'utente non ha toccato nessuna finitura (spunta, prezzo o data), la spunta
-    rapida SI SPOSTA sul nuovo anno (e sulla varietà, "2002 EFS" compreso) invece di restare sull'anno lasciato; dopo il
-    primo tocco a mano (`quickPick = null`) le spunte sono dell'utente e nessun anno si preseleziona più, per poter
-    registrare più annate dello stesso taglio senza che il pannello decida per lui. Solo alla prima apertura di un
-    taglio non posseduto: con voci già salvate non c'è scelta rapida. Verificato sul telefono (Croazia 2 euro: 2023 →
-    2025 sposta la spunta; BU toccata a mano nel 2025, poi 2026 senza preselezione).
+    **La scelta rapida sparisce al primo cambio di anno** (`dropQuickPickOnYearChange`, `RegularQuickPickTest`). Storia in
+    due tempi: (1) fino al 2026-10-08 la Standard dell'anno di partenza restava spuntata di nascosto cambiando anno (e
+    "Save" la scriveva) mentre quella del nuovo anno era vuota; (2) corretto facendola SPOSTARE sul nuovo anno, ma il
+    2026-10-09 l'utente ha trovato il difetto opposto: per registrare Grecia 2002 e 2002 EFS (o due annate qualsiasi) la
+    spunta cambiava ad ogni scheda e serviva deselezionare e riselezionare. **Ora**: alla prima apertura di un taglio non
+    posseduto Standard è spuntata sull'anno di partenza (aprire e premere Save bastano per quell'anno); appena si
+    cambia anno quella spunta SPARISCE (non resta sull'anno lasciato e non si sposta sul nuovo): da lì ogni anno si
+    spunta a mano, quindi più annate dello stesso taglio non richiedono di toccare niente due volte. Lo stesso dopo
+    il primo tocco a una finitura (`quickPick = null`). Con voci già salvate non c'è scelta rapida. Scartato: lasciarla
+    ferma sull'anno di partenza (chi sceglie un altro anno salverebbe anche quello iniziale senza accorgersene) e
+    toglierla del tutto (un tocco in più per chi registra l'anno di partenza).
   - **Bozza per anno + Save**: le spunte e i prezzi sono in mappe chiave (anno, varietà, finitura);
     cambiare anno non li perde, "Save" scrive tutti gli anni insieme, chiudere senza salvare non
     cambia nulla.

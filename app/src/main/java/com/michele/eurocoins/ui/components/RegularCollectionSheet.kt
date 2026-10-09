@@ -79,19 +79,18 @@ internal data class DraftKey(val year: Int, val variety: String, val quality: Co
 
 /**
  * La "scelta rapida": alla prima apertura di un taglio non posseduto, Standard è già spuntata sull'anno di partenza
- * ([quickPick]). Finché l'utente non ha toccato niente (nessuna spunta, prezzo o data), quella spunta è solo un
- * suggerimento: cambiando anno SI SPOSTA sul nuovo anno invece di restare, di nascosto, sull'anno lasciato (che
- * "Save" avrebbe scritto) lasciando vuoto quello nuovo. Tocca [checked] e restituisce la nuova scelta rapida, che
- * è `null` dopo che l'utente ha toccato una finitura: da lì in poi le spunte sono sue e nessun anno si
- * preseleziona più (anche per registrare più annate dello stesso taglio senza che il pannello decida per lui).
+ * ([quickPick]), così aprire e premere Save bastano per chi registra proprio quell'anno. È solo un suggerimento:
+ * appena si cambia anno SPARISCE (non resta, di nascosto, sull'anno lasciato, che "Save" avrebbe scritto) e non si
+ * sposta nemmeno sul nuovo, perché cambiando scheda l'utente sceglie a mano e il pannello non deve decidere per lui:
+ * per registrare più annate dello stesso taglio (Grecia 2002 e 2002 EFS) una spunta che si spostava da sola obbligava
+ * a deselezionare e riselezionare. Tocca [checked] e restituisce la nuova scelta rapida: `null` dopo il primo
+ * cambio di anno e dopo che l'utente ha toccato una finitura.
  */
-internal fun moveQuickPick(checked: MutableMap<DraftKey, Boolean>, quickPick: DraftKey?, to: YearOption): DraftKey? {
+internal fun dropQuickPickOnYearChange(checked: MutableMap<DraftKey, Boolean>, quickPick: DraftKey?, to: YearOption): DraftKey? {
     if (quickPick == null) return null
-    val moved = DraftKey(to.year, to.variety, CoinQuality.STANDARD)
-    if (moved == quickPick) return quickPick
+    if (DraftKey(to.year, to.variety, CoinQuality.STANDARD) == quickPick) return quickPick
     checked.remove(quickPick)
-    checked[moved] = true
-    return moved
+    return null
 }
 
 /**
@@ -133,7 +132,7 @@ fun RegularCollectionSheet(
     val options = remember(stateKey) { regularYearOptions(series, denomination, owned, currentYear) }
     val initial = remember(stateKey) { initialYear?.takeIf { it in options } ?: defaultYearOption(options, owned) }
     var selected by remember(stateKey) { mutableStateOf(initial) }
-    // Scelta rapida ancora intatta (vedi moveQuickPick): solo alla prima apertura di un taglio non posseduto.
+    // Scelta rapida ancora intatta (vedi dropQuickPickOnYearChange): solo alla prima apertura di un taglio non posseduto.
     var quickPick by remember(stateKey) {
         mutableStateOf<DraftKey?>(if (currentItems.isEmpty()) DraftKey(initial.year, initial.variety, CoinQuality.STANDARD) else null)
     }
@@ -207,7 +206,7 @@ fun RegularCollectionSheet(
                 withData = withData,
                 varietyDetail = { series.varietyFor(denomination.taglio, it.year)?.detail },
                 onSelect = {
-                    quickPick = moveQuickPick(checked, quickPick, it)
+                    quickPick = dropQuickPickOnYearChange(checked, quickPick, it)
                     selected = it
                 },
             )
@@ -220,7 +219,7 @@ fun RegularCollectionSheet(
                         quality = quality,
                         checked = checked[key] == true,
                         price = prices[key].orEmpty(),
-                        // Toccare una finitura rende le spunte dell'utente: la scelta rapida non si sposta più.
+                        // Toccare una finitura rende le spunte dell'utente: la scelta rapida non c'è più.
                         onCheckedChange = { checked[key] = it; quickPick = null },
                         onPriceChange = { prices[key] = it; quickPick = null },
                         date = dates[key],
