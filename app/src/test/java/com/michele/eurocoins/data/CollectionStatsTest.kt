@@ -154,4 +154,56 @@ class CollectionStatsTest {
         assertEquals(FinishCounts(0, 0, 0), s.finishes)
         assertEquals(1400L, s.spending!!.totalCents)
     }
+
+    @Test
+    fun theRankingListsEveryPricedEntryFromTheMostExpensiveWithTheirPhotos() {
+        val withPhoto = coins.filter { !it.immaginePlaceholder && it.urlImmagineFonte != null }.take(3)
+        val belgium = series.first { it.paese == "Belgio" }
+        val twoEuro = belgium.immagini.first { it.taglio == "2 euro" }
+        val s = stats(
+            items = listOf(
+                item(withPhoto[0], CoinQuality.BU, priceCents = 3500, purchasedOn = 20_000),
+                // Stessa moneta, altra finitura: è un'altra voce della classifica.
+                item(withPhoto[0], CoinQuality.STANDARD, priceCents = 500),
+                item(withPhoto[1], priceCents = 1800),
+                // Senza prezzo (o a 0): fuori dalla classifica.
+                item(withPhoto[2]),
+                item(withPhoto[2], CoinQuality.PROOF, priceCents = 0),
+            ),
+            regular = listOf(regularItem(belgium, "2 euro", 2005, priceCents = 900)),
+        )
+        val ranking = s.spending!!.ranking
+        assertEquals(listOf(3500, 1800, 900, 500), ranking.map { it.priceCents })
+        assertEquals(s.spending!!.itemsWithPrice, ranking.size)
+        assertEquals("BU", ranking[0].finish)
+        assertEquals(withPhoto[0].anno.toString(), ranking[0].what)
+        assertEquals(withPhoto[0].urlImmagineFonte, ranking[0].imageUrl)
+        assertEquals(20_000L, ranking[0].purchasedOn)
+        val regular = ranking[2]
+        assertTrue(regular.isRegular)
+        assertEquals("2 euro · 2005", regular.what)
+        assertEquals("Standard", regular.finish)
+        assertEquals(twoEuro.urlImmagineFonte, regular.imageUrl)
+    }
+
+    @Test
+    fun aHiddenCoinStillRanksButWithoutAPhoto() {
+        val hidden = coins.first { it.isMicrostate }
+        val visible = coins.filterNot { it.isMicrostate }
+        val ranking = stats(items = listOf(item(hidden, priceCents = 700)), catalog = visible).spending!!.ranking
+        assertEquals(1, ranking.size)
+        assertNull(ranking[0].imageUrl)
+        assertEquals(hidden.anno.toString(), ranking[0].what)
+    }
+
+    @Test
+    fun mintsAndVarietiesShowInTheFinishLabel() {
+        val belgium = series.first { it.paese == "Belgio" }
+        val ranking = stats(
+            regular = listOf(
+                regularItem(belgium, "1 euro", 2008, priceCents = 400).copy(mint = "D", variety = VARIETY_EFS),
+            ),
+        ).spending!!.ranking
+        assertEquals("Standard · EFS · D", ranking[0].finish)
+    }
 }

@@ -157,7 +157,12 @@ private fun YourCollectionCard(stats: CollectionStats) {
 private fun CatalogRow(name: String, progress: Progress) {
     Row(modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        Hint("${progress.owned} / ${progress.total}")
+        // Conteggio e percentuale pesano uguale, separati dal puntino come nel totale qui sopra (scelta del proprietario).
+        Text(
+            text = "${progress.owned} / ${progress.total} · ${percent(progress)}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
     StatBar(progress.fraction)
 }
@@ -328,7 +333,7 @@ private fun FinishColumn(label: String, count: Int, modifier: Modifier) {
     }
 }
 
-private fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
 
 @Composable
 private fun SpendingCard(s: SpendingStats) {
@@ -348,6 +353,7 @@ private fun SpendingCard(s: SpendingStats) {
             SpendTile("Total spent", euro(s.totalCents), Modifier.weight(1f))
             SpendTile("Average per item", euro(s.averageCents), Modifier.weight(1f))
         }
+        MostExpensive(s.ranking)
         if (s.byYear.size >= 2) {
             Hint("Spent per year, from the ${s.itemsInYears} items with a price and a date.", Modifier.padding(top = 14.dp))
             val max = s.byYear.maxOf { it.second }.coerceAtLeast(1L)

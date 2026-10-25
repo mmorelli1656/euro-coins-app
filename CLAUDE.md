@@ -574,8 +574,21 @@ collection" e l'invito (il blur c'è da Android 12; sotto resta attenuata). Scar
 registrano a gruppi, grafico a scalini), la mappa a tessere, il valore di mercato (nessuna fonte, sfiora il consiglio
 finanziario) e la classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tiratura). La spesa conta anche
 le voci di monete nascoste (microstati): i soldi sono spesi comunque; i progressi no. `CoinListViewModel(startMissing)` e la
-rotta `coins/{kind}/{value}?missing=true` servono al tocco su un paese. **Non provata sul telefono** (schermo spento al
-momento della consegna): da guardare il layout, il blur e il tocco sui paesi.
+rotta `coins/{kind}/{value}?missing=true` servono al tocco su un paese. **Provata sul telefono (2026-10-25)**: numeri uguali
+alla Home, il tocco su Italia apre la lista su Missing (3 monete), il chip Regular e il tocco su Spagna aprono la serie.
+**Rifiniture del 2026-10-25** (mockup approvato): (1) nelle due righe di Your collection **conteggio e percentuale pesano
+uguale**, "93 / 613 · 15.2%" con il puntino come nel totale (prima solo il conteggio, in piccolo); (2) **Spending ha
+"Most expensive"** (`SpendingPodium.kt`, `SpendingStats.ranking`, `SpentItem`): con **almeno tre voci con prezzo** un podio a
+tre gradini 2° · 1° · 3° con la foto del lato nazionale di ciascuna (miniature degli elenchi: stessa nitidezza, anello e
+segnaposto), prezzo sul gradino; sotto "See all N" apre un pannello di sola lettura con **TUTTE** le voci con prezzo, dalla
+più cara (rango, foto, "Paese · anno" o "Paese · taglio · anno", finitura e data, prezzo). Con una o due voci solo le righe,
+niente podio né pulsante. **Si classificano le voci** (finitura, annata, zecca), non le monete: la stessa moneta in BU a 35 € e
+Standard a 5 € sono due righe. Altezze dei gradini fisse (non proporzionali al prezzo: con 35 € e 10 € il terzo si
+schiaccerebbe), tinte del primario (1° pieno, gli altri più trasparenti) e niente oro/argento/bronzo (il bronzo vale
+"attenzione"). I microstati nascosti restano in classifica ma senza foto. Podio e pannello **provati sul telefono con una
+build temporanea che duplicava le 2 voci reali** (la collezione vera ha solo 2 prezzi su 298); non verificati tema chiaro (il
+testo bianco sui gradini più trasparenti potrebbe avere poco contrasto) e font ingrandito. Il tocco su una riga del pannello
+NON apre la moneta (proposto, non chiesto). Da rivedere con lo stesso metodo le altre card, una per volta.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).

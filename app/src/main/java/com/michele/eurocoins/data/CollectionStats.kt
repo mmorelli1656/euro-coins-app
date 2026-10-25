@@ -33,9 +33,28 @@ data class SpendingStats(
     val totalItems: Int,
     val byYear: List<Pair<Int, Long>>,
     val itemsInYears: Int,
+    /** Tutte le voci con un prezzo, dalla più cara: il podio ne mostra tre, il pannello "See all" tutte. */
+    val ranking: List<SpentItem> = emptyList(),
 ) {
     val averageCents: Long get() = if (itemsWithPrice == 0) 0 else totalCents / itemsWithPrice
 }
+
+/**
+ * Una voce di collezione con un prezzo, già in forma da mostrare. Si classificano le VOCI (finitura, annata, zecca) e non
+ * le monete: la stessa moneta in BU a 35 € e Standard a 5 € sono due righe, con la finitura che le distingue.
+ * [what] è l'anno per le commemorative, "2 euro · 2005" per i tagli Regular; [finish] "BU", "Standard · D" (zecca)
+ * o "Standard · EFS" (varietà). [imageUrl] è la foto del lato nazionale: null per le monete senza foto o fuori
+ * catalogo (microstato nascosto dalle Impostazioni: la spesa le conta lo stesso, la foto non c'è).
+ */
+data class SpentItem(
+    val country: String,
+    val what: String,
+    val finish: String,
+    val imageUrl: String?,
+    val isRegular: Boolean,
+    val priceCents: Int,
+    val purchasedOn: Long?,
+)
 
 /** Tutti i numeri della scheda Statistics di Insights, calcolati in un colpo solo da catalogo e collezione. */
 data class CollectionStats(
@@ -101,7 +120,7 @@ fun collectionStats(
             jointIssues = completeOf(joint),
         ),
         finishes = FinishCounts(finish(CoinQuality.STANDARD), finish(CoinQuality.BU), finish(CoinQuality.PROOF)),
-        spending = spendingOf(items, regularItems),
+        spending = spendingOf(items, regularItems, coins, series),
     )
 }
 
@@ -110,7 +129,12 @@ private fun completeOf(groups: List<Progress>): Progress =
     Progress(owned = groups.count { it.total > 0 && it.owned == it.total }, total = groups.size)
 
 /** `null` se nessuna voce ha un prezzo: la card della spesa non deve comparire senza dati. */
-internal fun spendingOf(items: List<CollectionItem>, regularItems: List<RegularCollectionItem>): SpendingStats? {
+internal fun spendingOf(
+    items: List<CollectionItem>,
+    regularItems: List<RegularCollectionItem>,
+    coins: List<Coin> = emptyList(),
+    series: List<RegularIssueSeries> = emptyList(),
+): SpendingStats? {
     // (prezzo, giorno di acquisto) di ogni voce. Un prezzo a 0 vale "non indicato", come altrove nell'app.
     val entries = items.map { it.priceCents to it.purchasedOn } + regularItems.map { it.priceCents to it.purchasedOn }
     val priced = entries.filter { (price, _) -> price != null && price > 0 }
@@ -126,5 +150,47 @@ internal fun spendingOf(items: List<CollectionItem>, regularItems: List<RegularC
         totalItems = entries.size,
         byYear = byYear,
         itemsInYears = dated.size,
+        ranking = spentRanking(items, regularItems, coins, series),
+    )
+}
+
+private fun mintSuffix(mint: String) = if (mint == NO_MINT) "" else " · $mint"
+
+/** Le voci con prezzo, dalla più cara; a pari prezzo la più recente (data di acquisto) e poi il nome, per un ordine stabile. */
+private fun spentRanking(
+    items: List<CollectionItem>,
+    regularItems: List<RegularCollectionItem>,
+    coins: List<Coin>,
+    series: List<RegularIssueSeries>,
+): List<SpentItem> {
+    val coinByKey = coins.associateBy { it.stableKey }
+    val seriesByKey = series.associateBy { it.stableKey }
+    val commemorative = items.filter { (it.priceCents ?: 0) > 0 }.map { item ->
+        val coin = coinByKey[item.coinKey]
+        SpentItem(
+            country = coin?.displayCountry() ?: item.paese,
+            what = (coin?.anno ?: item.anno).toString(),
+            finish = item.quality.label + mintSuffix(item.mint),
+            imageUrl = coin?.takeIf { !it.immaginePlaceholder }?.urlImmagineFonte,
+            isRegular = false,
+            priceCents = item.priceCents!!,
+            purchasedOn = item.purchasedOn,
+        )
+    }
+    val regular = regularItems.filter { (it.priceCents ?: 0) > 0 }.map { item ->
+        val owner = seriesByKey[item.seriesKey]
+        val year = if (item.anno == NO_YEAR) "" else " · ${item.anno}"
+        SpentItem(
+            country = owner?.displayCountry() ?: item.paese,
+            what = item.taglio + year,
+            finish = item.quality.label + (if (item.variety.isEmpty()) "" else " · ${item.variety}") + mintSuffix(item.mint),
+            imageUrl = owner?.immagini?.firstOrNull { it.taglio == item.taglio }?.urlImmagineFonte,
+            isRegular = true,
+            priceCents = item.priceCents!!,
+            purchasedOn = item.purchasedOn,
+        )
+    }
+    return (commemorative + regular).sortedWith(
+        compareByDescending<SpentItem> { it.priceCents }.thenByDescending { it.purchasedOn ?: Long.MIN_VALUE }.thenBy { it.country },
     )
 }
