@@ -382,7 +382,7 @@ private fun MaterialsCard() {
     val material = COIN_MATERIALS.first { it.taglio == selected }
 
     DetailCard {
-        InsightsTitle("What the coins are made of")
+        InsightsTitle("What's in a coin?")
         Text(
             text = "Tap a coin.",
             style = MaterialTheme.typography.bodySmall,
