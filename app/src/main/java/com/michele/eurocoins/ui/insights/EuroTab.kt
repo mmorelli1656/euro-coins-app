@@ -58,22 +58,32 @@ import com.michele.eurocoins.ui.regular.DenominationCoin
 import com.michele.eurocoins.ui.regular.coinScaleFor
 
 /**
- * Pagina "The euro" di Insights, libera per tutti: come si è arrivati alla moneta unica e chi l'ha adottata (con la
- * mappa del lato comune al 2007), di che metalli sono fatte le monete. Mockup approvato il 2026-10-25; semplificata su
+ * Scheda "History" di Insights, libera per tutti: come si è arrivati alla moneta unica e chi l'ha adottata (con la
+ * mappa del lato comune al 2007) e gli stati che la usano per accordo. Mockup approvato il 2026-10-25; semplificata su
  * richiesta ("troppo pesante e prolissa, con troppi indicatori"): una sola tinta, niente legenda, niente cerchi con i
  * conteggi, le tappe prima del 1999 e le due foto del 2007 chiuse finché non si aprono. Ogni voce della storia è
- * un anno con un sottotesto facoltativo (niente titoli). Il riquadro con i dettagli di un paese e la card che spiega il
- * materiale di una moneta sono tornati dopo la prova sul telefono: piacevano.
+ * un anno con un sottotesto. Il riquadro con i dettagli di un paese è tornato dopo la prova sul telefono: piaceva.
  */
 @Composable
-internal fun EuroTab() {
+internal fun HistoryTab() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         JoiningCard()
         AgreementCard()
+        SourceCredits(
+            sources = HISTORY_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
+            licenseLine = "Photos: ECB",
+        )
+    }
+}
+
+/** Scheda "Coins" di Insights, libera per tutti: di che metalli sono fatte le monete (la card che spiega quella toccata). */
+@Composable
+internal fun CoinsTab() {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         MaterialsCard()
         SourceCredits(
-            sources = EURO_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
-            licenseLine = "Photos: ECB",
+            sources = COIN_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
+            licenseLine = null,
         )
     }
 }

@@ -551,12 +551,15 @@ della sezione Collection), con 220 dp di spazio in fondo per la scheda del passo
 
 ### Insights (ramo `insights-euro`, 2026-10-25, NON unito a `main`)
 
-Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`). **Per ora ha
-solo "The euro"** (libera per tutti, nessun selettore): le schede **Collection** e **Spending** (Pro) erano segnaposto
-("Go Pro" da Free, "Coming soon" da Pro) e sono state tolte il 2026-10-25 su richiesta, "poi ci pensiamo". Quando tornano,
-il selettore a segmenti torna sopra il contenuto (The euro / Collection / Spending, lucchetto sulle due Pro da Free):
-decisione presa dopo cinque giri di mockup, pagina unica con segmenti e non una voce a parte (stessa grammatica di Years /
-Countries / All; con lo scorrimento unico il lucchetto sarebbe finito a metà pagina). Il nome "Insights" è provvisorio
+Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`), con **tre
+schede a segmenti** (stessa grammatica di Years / Countries / All): **History** (si apre per prima: la storia, gli stati
+per accordo, la mappa del 2007), **Coins** (di che metalli sono fatte le monete) e **Statistics** (Pro, lucchetto
+sull'etichetta da Free). Divisione scelta con il proprietario il 2026-10-25: la pagina era arrivata a più di quattro
+schermate con due argomenti scollegati, la storia (da leggere) e i materiali (da toccare); il selettore sta fermo in alto
+mentre si scorre, ogni scheda ha le sue fonti e riparte dall'alto. **Statistics è per ora un segnaposto** ("Go Pro" da
+Free, "Coming soon" da Pro): una sola scheda e non Collection e Spending separate, per non avere quattro segmenti. Pagina
+unica con segmenti e non una voce a parte (con lo scorrimento unico il lucchetto sarebbe finito a metà pagina). Non ancora
+fatto: aprire da Pro sull'ultima scheda vista (ora si apre sempre su History). Il nome "Insights" è provvisorio
 (questione di secondo ordine). Le statistiche (completamento per paese e catalogo, finiture, spesa con la riga "basato su N
 monete con un prezzo") sono nel mockup del 2026-10-24 ma non scritte. Regole decise per le statistiche: niente valore di
 mercato (nessuna fonte, e sfiora il consiglio finanziario), niente classifica di rarità dalle tirature (7 paesi hanno un

@@ -209,12 +209,16 @@ private const val ECB_COMMON_IMAGES = "https://www.ecb.europa.eu/euro/coins/comm
 internal const val COMMON_SIDE_OLD_URL = "$ECB_COMMON_IMAGES/common_50cent_800.jpg"
 internal const val COMMON_SIDE_NEW_URL = "$ECB_COMMON_IMAGES/newcommon_50cent_800.jpg"
 
-/** Le fonti della scheda, nello stesso formato dei crediti dei dettagli. */
-internal val EURO_SOURCES = listOf(
+/** Le fonti della scheda History, nello stesso formato dei crediti dei dettagli (etichetta, fonte, link). */
+internal val HISTORY_SOURCES = listOf(
     Triple("History", "ECB", "https://www.ecb.europa.eu/ecb/history/emu/html/index.en.html"),
     Triple("Joining", "ECB", "https://www.ecb.europa.eu/euro/changeover/html/index.en.html"),
-    Triple("Coins", "ECB", "https://www.ecb.europa.eu/euro/coins/common/html/index.en.html"),
-    Triple("Metals", "Bundesbank", "https://www.bundesbank.de/en/tasks/cash-management/frequently-asked-questions/frequently-asked-questions-euro-coins"),
     Triple("Agreements", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/legislation-euro-coins_en"),
     Triple("Design", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/common-sides-euro-coins_en"),
+)
+
+/** Le fonti della scheda Coins. */
+internal val COIN_SOURCES = listOf(
+    Triple("Coins", "ECB", "https://www.ecb.europa.eu/euro/coins/common/html/index.en.html"),
+    Triple("Metals", "Bundesbank", "https://www.bundesbank.de/en/tasks/cash-management/frequently-asked-questions/frequently-asked-questions-euro-coins"),
 )
