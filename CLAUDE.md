@@ -549,6 +549,37 @@ della sezione Collection), con 220 dp di spazio in fondo per la scheda del passo
   chiaro, font ingrandito, utente non collegato (la card account mostra l'invito invece dell'email), Skip e il tasto
   indietro a metà percorso.
 
+### Insights (ramo `insights-euro`, 2026-10-25, NON unito a `main`)
+
+Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`), con tre schede
+a segmenti: **The euro** (libera, si apre per prima), **Collection** e **Spending** (Pro, lucchetto sull'etichetta da
+Free). Decise con il proprietario dopo cinque giri di mockup: pagina unica con segmenti e non una voce a parte (stessa
+grammatica di Years / Countries / All; con lo scorrimento unico il lucchetto sarebbe finito a metà pagina); il nome
+"Insights" è provvisorio (questione di secondo ordine). **Le schede Pro sono ancora segnaposto**: da Free l'invito "Go Pro"
+(porta alle Impostazioni, come gli altri), da Pro "Coming soon". Le statistiche vere (completamento per paese e catalogo,
+finiture, spesa con la riga "basato su N monete con un prezzo") sono nel mockup del 2026-10-24 ma non scritte.
+Regole decise per le statistiche: niente valore di mercato (nessuna fonte, e sfiora il consiglio finanziario), niente
+classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tiratura).
+
+**"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
+fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
+Tre card: (1) **storia**: timeline con una sola tinta, "The road to 1999" chiusa di default (6 tappe, 1957-1998, una riga
+ciascuna), poi gli anni di ingresso con bandiera e nome per intero (due per riga; con uno o due paesi l'anno sta sulla
+stessa riga), il tocco su un paese scrive sotto una frase sola con la vecchia valuta e il tasso, e un blocco "By agreement"
+per Andorra, Monaco, San Marino e Vaticano. **Semplificata su richiesta** ("troppo pesante e prolissa, con troppi
+indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate, barra di avanzamento, pannello dei
+dettagli e 11 tappe prima del 1999. (2) **materiali**: tre famiglie (acciaio ramato, Nordic gold, due metalli) con le
+monete disegnate in scala (`DenominationCoin`), diametro e peso; la BCE e la Bundesbank non danno le percentuali delle
+leghe e non si inventano. (3) **lato comune**: le foto BCE del 50 cent prima e dopo il 2007 in hotlink, ritagliate
+sull'area della mappa (`MapPhoto`: la foto è disegnata più grande e spostata; `requiredSize` la CENTRA, lo spostamento
+parte dalla metà dell'eccedenza), con tre frasi (prima: 15 paesi come pezzi separati; dopo: un'Europa continua; perché:
+l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la Commissione ammette riproduzioni piatte
+"non pregiudizievoli per l'immagine dell'euro" e non parla di app né di uso commerciale; stesso rischio accettato per le
+altre foto BCE. **Da verificare**: l'anno delle prime monete di San Marino (2002) non è confermato dalla pagina BCE; il
+"serpente" del 1972 è stato tolto dall'elenco (fonte debole). Dettaglio dei tassi: Germania e Bulgaria hanno lo stesso,
+1,95583. Provato sul telefono: timeline, materiali e icona d'ingresso; **il ritaglio della mappa è stato corretto dopo la
+prova ma non riguardato** (lo schermo si è bloccato).
+
 ### Impostazioni
 
 Schermata principale (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro

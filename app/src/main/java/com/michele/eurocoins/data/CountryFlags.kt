@@ -44,7 +44,8 @@ private const val UNKNOWN_FLAG = "🏳️" // 🏳️ bandiera bianca
 private fun regionalIndicatorSymbol(letter: Char): String =
     String(Character.toChars(0x1F1E6 + (letter.uppercaseChar() - 'A')))
 
-private fun flagEmojiForIsoCode(isoCode: String): String =
+/** Bandiera da un codice ISO alpha-2 ("IT"), per i dati fissi che non passano da `paese` (pagina Insights). */
+fun flagEmojiForIsoCode(isoCode: String): String =
     isoCode.map(::regionalIndicatorSymbol).joinToString(separator = "")
 
 /** Bandiera per un valore `paese` grezzo: condivisa tra `Coin` e `RegularIssueSeries`, che usano lo stesso set di valori. */

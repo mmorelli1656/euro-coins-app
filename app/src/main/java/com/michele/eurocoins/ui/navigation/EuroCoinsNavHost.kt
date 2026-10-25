@@ -40,6 +40,7 @@ import com.michele.eurocoins.ui.detail.CoinDetailViewModel
 import com.michele.eurocoins.ui.detail.CoinPagerSession
 import com.michele.eurocoins.ui.home.HomeScreen
 import com.michele.eurocoins.ui.home.HomeViewModel
+import com.michele.eurocoins.ui.insights.InsightsScreen
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
@@ -58,6 +59,7 @@ import com.michele.eurocoins.ui.theme.ThemePreference
 private const val ROUTE_HOME = "home"
 private const val ROUTE_BROWSE = "browse"
 private const val ROUTE_SETTINGS = "settings"
+private const val ROUTE_INSIGHTS = "insights"
 private const val ROUTE_SETTINGS_CATALOGS = "settings/catalogs"
 private const val ROUTE_COINS = "coins/{kind}/{value}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
@@ -153,6 +155,7 @@ fun EuroCoinsNavHost(
                 viewModel = viewModel,
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
                 onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
+                onInsightsClick = { navController.navigate(ROUTE_INSIGHTS) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                 showAds = adsEnabled,
                 banner = monetization.banner,
@@ -183,6 +186,9 @@ fun EuroCoinsNavHost(
                 onCatalogsClick = { navController.navigate(ROUTE_SETTINGS_CATALOGS) },
                 onBack = { navController.popBackStack() },
             )
+        }
+        composable(ROUTE_INSIGHTS) {
+            InsightsScreen(onBack = { navController.popBackStack() })
         }
         composable(ROUTE_SETTINGS_CATALOGS) {
             val settingsViewModel: SettingsViewModel = viewModel(
