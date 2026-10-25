@@ -62,10 +62,8 @@ class EuroFactsTest {
 
     @Test
     fun theOrdinalSubtextsMatchTheRunningCountOfCountries() {
-        val ordinals = listOf(
-            "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth",
-            "nineteenth", "twentieth", "twenty-first",
-        )
+        // Con le cifre ("12th" e non "twelfth"): si leggono più in fretta (scelta del 2026-10-25).
+        val ordinals = listOf("12th", "13th", "14th", "15th", "16th", "17th", "18th", "19th", "20th", "21st")
         var count = 0
         for (entry in EURO_ENTRIES) {
             val before = count
@@ -104,7 +102,7 @@ class EuroFactsTest {
     @Test
     fun theRoadEntryTextMatchesTheNumberOfSteps() {
         assertEquals(6, ROAD_STEPS.size)
-        assertTrue(ROAD_TEXT.startsWith("Six "))
+        assertTrue(ROAD_TEXT.startsWith("6 steps"))
         assertEquals("1957–1998", ROAD_YEARS)
         assertEquals("1957", ROAD_STEPS.first().year)
         assertEquals("1998", ROAD_STEPS.last().year)

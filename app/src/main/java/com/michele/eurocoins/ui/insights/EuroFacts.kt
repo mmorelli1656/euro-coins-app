@@ -26,7 +26,7 @@ internal class EuroMember(
 /**
  * Una voce della storia: l'anno e un sottotesto, SEMPRE (niente titoli: l'anno fa da titolo; e dove c'era solo l'anno
  * con le bandiere, accanto a voci con il sottotesto, "stonava": scelta del 2026-10-25). Per gli ingressi il sottotesto
- * dice il numero d'ordine ("The sixteenth country joins."), che non ripete i nomi dei paesi. [members] sono i paesi
+ * dice il numero d'ordine ("The 16th country joins."), che non ripete i nomi dei paesi. [members] sono i paesi
  * entrati quell'anno (vuoto per una tappa come le monete del 2002). [maps]: la voce porta il confronto della mappa
  * prima e dopo il 2007 (a comparsa).
  */
@@ -62,15 +62,15 @@ internal class AgreementState(
 internal val ROAD_STEPS = listOf(
     RoadStep("1957", "Treaty of Rome", "Creates the European Economic Community."),
     RoadStep("1979", "European Monetary System", "Keeps currencies within a narrow band."),
-    RoadStep("1989", "Delors Report", "Three stages to a single currency."),
+    RoadStep("1989", "Delors Report", "3 stages to a single currency."),
     RoadStep("1992", "Maastricht Treaty", "The legal basis for the euro."),
     RoadStep("1995", "The name \"euro\"", "Leaders pick the name and the start date."),
-    RoadStep("1998", "The first eleven", "Eleven countries are chosen and the ECB starts."),
+    RoadStep("1998", "The first eleven", "11 countries are chosen and the ECB starts."),
 )
 
 /** La voce chiusa che contiene le tappe, nello stesso formato delle altre: anno e sottotesto. */
 internal const val ROAD_YEARS = "1957–1998"
-internal const val ROAD_TEXT = "Six steps to the single currency."
+internal const val ROAD_TEXT = "6 steps to the single currency."
 
 private const val FIRST_GROUP = "1 Jan 1999"
 private const val COINS_2002 = "1 Jan 2002"
@@ -93,29 +93,29 @@ internal val EURO_ENTRIES = listOf(
             EuroMember("ES", "Spain", "Spanish peseta", "ESP", "166.386", FIRST_GROUP, COINS_2002),
         ),
     ),
-    EuroEntry("2001", "The twelfth country joins. Its coins and notes follow in 2002.", listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002))),
+    EuroEntry("2001", "The 12th country joins. Its coins and notes follow in 2002.", listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002))),
     // Una tappa senza paesi: è qui che l'euro arriva in tasca (le banconote e le monete dei 12).
-    EuroEntry("2002", "Coins and notes begin, in the twelve countries.", emptyList()),
+    EuroEntry("2002", "Coins and notes begin, in the 12 countries.", emptyList()),
     EuroEntry(
         year = "2007",
-        text = "The thirteenth country joins, with coins and notes from the first day. " +
+        text = "The 13th country joins, with coins and notes from the first day. " +
             "It is the first to use the redrawn common side.",
         members = listOf(EuroMember("SI", "Slovenia", "Slovenian tolar", "SIT", "239.640", "1 Jan 2007", "1 Jan 2007")),
         maps = true,
     ),
     EuroEntry(
-        "2008", "Two more countries join: the fourteenth and the fifteenth.",
+        "2008", "The 14th and 15th countries join.",
         listOf(
             EuroMember("CY", "Cyprus", "Cypriot pound", "CYP", "0.585274", "1 Jan 2008", "1 Jan 2008"),
             EuroMember("MT", "Malta", "Maltese lira", "MTL", "0.429300", "1 Jan 2008", "1 Jan 2008"),
         ),
     ),
-    EuroEntry("2009", "The sixteenth country joins.", listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009"))),
-    EuroEntry("2011", "The seventeenth country joins.", listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011"))),
-    EuroEntry("2014", "The eighteenth country joins.", listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014"))),
-    EuroEntry("2015", "The nineteenth country joins.", listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015"))),
-    EuroEntry("2023", "The twentieth country joins.", listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023"))),
-    EuroEntry("2026", "The twenty-first country joins.", listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026"))),
+    EuroEntry("2009", "The 16th country joins.", listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009"))),
+    EuroEntry("2011", "The 17th country joins.", listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011"))),
+    EuroEntry("2014", "The 18th country joins.", listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014"))),
+    EuroEntry("2015", "The 19th country joins.", listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015"))),
+    EuroEntry("2023", "The 20th country joins.", listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023"))),
+    EuroEntry("2026", "The 21st country joins.", listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026"))),
 )
 
 /** Gli anni delle prime monete proprie: 2002 per Monaco, San Marino e Vaticano, 2014 per Andorra. */

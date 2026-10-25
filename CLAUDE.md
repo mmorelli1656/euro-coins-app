@@ -568,11 +568,11 @@ Due card più le fonti: (1) **"The story of the euro"**: timeline con una sola t
 sottotesto, SEMPRE, e la stessa forma (anno, sottotesto, paesi); niente titoli** (scelta del 2026-10-25: con titoli solo su
 alcune voci sembrava disomogenea; poi anche le voci con solo anno e bandiere "stonavano" accanto a quelle con il
 sottotesto, e il layout compatto con l'anno a sinistra è stato tolto: `EuroFactsTest` controlla che nessuna voce sia senza
-testo). Per gli ingressi il sottotesto è il numero d'ordine ("The sixteenth country joins."), che non ripete i nomi dei
-paesi e dice quanti sono; un titolo li ripeterebbe. "1957–1998 · Six steps to the single currency" è chiusa di default (le 6
+testo). Per gli ingressi il sottotesto è il numero d'ordine ("The 16th country joins."), che non ripete i nomi dei
+paesi e dice quanti sono; un titolo li ripeterebbe. "1957–1998 · 6 steps to the single currency" è chiusa di default (le 6
 tappe si aprono con un tocco), poi 1999 ("The euro starts, as money in accounts and payments. Coins and notes come later."
 : senza questo "1999" faceva pensare che l'euro circolasse da allora), 2001 Grecia, **2002 "Coins and notes begin, in the
-twelve countries"** (una tappa senza paesi: è qui che l'euro arriva in tasca) e gli ingressi dal 2007, con bandiera e nome
+12 countries"** (una tappa senza paesi: è qui che l'euro arriva in tasca) e gli ingressi dal 2007, con bandiera e nome
 per intero (due per riga). **Il confronto della mappa del
 lato comune sta nella voce del 2007** (la Slovenia è la prima a usare il disegno nuovo, il 1° gennaio 2007): una riga lilla
 "Compare the old and the new map" la apre, chiusa di default, e le due foto si scaricano solo allora. **I titoli delle card
