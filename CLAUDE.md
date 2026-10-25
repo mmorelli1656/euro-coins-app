@@ -606,6 +606,14 @@ sfumati. Ora la card sfocata (blur 4 dp, alpha .6) sta intera in alto e l'invito
 la frase completa e "Go Pro". Scartata la B (invito compatto sulla metà bassa): copriva proprio le due barre per catalogo e col
 font grande sarebbe tornato a coprire tutto. Verificato sul telefono, tema scuro e chiaro (spegnendo "Simulate Pro"); non con il
 font ingrandito.
+**Pila di card sfocate da Free (2026-10-25, su idea del proprietario: "sembra vuoto")**: l'invito passa IN CIMA e sotto c'è una
+pila di tre card, Your collection, Milestones e By country, alta 700 dp (`LockedStackHeight`) e con una dissolvenza verso lo
+sfondo in fondo. **La sfocatura è un requisito, "davvero importante, non si deve leggere nulla"**: 12 dp (`LockedBlur`, a 4 dp il
+"288" e le percentuali si intuivano ancora), alpha .85 (a .55 in scuro la pila spariva). La pila mostra i dati veri ma sfocati
+e non è leggibile né toccabile (`clearAndSetSemantics`, callback vuote). Milestones sta prima di By country perché quest'ultima
+è lunga e con il taglio a 700 dp la terza card non si sarebbe vista. Sotto Android 12 il blur non c'è e resta solo l'attenuazione:
+lì i numeri SI LEGGONO (minSdk 26): da decidere se mostrare dati di esempio sotto Android 12. Verificato sul telefono in scuro;
+non in chiaro né con il font ingrandito.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).

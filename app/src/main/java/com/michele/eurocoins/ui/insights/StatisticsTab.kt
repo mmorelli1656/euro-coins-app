@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -34,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -85,32 +89,67 @@ internal fun StatisticsTab(
     }
 }
 
+/** Altezza della pila sfocata da Free: tre card, la terza che sfuma in fondo. */
+private val LockedStackHeight = 700.dp
+
+/** Sfocatura da Free: abbastanza forte da non far leggere nessun numero (richiesta del proprietario, 2026-10-25). */
+private val LockedBlur = 12.dp
+
 /**
- * Da Free: la prima card sfocata (sotto Android 12 il blur non c'è: resta attenuata) e SOTTO l'invito, in un blocco a
- * parte (variante A del mockup, 2026-10-25). Prima l'invito stava sovrapposto e, più alto della card, la copriva quasi
- * tutta: dell'anteprima restavano solo i bordi sfumati. Così non copre mai niente, nemmeno con il font ingrandito.
+ * Da Free: l'invito al Pro in CIMA (si vede senza scorrere) e sotto una pila di tre card sfocate (Your collection, By
+ * country, Milestones) che sfuma in fondo, così la pagina non sembra vuota e si intuisce cosa c'è dietro il lucchetto
+ * (mockup del 2026-10-25). La pila non si legge né si tocca (nessuna descrizione per TalkBack, callback vuote); sotto
+ * Android 12 il blur non c'è e resta solo l'attenuazione. Prima c'era la sola prima card, e prima ancora l'invito
+ * sovrapposto che la copriva quasi tutta.
  */
 @Composable
 private fun LockedPreview(stats: CollectionStats, onGoPro: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(modifier = Modifier.blur(4.dp).alpha(0.6f).clearAndSetSemantics {}) { YourCollectionCard(stats) }
-        DetailCard {
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Filled.Lock, contentDescription = null)
-                Text(
-                    text = "Statistics is part of Pro",
-                    style = sansTitleMedium(),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                Text(
-                    text = "Progress by country, milestones, and what you've spent. No ads.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-                )
-                Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
+        InviteCard(onGoPro)
+        Box(modifier = Modifier.fillMaxWidth().height(LockedStackHeight).clipToBounds()) {
+            Column(
+                modifier = Modifier
+                    .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                    .blur(LockedBlur)
+                    .alpha(0.85f)
+                    .clearAndSetSemantics {},
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // Milestones prima di By country: quest'ultima è lunga e, in fondo, è quella che sfuma.
+                YourCollectionCard(stats)
+                MilestonesCard(stats.milestones)
+                ByCountryCard(stats, onCommemorativeCountry = {}, onRegularCountry = {})
             }
+            // Dissolvenza verso il fondo della pagina: la pila finisce senza un taglio netto.
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.background))),
+            )
+        }
+    }
+}
+
+@Composable
+private fun InviteCard(onGoPro: () -> Unit) {
+    DetailCard {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Filled.Lock, contentDescription = null)
+            Text(
+                text = "Statistics is part of Pro",
+                style = sansTitleMedium(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                text = "Progress by country, milestones, and what you've spent. No ads.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
         }
     }
 }
