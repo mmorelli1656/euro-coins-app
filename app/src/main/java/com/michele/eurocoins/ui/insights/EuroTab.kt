@@ -193,6 +193,18 @@ private fun AgreementCard() {
     }
 }
 
+/**
+ * Testo corrente giustificato e con la sillabazione, come le note del dettaglio (`NotesCard`): per i paragrafi lunghi,
+ * come la spiegazione di un materiale o il testo sotto le due mappe, dove il bordo destro a bandiera risultava
+ * irregolare. I sottotesti brevi della storia restano a bandiera.
+ */
+@Composable
+private fun justifiedStyle(): androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyMedium.copy(
+    textAlign = TextAlign.Justify,
+    lineBreak = LineBreak.Paragraph,
+    hyphens = Hyphens.Auto,
+)
+
 /** Sottotesto di una voce della storia. */
 @Composable
 private fun Body(text: String) {
@@ -298,15 +310,11 @@ private fun CommonSideCompare() {
                 MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
                 MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
             }
-            // Giustificato e con la sillabazione, come le note del dettaglio: a bandiera, il bordo destro era
-            // irregolare accanto alle due foto, che hanno i bordi dritti.
+            // Giustificato (vedi `justifiedStyle`): a bandiera, il bordo destro era irregolare accanto alle due foto,
+            // che hanno i bordi dritti.
             Text(
                 text = COMMON_SIDE_TEXT,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    textAlign = TextAlign.Justify,
-                    lineBreak = LineBreak.Paragraph,
-                    hyphens = Hyphens.Auto,
-                ),
+                style = justifiedStyle(),
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
             )
         }
@@ -394,7 +402,11 @@ private fun MaterialsCard() {
             }
         }
         Panel("${material.taglio}: ${material.title}") {
-            Text(material.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp, bottom = 6.dp))
+            Text(
+                text = material.text,
+                style = justifiedStyle(),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 6.dp),
+            )
             PanelRow("Diameter", "${material.diameter} mm", first = true)
             PanelRow("Weight", "${material.weight} g")
             PanelRow("Thickness", "${material.thickness} mm")
