@@ -551,15 +551,16 @@ della sezione Collection), con 220 dp di spazio in fondo per la scheda del passo
 
 ### Insights (ramo `insights-euro`, 2026-10-25, NON unito a `main`)
 
-Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`), con tre schede
-a segmenti: **The euro** (libera, si apre per prima), **Collection** e **Spending** (Pro, lucchetto sull'etichetta da
-Free). Decise con il proprietario dopo cinque giri di mockup: pagina unica con segmenti e non una voce a parte (stessa
-grammatica di Years / Countries / All; con lo scorrimento unico il lucchetto sarebbe finito a metà pagina); il nome
-"Insights" è provvisorio (questione di secondo ordine). **Le schede Pro sono ancora segnaposto**: da Free l'invito "Go Pro"
-(porta alle Impostazioni, come gli altri), da Pro "Coming soon". Le statistiche vere (completamento per paese e catalogo,
-finiture, spesa con la riga "basato su N monete con un prezzo") sono nel mockup del 2026-10-24 ma non scritte.
-Regole decise per le statistiche: niente valore di mercato (nessuna fonte, e sfiora il consiglio finanziario), niente
-classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tiratura).
+Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`). **Per ora ha
+solo "The euro"** (libera per tutti, nessun selettore): le schede **Collection** e **Spending** (Pro) erano segnaposto
+("Go Pro" da Free, "Coming soon" da Pro) e sono state tolte il 2026-10-25 su richiesta, "poi ci pensiamo". Quando tornano,
+il selettore a segmenti torna sopra il contenuto (The euro / Collection / Spending, lucchetto sulle due Pro da Free):
+decisione presa dopo cinque giri di mockup, pagina unica con segmenti e non una voce a parte (stessa grammatica di Years /
+Countries / All; con lo scorrimento unico il lucchetto sarebbe finito a metà pagina). Il nome "Insights" è provvisorio
+(questione di secondo ordine). Le statistiche (completamento per paese e catalogo, finiture, spesa con la riga "basato su N
+monete con un prezzo") sono nel mockup del 2026-10-24 ma non scritte. Regole decise per le statistiche: niente valore di
+mercato (nessuna fonte, e sfiora il consiglio finanziario), niente classifica di rarità dalle tirature (7 paesi hanno un
+contingente, non una tiratura).
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
@@ -584,8 +585,9 @@ l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la
 "non pregiudizievoli per l'immagine dell'euro" e non parla di app né di uso commerciale; stesso rischio accettato per le
 altre foto BCE. **Da verificare**: l'anno delle prime monete di San Marino (2002) non è confermato dalla pagina BCE; il
 "serpente" del 1972 è stato tolto dall'elenco (fonte debole). Dettaglio dei tassi: Germania e Bulgaria hanno lo stesso,
-1,95583. Provato sul telefono: timeline, materiali e icona d'ingresso; **il ritaglio della mappa è stato corretto dopo la
-prova ma non riguardato** (lo schermo si è bloccato).
+1,95583. Provato sul telefono (2026-10-25, tema scuro): icona d'ingresso, timeline con titoli, riquadro di un paese, card dei
+materiali, ritaglio della mappa (corretto: `requiredSize` centra la foto). Non provati: tema chiaro, font ingrandito,
+senza rete (le due foto BCE mancherebbero).
 
 ### Impostazioni
 
