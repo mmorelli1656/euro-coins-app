@@ -122,7 +122,7 @@ internal val EURO_ENTRIES = listOf(
 internal val EURO_AGREEMENTS = listOf(
     AgreementState(
         "AD", "Andorra", since = "2002", coins = COINS_2002,
-        replaced = "French franc and Spanish peseta, used without legal tender",
+        replaced = "French franc and Spanish peseta",
         rate = "€1 = 6.55957 FRF or 166.386 ESP",
         ownCoinsFrom = "Jan 2014", agreement = "Signed 30 Jun 2011",
     ),
