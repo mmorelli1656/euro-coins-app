@@ -8,16 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -25,6 +22,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,8 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.ui.components.LocalProAccess
-import com.michele.eurocoins.ui.detail.DetailCard
-import com.michele.eurocoins.ui.detail.sansTitleMedium
 import com.michele.eurocoins.ui.theme.appBarColors
 
 /** Le tre schede di Insights: le prime due sono libere, "Statistics" è del Pro (lucchetto sull'etichetta da Free). */
@@ -47,16 +43,24 @@ private enum class InsightsTab(val label: String, val proOnly: Boolean) {
 /**
  * Insights (2026-10-25): una pagina con tre schede a segmenti, come Years / Countries / All. **History** (si apre per
  * prima): la storia dell'euro, la mappa del lato comune al 2007, gli stati per accordo. **Coins**: di che metalli sono
- * fatte le monete. **Statistics** (Pro): per ora un segnaposto, "Go Pro" da Free e "Coming soon" da Pro; contenuto da
- * decidere (completamento per paese e catalogo, finiture, spesa: mockup del 2026-10-24, tutto in un'unica scheda e non
- * Collection e Spending separate, per non avere quattro segmenti). Divisione scelta con il proprietario il 2026-10-25:
+ * fatte le monete. **Statistics** (Pro): completamento, paesi, traguardi, anni, finiture e spesa (vedi `StatisticsTab`),
+ * in un'unica scheda e non Collection e Spending separate, per non avere quattro segmenti; da Free un'anteprima sfocata
+ * con l'invito al Pro. Divisione scelta con il proprietario il 2026-10-25:
  * la pagina era arrivata a più di quattro schermate con due argomenti scollegati, la storia (da leggere) e i materiali
  * (da toccare). Ogni scheda ha le sue fonti. Il selettore sta fermo in alto mentre il contenuto scorre.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InsightsScreen(onBack: () -> Unit) {
+fun InsightsScreen(
+    viewModel: InsightsViewModel,
+    /** Apre la lista commemorative di un paese (già filtrata su "Missing"): [paese] è il valore stabile `Coin.paese`. */
+    onCommemorativeCountryClick: (String) -> Unit,
+    /** Apre la schermata Regular Issues di un paese. */
+    onRegularCountryClick: (String) -> Unit,
+    onBack: () -> Unit,
+) {
     val pro = LocalProAccess.current
+    val stats by viewModel.stats.collectAsState()
     var tabIndex by rememberSaveable { mutableIntStateOf(0) }
     val tab = InsightsTab.entries[tabIndex]
 
@@ -101,30 +105,16 @@ fun InsightsScreen(onBack: () -> Unit) {
                     when (tab) {
                         InsightsTab.HISTORY -> HistoryTab()
                         InsightsTab.COINS -> CoinsTab()
-                        InsightsTab.STATISTICS -> StatisticsTab(isPro = pro.isPro, onGoPro = pro.onGoPro)
+                        InsightsTab.STATISTICS -> StatisticsTab(
+                            stats = stats,
+                            isPro = pro.isPro,
+                            onGoPro = pro.onGoPro,
+                            onCommemorativeCountry = onCommemorativeCountryClick,
+                            onRegularCountry = onRegularCountryClick,
+                        )
                     }
                 }
             }
-        }
-    }
-}
-
-/** Segnaposto di "Statistics": con il Pro "Coming soon", senza l'invito (il pulsante porta alle Impostazioni). */
-@Composable
-private fun StatisticsTab(isPro: Boolean, onGoPro: () -> Unit) {
-    DetailCard {
-        if (isPro) {
-            Text("Statistics", style = sansTitleMedium())
-            Text("Coming soon.", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
-        } else {
-            Icon(Icons.Filled.Lock, contentDescription = null)
-            Text("Statistics is part of Pro", style = sansTitleMedium(), modifier = Modifier.padding(top = 8.dp))
-            Text(
-                text = "Statistics about your collection, with no ads.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-            )
-            Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
         }
     }
 }

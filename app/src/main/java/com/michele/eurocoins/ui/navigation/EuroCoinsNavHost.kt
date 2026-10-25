@@ -41,6 +41,7 @@ import com.michele.eurocoins.ui.detail.CoinPagerSession
 import com.michele.eurocoins.ui.home.HomeScreen
 import com.michele.eurocoins.ui.home.HomeViewModel
 import com.michele.eurocoins.ui.insights.InsightsScreen
+import com.michele.eurocoins.ui.insights.InsightsViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
@@ -61,7 +62,8 @@ private const val ROUTE_BROWSE = "browse"
 private const val ROUTE_SETTINGS = "settings"
 private const val ROUTE_INSIGHTS = "insights"
 private const val ROUTE_SETTINGS_CATALOGS = "settings/catalogs"
-private const val ROUTE_COINS = "coins/{kind}/{value}"
+// `missing` (facoltativo, falso se manca): la lista si apre già filtrata su "Missing".
+private const val ROUTE_COINS = "coins/{kind}/{value}?missing={missing}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
 private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
@@ -71,6 +73,7 @@ private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{tagl
 private const val ARG_TOUR = "tour"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
+private const val ARG_MISSING = "missing"
 private const val ARG_COIN_ID = "coinId"
 private const val ARG_PAESE = "paese"
 private const val ARG_ORDINE = "ordine"
@@ -188,7 +191,18 @@ fun EuroCoinsNavHost(
             )
         }
         composable(ROUTE_INSIGHTS) {
-            InsightsScreen(onBack = { navController.popBackStack() })
+            val viewModel: InsightsViewModel = viewModel(
+                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository) } },
+            )
+            InsightsScreen(
+                viewModel = viewModel,
+                // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
+                onCommemorativeCountryClick = { paese ->
+                    navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
+                },
+                onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                onBack = { navController.popBackStack() },
+            )
         }
         composable(ROUTE_SETTINGS_CATALOGS) {
             val settingsViewModel: SettingsViewModel = viewModel(
@@ -231,18 +245,20 @@ fun EuroCoinsNavHost(
             arguments = listOf(
                 navArgument(ARG_KIND) { type = NavType.StringType },
                 navArgument(ARG_VALUE) { type = NavType.StringType },
+                navArgument(ARG_MISSING) { type = NavType.BoolType; defaultValue = false },
             ),
         ) { backStackEntry ->
             val kind = backStackEntry.arguments?.getString(ARG_KIND) ?: return@composable
             val value = backStackEntry.arguments?.getString(ARG_VALUE) ?: return@composable
+            val missing = backStackEntry.arguments?.getBoolean(ARG_MISSING) ?: false
             val filter = when (kind) {
                 KIND_YEAR -> CoinFilter.Year(value.toInt())
                 KIND_YEAR_COMMON -> CoinFilter.Year(value.toInt(), commonOnly = true)
                 else -> CoinFilter.Country(value)
             }
             val viewModel: CoinListViewModel = viewModel(
-                key = "coins-$kind-$value",
-                factory = viewModelFactory { initializer { CoinListViewModel(repository, filter) } },
+                key = "coins-$kind-$value-$missing",
+                factory = viewModelFactory { initializer { CoinListViewModel(repository, filter, startMissing = missing) } },
             )
             CoinListScreen(
                 viewModel = viewModel,

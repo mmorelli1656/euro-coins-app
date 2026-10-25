@@ -38,10 +38,14 @@ sealed interface CoinFilter {
 class CoinListViewModel(
     private val repository: CoinRepository,
     private val filter: CoinFilter,
+    /** La lista parte già filtrata su "Missing" (da Insights, "By country": tocco su un paese = cosa manca). */
+    startMissing: Boolean = false,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
-    private val options = MutableStateFlow(CoinListOptions())
+    private val options = MutableStateFlow(
+        CoinListOptions(ownership = if (startMissing) OwnershipFilter.MISSING else OwnershipFilter.ALL),
+    )
 
     val sortChoices: List<CoinSort> = filter.sortChoices()
     val defaultSort: CoinSort = filter.defaultSort()

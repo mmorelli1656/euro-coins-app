@@ -90,7 +90,7 @@ internal fun CoinsTab() {
 
 /** Titolo di una card: 20 sp Bold nel colore del testo, come i titoli di sezione delle Impostazioni. */
 @Composable
-private fun InsightsTitle(text: String) {
+internal fun InsightsTitle(text: String) {
     Text(text = text, style = sansTitleMedium().copy(fontSize = 20.sp, fontWeight = FontWeight.Bold))
 }
 
