@@ -85,20 +85,32 @@ internal fun StatisticsTab(
     }
 }
 
-/** Da Free: la prima card sfocata (sotto Android 12 il blur non c'è: resta attenuata) e sopra l'invito. */
+/**
+ * Da Free: la prima card sfocata (sotto Android 12 il blur non c'è: resta attenuata) e SOTTO l'invito, in un blocco a
+ * parte (variante A del mockup, 2026-10-25). Prima l'invito stava sovrapposto e, più alto della card, la copriva quasi
+ * tutta: dell'anteprima restavano solo i bordi sfumati. Così non copre mai niente, nemmeno con il font ingrandito.
+ */
 @Composable
 private fun LockedPreview(stats: CollectionStats, onGoPro: () -> Unit) {
-    Box(contentAlignment = Alignment.Center) {
-        Box(modifier = Modifier.blur(10.dp).alpha(0.55f).clearAndSetSemantics {}) { YourCollectionCard(stats) }
-        DetailCard(modifier = Modifier.padding(horizontal = 12.dp)) {
-            Icon(Icons.Filled.Lock, contentDescription = null)
-            Text("Statistics is part of Pro", style = sansTitleMedium(), modifier = Modifier.padding(top = 8.dp))
-            Text(
-                text = "Progress by country, milestones, and what you've spent. No ads.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-            )
-            Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Box(modifier = Modifier.blur(4.dp).alpha(0.6f).clearAndSetSemantics {}) { YourCollectionCard(stats) }
+        DetailCard {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Filled.Lock, contentDescription = null)
+                Text(
+                    text = "Statistics is part of Pro",
+                    style = sansTitleMedium(),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = "Progress by country, milestones, and what you've spent. No ads.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                )
+                Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
+            }
         }
     }
 }

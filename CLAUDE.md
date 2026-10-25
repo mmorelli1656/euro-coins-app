@@ -600,9 +600,12 @@ sul telefono con una build temporanea che aggiungeva voci finte (anche una Regul
 giusti. **Provati anche**: font di sistema a 130% (corretti: il numero del terzo gradino si tagliava, ora i gradini crescono con
 `fontScale`; i due riquadri Total/Average hanno la stessa altezza con `IntrinsicSize.Min`), tema chiaro (terzo gradino più scuro,
 alpha .8, e alto 46 dp: il testo bianco aveva poco contrasto), "Show all 24 countries" (ok), tocco su Italia/Spagna (ok).
-**Difetto trovato, NON ancora corretto**: da Free l'anteprima sfocata di "Your collection" **non si legge**, perché la card
-dell'invito ("Statistics is part of Pro", `LockedPreview`) la copre quasi tutta e di sotto restano solo i bordi sfumati (chiaro e
-scuro). Da rivedere con un mockup (idea: l'invito SOTTO l'anteprima, o sopra solo la metà bassa).
+**Anteprima da Free corretta (2026-10-25, variante A dopo mockup)**: l'invito ("Statistics is part of Pro", `LockedPreview`)
+era sovrapposto alla card sfocata di "Your collection" e, più alto di lei, la copriva quasi tutta: restavano solo i bordi
+sfumati. Ora la card sfocata (blur 4 dp, alpha .6) sta intera in alto e l'invito è un blocco SEPARATO sotto, centrato, con
+la frase completa e "Go Pro". Scartata la B (invito compatto sulla metà bassa): copriva proprio le due barre per catalogo e col
+font grande sarebbe tornato a coprire tutto. Verificato sul telefono, tema scuro e chiaro (spegnendo "Simulate Pro"); non con il
+font ingrandito.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
