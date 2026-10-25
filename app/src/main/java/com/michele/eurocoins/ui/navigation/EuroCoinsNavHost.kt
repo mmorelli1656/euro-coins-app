@@ -35,6 +35,7 @@ import com.michele.eurocoins.ui.settings.UserSettings
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
+import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
 import com.michele.eurocoins.ui.detail.CoinPagerSession
@@ -201,6 +202,19 @@ fun EuroCoinsNavHost(
                     navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
                 },
                 onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                // Una voce di "Most expensive": il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
+                onSpentItemClick = { target ->
+                    when (target) {
+                        is SpentTarget.Commemorative -> {
+                            pagerSession.openSingle()
+                            navController.navigate("detail/${target.coinId}")
+                        }
+                        is SpentTarget.Denomination -> {
+                            regularPagerSession.open(listOf(RegularPageKey(target.paese, target.ordine, target.taglio)), onShown = {})
+                            navController.navigate("regular-issues/${Uri.encode(target.paese)}/${target.ordine}/${Uri.encode(target.taglio)}")
+                        }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }

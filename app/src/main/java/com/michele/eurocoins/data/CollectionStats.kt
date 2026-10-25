@@ -54,7 +54,17 @@ data class SpentItem(
     val isRegular: Boolean,
     val priceCents: Int,
     val purchasedOn: Long?,
+    /** Dove aprire il dettaglio; `null` se la moneta non è nel catalogo mostrato (microstato nascosto). */
+    val target: SpentTarget? = null,
 )
+
+/** La schermata di dettaglio di una [SpentItem]: una moneta commemorativa, o il taglio di una serie Regular guardata. */
+sealed interface SpentTarget {
+    data class Commemorative(val coinId: Long) : SpentTarget
+
+    /** [ordine] = `ordineCronologico` della serie GUARDATA (come nella rotta del dettaglio), non per forza quella di origine. */
+    data class Denomination(val paese: String, val ordine: Int, val taglio: String) : SpentTarget
+}
 
 /** Tutti i numeri della scheda Statistics di Insights, calcolati in un colpo solo da catalogo e collezione. */
 data class CollectionStats(
@@ -154,6 +164,30 @@ internal fun spendingOf(
     )
 }
 
+/**
+ * La riga in cui si vede una voce Regular. La voce è salvata con la serie di ORIGINE del taglio, ma un taglio rimasto
+ * invariato compare in più serie (il 5 cent francese in tre) e ogni annata cade nella finestra di UNA sola: si apre la
+ * serie guardata che la contiene, altrimenti il dettaglio non la mostrerebbe nella card COLLECTION. Una voce senza anno
+ * appartiene già alla serie guardata (è salvata con la sua chiave).
+ */
+private fun viewedDenomination(
+    allSeries: List<RegularIssueSeries>,
+    owner: RegularIssueSeries,
+    item: RegularCollectionItem,
+): SpentTarget.Denomination {
+    val country = allSeries.filter { it.paese == owner.paese }
+    val viewed = if (item.anno == NO_YEAR) {
+        owner
+    } else {
+        country.firstOrNull { selected ->
+            denominationsOf(country, selected).any {
+                it.series.stableKey == owner.stableKey && it.image.taglio == item.taglio && it.contains(item.anno)
+            }
+        } ?: owner
+    }
+    return SpentTarget.Denomination(owner.paese, viewed.ordineCronologico, item.taglio)
+}
+
 private fun mintSuffix(mint: String) = if (mint == NO_MINT) "" else " · $mint"
 
 /** Le voci con prezzo, dalla più cara; a pari prezzo la più recente (data di acquisto) e poi il nome, per un ordine stabile. */
@@ -175,6 +209,7 @@ private fun spentRanking(
             isRegular = false,
             priceCents = item.priceCents!!,
             purchasedOn = item.purchasedOn,
+            target = coin?.let { SpentTarget.Commemorative(it.id) },
         )
     }
     val regular = regularItems.filter { (it.priceCents ?: 0) > 0 }.map { item ->
@@ -188,6 +223,7 @@ private fun spentRanking(
             isRegular = true,
             priceCents = item.priceCents!!,
             purchasedOn = item.purchasedOn,
+            target = owner?.let { viewedDenomination(series, it, item) },
         )
     }
     return (commemorative + regular).sortedWith(

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ import com.michele.eurocoins.data.FinishCounts
 import com.michele.eurocoins.data.Milestones
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.SpendingStats
+import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.data.YearStat
 import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.ui.components.formatPrice
@@ -65,6 +67,7 @@ internal fun StatisticsTab(
     onGoPro: () -> Unit,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onSpentItem: (SpentTarget) -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare, ma nemmeno un invito al Pro fuori posto.
     if (stats == null) return
@@ -78,7 +81,7 @@ internal fun StatisticsTab(
         MilestonesCard(stats.milestones)
         ByYearCard(stats.years)
         FinishCard(stats.finishes)
-        stats.spending?.let { SpendingCard(it) }
+        stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
 }
 
@@ -336,7 +339,7 @@ private fun FinishColumn(label: String, count: Int, modifier: Modifier) {
 internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
 
 @Composable
-private fun SpendingCard(s: SpendingStats) {
+private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
     DetailCard {
         InsightsTitle("Spending")
         Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -349,11 +352,15 @@ private fun SpendingCard(s: SpendingStats) {
                 },
             )
         }
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SpendTile("Total spent", euro(s.totalCents), Modifier.weight(1f))
-            SpendTile("Average per item", euro(s.averageCents), Modifier.weight(1f))
+        // IntrinsicSize.Min: con il font ingrandito "Average per item" va a capo e i due riquadri restano alti uguali.
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SpendTile("Total spent", euro(s.totalCents), Modifier.weight(1f).fillMaxHeight())
+            SpendTile("Average per item", euro(s.averageCents), Modifier.weight(1f).fillMaxHeight())
         }
-        MostExpensive(s.ranking)
+        MostExpensive(s.ranking, onSpentItem)
         if (s.byYear.size >= 2) {
             Hint("Spent per year, from the ${s.itemsInYears} items with a price and a date.", Modifier.padding(top = 14.dp))
             val max = s.byYear.maxOf { it.second }.coerceAtLeast(1L)

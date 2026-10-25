@@ -589,6 +589,20 @@ schiaccerebbe), tinte del primario (1° pieno, gli altri più trasparenti) e nie
 build temporanea che duplicava le 2 voci reali** (la collezione vera ha solo 2 prezzi su 298); non verificati tema chiaro (il
 testo bianco sui gradini più trasparenti potrebbe avere poco contrasto) e font ingrandito. Il tocco su una riga del pannello
 NON apre la moneta (proposto, non chiesto). Da rivedere con lo stesso metodo le altre card, una per volta.
+**Tocco sulle voci e prove (2026-10-25, richiesta del proprietario)**: ogni gradino del podio e ogni riga del pannello apre il
+dettaglio della moneta, **a pagina sola** (`CoinPagerSession.openSingle()`, `RegularPagerSession.open(una riga)`: niente
+contatore, nessuna lista di provenienza da cui scorrere). `SpentItem.target` (`SpentTarget`): commemorativa = `Coin.id`; Regular =
+la serie GUARDATA che contiene l'anno (`viewedDenomination`), non quella di origine, perché un taglio invariato compare in più
+serie e ogni annata cade nella finestra di una sola (5 cent francese 2023: salvato con la serie 1, si apre la serie 2; senza
+anno resta la serie della voce). Senza destinazione (microstato nascosto) la riga non è cliccabile. Il pannello **non si chiude**
+al tocco: al ritorno dal dettaglio si ritrova aperto sulla stessa lista (lo stato `sheetOpen` è `rememberSaveable`). Provato
+sul telefono con una build temporanea che aggiungeva voci finte (anche una Regular): Belgio 2006 e "France · Series 2" si aprono
+giusti. **Provati anche**: font di sistema a 130% (corretti: il numero del terzo gradino si tagliava, ora i gradini crescono con
+`fontScale`; i due riquadri Total/Average hanno la stessa altezza con `IntrinsicSize.Min`), tema chiaro (terzo gradino più scuro,
+alpha .8, e alto 46 dp: il testo bianco aveva poco contrasto), "Show all 24 countries" (ok), tocco su Italia/Spagna (ok).
+**Difetto trovato, NON ancora corretto**: da Free l'anteprima sfocata di "Your collection" **non si legge**, perché la card
+dell'invito ("Statistics is part of Pro", `LockedPreview`) la copre quasi tutta e di sotto restano solo i bordi sfumati (chiaro e
+scuro). Da rivedere con un mockup (idea: l'invito SOTTO l'anteprima, o sopra solo la metà bassa).
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).

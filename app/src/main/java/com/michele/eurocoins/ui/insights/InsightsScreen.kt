@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.components.LocalProAccess
 import com.michele.eurocoins.ui.theme.appBarColors
 
@@ -57,6 +58,8 @@ fun InsightsScreen(
     onCommemorativeCountryClick: (String) -> Unit,
     /** Apre la schermata Regular Issues di un paese. */
     onRegularCountryClick: (String) -> Unit,
+    /** Apre il dettaglio di una voce della classifica "Most expensive". */
+    onSpentItemClick: (SpentTarget) -> Unit,
     onBack: () -> Unit,
 ) {
     val pro = LocalProAccess.current
@@ -111,6 +114,7 @@ fun InsightsScreen(
                             onGoPro = pro.onGoPro,
                             onCommemorativeCountry = onCommemorativeCountryClick,
                             onRegularCountry = onRegularCountryClick,
+                            onSpentItem = onSpentItemClick,
                         )
                     }
                 }

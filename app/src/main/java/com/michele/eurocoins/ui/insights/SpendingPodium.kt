@@ -49,6 +49,7 @@ import coil3.compose.AsyncImagePainter
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
 import com.michele.eurocoins.data.SpentItem
+import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.data.formatPurchaseDate
 import com.michele.eurocoins.ui.components.CoinThumbnailRing
 import com.michele.eurocoins.ui.components.ThumbnailColorFilter
@@ -67,7 +68,7 @@ private const val PODIUM_MIN_ITEMS = 3
  * Le altezze dei gradini sono fisse, non proporzionali al prezzo: con 35 € e 10 € il terzo si schiaccerebbe.
  */
 @Composable
-internal fun MostExpensive(ranking: List<SpentItem>) {
+internal fun MostExpensive(ranking: List<SpentItem>, onOpen: (SpentTarget) -> Unit) {
     if (ranking.isEmpty()) return
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
@@ -79,7 +80,7 @@ internal fun MostExpensive(ranking: List<SpentItem>) {
             modifier = Modifier.fillMaxWidth(),
         )
         if (ranking.size >= PODIUM_MIN_ITEMS) {
-            Podium(ranking.take(PODIUM_MIN_ITEMS))
+            Podium(ranking.take(PODIUM_MIN_ITEMS), onOpen)
             Text(
                 text = "See all ${ranking.size}",
                 style = MaterialTheme.typography.bodyMedium,
@@ -95,32 +96,43 @@ internal fun MostExpensive(ranking: List<SpentItem>) {
             )
         } else {
             Column(modifier = Modifier.padding(top = 6.dp)) {
-                ranking.forEachIndexed { index, item -> SpentRow(rank = index + 1, item = item, showDivider = index > 0) }
+                ranking.forEachIndexed { index, item -> SpentRow(rank = index + 1, item = item, showDivider = index > 0, onOpen = onOpen) }
             }
         }
     }
-    if (sheetOpen) MostExpensiveSheet(ranking, onDismiss = { sheetOpen = false })
+    if (sheetOpen) MostExpensiveSheet(ranking, onOpen = onOpen, onDismiss = { sheetOpen = false })
 }
 
 private val FirstCoin = 60.dp
 private val OtherCoin = 52.dp
 
 @Composable
-private fun Podium(top: List<SpentItem>) {
+private fun Podium(top: List<SpentItem>, onOpen: (SpentTarget) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
-        PodiumColumn(top[1], rank = 2, coin = OtherCoin, stepHeight = 56.dp, stepAlpha = 0.85f, modifier = Modifier.weight(1f))
-        PodiumColumn(top[0], rank = 1, coin = FirstCoin, stepHeight = 80.dp, stepAlpha = 1f, modifier = Modifier.weight(1f))
-        PodiumColumn(top[2], rank = 3, coin = OtherCoin, stepHeight = 40.dp, stepAlpha = 0.7f, modifier = Modifier.weight(1f))
+        PodiumColumn(top[1], rank = 2, coin = OtherCoin, stepHeight = 56.dp, stepAlpha = 0.88f, onOpen = onOpen, modifier = Modifier.weight(1f))
+        PodiumColumn(top[0], rank = 1, coin = FirstCoin, stepHeight = 80.dp, stepAlpha = 1f, onOpen = onOpen, modifier = Modifier.weight(1f))
+        PodiumColumn(top[2], rank = 3, coin = OtherCoin, stepHeight = 46.dp, stepAlpha = 0.8f, onOpen = onOpen, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun PodiumColumn(item: SpentItem, rank: Int, coin: Dp, stepHeight: Dp, stepAlpha: Float, modifier: Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+private fun PodiumColumn(
+    item: SpentItem,
+    rank: Int,
+    coin: Dp,
+    stepHeight: Dp,
+    stepAlpha: Float,
+    onOpen: (SpentTarget) -> Unit,
+    modifier: Modifier,
+) {
+    Column(
+        modifier = modifier.openOnTap(item, onOpen),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         SpentCoin(item, coin)
         Text(
             text = item.country,
@@ -151,7 +163,8 @@ private fun PodiumColumn(item: SpentItem, rank: Int, coin: Dp, stepHeight: Dp, s
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(stepHeight)
+                // I gradini crescono con il font di sistema: con il testo ingrandito il numero del terzo, il più basso, si tagliava.
+                .height(stepHeight * LocalDensity.current.fontScale.coerceAtLeast(1f))
                 .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = stepAlpha))
                 .padding(top = 8.dp),
@@ -174,10 +187,10 @@ private fun PodiumColumn(item: SpentItem, rank: Int, coin: Dp, stepHeight: Dp, s
 }
 
 @Composable
-private fun SpentRow(rank: Int, item: SpentItem, showDivider: Boolean) {
+private fun SpentRow(rank: Int, item: SpentItem, showDivider: Boolean, onOpen: (SpentTarget) -> Unit) {
     if (showDivider) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 9.dp),
+        modifier = Modifier.fillMaxWidth().openOnTap(item, onOpen).padding(vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -213,6 +226,13 @@ private fun SpentRow(rank: Int, item: SpentItem, showDivider: Boolean) {
         )
     }
 }
+
+/**
+ * Il tocco apre il dettaglio della moneta (una pagina sola: nessuna lista da scorrere). Senza destinazione, cioè per un
+ * microstato nascosto dalle Impostazioni, la riga non è cliccabile.
+ */
+private fun Modifier.openOnTap(item: SpentItem, onOpen: (SpentTarget) -> Unit): Modifier =
+    item.target?.let { target -> clip(RoundedCornerShape(10.dp)).clickable { onOpen(target) } } ?: this
 
 /** La foto del lato nazionale in un cerchio, con lo stesso trattamento (nitidezza, anello, segnaposto) degli elenchi. */
 @Composable
@@ -270,7 +290,7 @@ private fun SpentPlaceholder(withEuro: Boolean) {
 /** Pannello di sola lettura (come quello delle tirature per anno): tutte le voci con un prezzo, dalla più cara. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MostExpensiveSheet(ranking: List<SpentItem>, onDismiss: () -> Unit) {
+private fun MostExpensiveSheet(ranking: List<SpentItem>, onOpen: (SpentTarget) -> Unit, onDismiss: () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -291,7 +311,7 @@ private fun MostExpensiveSheet(ranking: List<SpentItem>, onDismiss: () -> Unit) 
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp),
             )
             LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
-                itemsIndexed(ranking) { index, item -> SpentRow(rank = index + 1, item = item, showDivider = index > 0) }
+                itemsIndexed(ranking) { index, item -> SpentRow(rank = index + 1, item = item, showDivider = index > 0, onOpen = onOpen) }
             }
         }
     }

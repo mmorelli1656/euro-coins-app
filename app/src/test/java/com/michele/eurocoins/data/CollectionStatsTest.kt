@@ -206,4 +206,35 @@ class CollectionStatsTest {
         ).spending!!.ranking
         assertEquals("Standard · EFS · D", ranking[0].finish)
     }
+
+    @Test
+    fun aRankedCoinOpensItsOwnDetail() {
+        val coin = coins.first { !it.isMicrostate }
+        val ranking = stats(items = listOf(item(coin, priceCents = 900))).spending!!.ranking
+        assertEquals(SpentTarget.Commemorative(coin.id), ranking[0].target)
+
+        // Fuori catalogo (microstato nascosto): niente destinazione, la riga non si tocca.
+        val hidden = coins.first { it.isMicrostate }
+        val visible = coins.filterNot { it.isMicrostate }
+        val hiddenRanking = stats(items = listOf(item(hidden, priceCents = 700)), catalog = visible).spending!!.ranking
+        assertNull(hiddenRanking[0].target)
+    }
+
+    @Test
+    fun aRegularEntryOpensTheSeriesWhoseWindowHoldsItsYear() {
+        // Il 5 cent francese è un'unica moneta salvata con la serie 1, ma ogni annata si vede in UNA sola serie:
+        // 1999-2021 nella 1, 2022-2023 nella 2, dal 2024 nella 3. Si apre quella giusta, altrimenti la card COLLECTION
+        // del dettaglio non mostrerebbe la voce.
+        val france = series.filter { it.paese == "Francia" }.sortedBy { it.ordineCronologico }
+        assertEquals(3, france.size)
+        fun target(anno: Int) = stats(regular = listOf(regularItem(france[0], "5 cent", anno, priceCents = 100)))
+            .spending!!.ranking[0].target as SpentTarget.Denomination
+        assertEquals(france[0].ordineCronologico, target(2010).ordine)
+        assertEquals(france[1].ordineCronologico, target(2023).ordine)
+        assertEquals(france[2].ordineCronologico, target(2025).ordine)
+        assertEquals("5 cent", target(2023).taglio)
+        assertEquals(france[0].paese, target(2023).paese)
+        // Senza anno la voce appartiene già alla serie guardata (è salvata con la sua chiave).
+        assertEquals(france[0].ordineCronologico, target(NO_YEAR).ordine)
+    }
 }
