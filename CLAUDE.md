@@ -580,8 +580,9 @@ sono 20 sp Bold nel colore del testo** (`InsightsTitle`, come le Impostazioni; l
 euro, Coins and notes, Replaced, Rate: **quattro righe uguali per tutti**; c'era una quinta, "Only euro from", l'ultimo
 giorno di doppia circolazione, solo dal 2007 perché per i primi 12 la data non era verificata: tolta il 2026-10-25 perché
 disomogenea e poco chiara, e anche dai dati), come nel mockup: la versione con una frase sola era stata una
-semplificazione di troppo e al proprietario piaceva il riquadro; un blocco "By agreement" per Andorra, Monaco, San Marino e
-Vaticano ha un riquadro con **le stesse righe degli altri** (Uses the euro since, Coins and notes, Replaced, Rate: scelta
+semplificazione di troppo e al proprietario piaceva il riquadro; **gli stati per accordo stanno in una card a parte, "Also using the euro", NON in fondo alla timeline** (scelta del
+2026-10-25: come ultima voce, dopo il 2026, sembrava un fatto avvenuto dopo; non ha una data, Monaco, San Marino e il
+Vaticano usano l'euro dal 1999, Andorra dal 2002): per Andorra, Monaco, San Marino e Vaticano ha un riquadro con **le stesse righe degli altri** (Uses the euro since, Coins and notes, Replaced, Rate: scelta
 del 2026-10-25, "nella scheda non compaiono le stesse info degli altri stati") più le due solo loro (Own euro coins from,
 Agreement). Monaco sostituì il franco francese (6,55957), San Marino e Vaticano la lira (1.936,27); Andorra non aveva una
 moneta sua e usava franco e peseta senza corso legale, quindi mostra entrambe le monete con la sigla e i due tassi, ciascuno su una riga (un valore lungo andava
