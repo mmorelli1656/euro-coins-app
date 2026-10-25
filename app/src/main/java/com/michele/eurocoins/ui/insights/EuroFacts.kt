@@ -24,10 +24,17 @@ internal class EuroMember(
 )
 
 /**
- * I paesi entrati lo stesso anno, o una tappa senza paesi (le monete del 2002). [title] dice cosa succede quell'anno:
- * senza, "1999" faceva pensare che l'euro circolasse da allora. [note] è una riga sotto i paesi.
+ * Una voce della storia: l'anno e, se serve, un sottotesto (niente titoli: l'anno fa da titolo, scelta del 2026-10-25
+ * perché con titoli solo su alcune voci la timeline sembrava disomogenea). [members] sono i paesi entrati quell'anno
+ * (vuoto per una tappa come le monete del 2002). [maps]: la voce porta il confronto della mappa prima e dopo il 2007
+ * (a comparsa).
  */
-internal class EuroEntry(val year: String, val title: String?, val note: String?, val members: List<EuroMember>)
+internal class EuroEntry(
+    val year: String,
+    val text: String?,
+    val members: List<EuroMember>,
+    val maps: Boolean = false,
+)
 
 /** Una tappa verso la moneta unica, prima del 1999. */
 internal class RoadStep(val year: String, val title: String, val text: String)
@@ -51,14 +58,17 @@ internal val ROAD_STEPS = listOf(
     RoadStep("1998", "The first eleven", "Eleven countries are chosen and the ECB starts."),
 )
 
+/** La voce chiusa che contiene le tappe, nello stesso formato delle altre: anno e sottotesto. */
+internal const val ROAD_YEARS = "1957–1998"
+internal const val ROAD_TEXT = "Six steps to the single currency."
+
 private const val FIRST_GROUP = "1 Jan 1999"
 private const val COINS_2002 = "1 Jan 2002"
 
 internal val EURO_ENTRIES = listOf(
     EuroEntry(
         year = "1999",
-        title = "The euro starts",
-        note = "Money in accounts and payments only. Coins and notes come later.",
+        text = "The euro starts, as money in accounts and payments. Coins and notes come later.",
         members = listOf(
             EuroMember("AT", "Austria", "Austrian schilling", "ATS", "13.7603", FIRST_GROUP, COINS_2002, null),
             EuroMember("BE", "Belgium", "Belgian franc", "BEF", "40.3399", FIRST_GROUP, COINS_2002, null),
@@ -73,40 +83,28 @@ internal val EURO_ENTRIES = listOf(
             EuroMember("ES", "Spain", "Spanish peseta", "ESP", "166.386", FIRST_GROUP, COINS_2002, null),
         ),
     ),
-    EuroEntry(
-        year = "2001",
-        title = "A twelfth country",
-        note = null,
-        members = listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002, null)),
-    ),
+    EuroEntry("2001", null, listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002, null))),
     // Una tappa senza paesi: è qui che l'euro arriva in tasca (le banconote e le monete dei 12).
-    EuroEntry(
-        year = "2002",
-        title = "Coins and notes begin",
-        note = "The euro reaches people's pockets in all twelve countries, on 1 January.",
-        members = emptyList(),
-    ),
+    EuroEntry("2002", "Coins and notes begin, in the twelve countries.", emptyList()),
     EuroEntry(
         year = "2007",
-        title = null,
-        note = "From here on, coins and notes arrive the same day.",
+        text = "Slovenia joins and is the first to use the redrawn common side.",
         members = listOf(EuroMember("SI", "Slovenia", "Slovenian tolar", "SIT", "239.640", "1 Jan 2007", "1 Jan 2007", "15 Jan 2007")),
+        maps = true,
     ),
     EuroEntry(
-        year = "2008",
-        title = null,
-        note = null,
-        members = listOf(
+        "2008", null,
+        listOf(
             EuroMember("CY", "Cyprus", "Cypriot pound", "CYP", "0.585274", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
             EuroMember("MT", "Malta", "Maltese lira", "MTL", "0.429300", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
         ),
     ),
-    EuroEntry("2009", null, null, listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009", "17 Jan 2009"))),
-    EuroEntry("2011", null, null, listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011", "15 Jan 2011"))),
-    EuroEntry("2014", null, null, listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014", "15 Jan 2014"))),
-    EuroEntry("2015", null, null, listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015", "16 Jan 2015"))),
-    EuroEntry("2023", null, null, listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023", "15 Jan 2023"))),
-    EuroEntry("2026", null, null, listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026", "1 Feb 2026"))),
+    EuroEntry("2009", null, listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009", "17 Jan 2009"))),
+    EuroEntry("2011", null, listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011", "15 Jan 2011"))),
+    EuroEntry("2014", null, listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014", "15 Jan 2014"))),
+    EuroEntry("2015", null, listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015", "16 Jan 2015"))),
+    EuroEntry("2023", null, listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023", "15 Jan 2023"))),
+    EuroEntry("2026", null, listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026", "1 Feb 2026"))),
 )
 
 /** Gli anni delle prime monete proprie: 2002 per Monaco, San Marino e Vaticano, 2014 per Andorra. */
@@ -170,6 +168,11 @@ internal val COIN_MATERIALS = listOf(
 
 /** Frase sotto i materiali: le fonti nominano i metalli ma non danno le percentuali, e non le inventiamo. */
 internal const val MATERIALS_NOTE = "The ECB and the Bundesbank name the metals but give no percentages."
+
+/** Sotto le due foto del 2007, a comparsa: cosa è cambiato e perché, in due frasi. */
+internal const val COMMON_SIDE_TEXT = "The old map drew the 15 EU countries as separate pieces, with gaps. " +
+    "The new one is a single Europe, from Iberia to the east. The EU had grown on 1 May 2004. " +
+    "It applies to 10, 20, 50 cent, 1 and 2 euro."
 
 private const val ECB_COMMON_IMAGES = "https://www.ecb.europa.eu/euro/coins/common/shared/img"
 

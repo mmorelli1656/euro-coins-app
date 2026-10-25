@@ -50,7 +50,6 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.michele.eurocoins.data.flagEmojiForIsoCode
 import com.michele.eurocoins.ui.detail.DetailCard
-import com.michele.eurocoins.ui.detail.SectionLabel
 import com.michele.eurocoins.ui.detail.SourceCredits
 import com.michele.eurocoins.ui.detail.SourceItem
 import com.michele.eurocoins.ui.detail.sansTitleMedium
@@ -58,23 +57,29 @@ import com.michele.eurocoins.ui.regular.DenominationCoin
 import com.michele.eurocoins.ui.regular.coinScaleFor
 
 /**
- * Segmento "The euro" di Insights, libero per tutti: come si è arrivati alla moneta unica e chi l'ha adottata, di
- * che metalli sono fatte le monete, cosa è cambiato nel lato comune nel 2007. Mockup approvato il 2026-10-25;
- * semplificato su richiesta ("troppo pesante e prolissa, con troppi indicatori"): una sola tinta, niente legenda,
- * niente cerchi con i conteggi, le tappe prima del 1999 chiuse finché non si aprono. Il riquadro con i dettagli di un
- * paese e la card che spiega il materiale di una moneta sono tornati dopo la prova sul telefono: piacevano.
+ * Pagina "The euro" di Insights, libera per tutti: come si è arrivati alla moneta unica e chi l'ha adottata (con la
+ * mappa del lato comune al 2007), di che metalli sono fatte le monete. Mockup approvato il 2026-10-25; semplificata su
+ * richiesta ("troppo pesante e prolissa, con troppi indicatori"): una sola tinta, niente legenda, niente cerchi con i
+ * conteggi, le tappe prima del 1999 e le due foto del 2007 chiuse finché non si aprono. Ogni voce della storia è
+ * un anno con un sottotesto facoltativo (niente titoli). Il riquadro con i dettagli di un paese e la card che spiega il
+ * materiale di una moneta sono tornati dopo la prova sul telefono: piacevano.
  */
 @Composable
 internal fun EuroTab() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         JoiningCard()
         MaterialsCard()
-        CommonSideCard()
         SourceCredits(
             sources = EURO_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
             licenseLine = "Photos: ECB",
         )
     }
+}
+
+/** Titolo di una card: 20 sp Bold nel colore del testo, come i titoli di sezione delle Impostazioni. */
+@Composable
+private fun InsightsTitle(text: String) {
+    Text(text = text, style = sansTitleMedium().copy(fontSize = 20.sp, fontWeight = FontWeight.Bold))
 }
 
 @Composable
@@ -85,7 +90,7 @@ private fun JoiningCard() {
     val toggle: (String) -> Unit = { iso -> selected = if (selected == iso) null else iso }
 
     DetailCard {
-        SectionLabel("Joining the euro")
+        InsightsTitle("The story of the euro")
         Text(
             text = "From the Treaty of Rome to 21 countries. Tap a country for its dates and rate.",
             style = MaterialTheme.typography.bodySmall,
@@ -103,12 +108,8 @@ private fun JoiningCard() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("The road to 1999", style = sansTitleMedium())
-                    Text(
-                        text = "${ROAD_STEPS.size} steps, from 1957",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text(ROAD_YEARS, style = sansTitleMedium())
+                    Body(ROAD_TEXT)
                 }
                 Icon(
                     imageVector = Icons.Filled.ExpandMore,
@@ -143,8 +144,8 @@ private fun JoiningCard() {
         EURO_ENTRIES.forEach { entry ->
             val items = entry.members.map { it.iso to it.name }
             val member = entry.members.firstOrNull { it.iso == selected }
-            // Senza titolo e con uno o due paesi: anno e paesi sulla stessa riga.
-            if (entry.title == null && items.size in 1..COMPACT_MAX) {
+            // Solo paesi (uno o due): anno e paesi sulla stessa riga, per non dedicare un'intera riga all'anno.
+            if (entry.text == null && !entry.maps && items.size in 1..COMPACT_MAX) {
                 TimelineRow(isLast = false, dotY = 20.dp, bottom = 8.dp) {
                     Row {
                         Text(entry.year, style = sansTitleMedium(), modifier = Modifier.width(56.dp).padding(top = 8.dp))
@@ -152,38 +153,24 @@ private fun JoiningCard() {
                             items.forEach { (iso, name) ->
                                 CountryItem(iso, name, selected = iso == selected, onClick = toggle, modifier = Modifier.fillMaxWidth())
                             }
-                            entry.note?.let { Note(it) }
                             member?.let { CountryPanel(it) }
                         }
                     }
                 }
             } else {
                 TimelineRow(isLast = false) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(entry.year, style = sansTitleMedium())
-                        entry.title?.let {
-                            Text(
-                                text = it,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(start = 10.dp),
-                            )
-                        }
-                    }
-                    entry.note?.let { Note(it) }
+                    Text(entry.year, style = sansTitleMedium())
+                    entry.text?.let { Body(it) }
                     if (items.isNotEmpty()) CountryGrid(items = items, selected = selected, onClick = toggle)
                     member?.let { CountryPanel(it) }
+                    if (entry.maps) CommonSideCompare()
                 }
             }
         }
 
         TimelineRow(isLast = true, dashed = true) {
             Text("By agreement", style = sansTitleMedium())
-            Text(
-                text = "They use the euro and mint their own coins, but are not euro area members.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Body("They use the euro and mint their own coins, but are not euro area members.")
             CountryGrid(
                 items = EURO_AGREEMENTS.map { it.iso to it.name },
                 selected = selected,
@@ -192,6 +179,12 @@ private fun JoiningCard() {
             EURO_AGREEMENTS.firstOrNull { it.iso == selected }?.let { AgreementPanel(it) }
         }
     }
+}
+
+/** Sottotesto di una voce della storia. */
+@Composable
+private fun Body(text: String) {
+    Text(text = text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
 }
 
 /** Una voce della timeline: pallino e linea a sinistra (una sola tinta), il contenuto a destra. */
@@ -231,7 +224,7 @@ private fun TimelineRow(
     }
 }
 
-/** Fino a questo numero di paesi, l'anno sta sulla stessa riga dei paesi. */
+/** Fino a questo numero di paesi (e senza sottotesto), l'anno sta sulla stessa riga dei paesi. */
 private const val COMPACT_MAX = 2
 
 /** Bandiera e nome per intero, due per riga; il tocco sceglie il paese. */
@@ -266,17 +259,44 @@ private fun CountryItem(iso: String, name: String, selected: Boolean, onClick: (
     }
 }
 
+/**
+ * Il confronto della mappa del lato comune, dentro la voce del 2007: una riga lilla (è un controllo) che apre le due
+ * foto BCE e due frasi. Chiuso di default, e le foto si scaricano solo quando si apre (niente rete se non si guarda).
+ */
 @Composable
-private fun Note(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 6.dp, top = 4.dp),
-    )
+private fun CommonSideCompare() {
+    var open by rememberSaveable { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clickable { open = !open }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Compare the old and the new map", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Icon(
+            imageVector = Icons.Filled.ExpandMore,
+            contentDescription = if (open) "Hide the maps" else "Show the maps",
+            modifier = Modifier.rotate(if (open) 180f else 0f),
+        )
+    }
+    Column(modifier = Modifier.animateContentSize()) {
+        if (open) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
+                MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
+            }
+            Text(COMMON_SIDE_TEXT, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp))
+        }
+    }
 }
 
-/** Il riquadro che si apre toccando un paese: date, vecchia valuta e tasso (le righe della BCE). */
 @Composable
 private fun CountryPanel(member: EuroMember) {
     Panel(member.name) {
@@ -336,7 +356,7 @@ private fun MaterialsCard() {
     val material = COIN_MATERIALS.first { it.taglio == selected }
 
     DetailCard {
-        SectionLabel("What the coins are made of")
+        InsightsTitle("What the coins are made of")
         Text(
             text = "Tap a coin.",
             style = MaterialTheme.typography.bodySmall,
@@ -392,29 +412,6 @@ private fun CoinChoice(taglio: String, selected: Boolean, onClick: () -> Unit, m
 
 private val COIN_SIZE = 40.dp
 
-@Composable
-private fun CommonSideCard() {
-    DetailCard {
-        SectionLabel("The common side changed")
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
-            MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
-        }
-        Fact("Before", "Each of the 15 EU countries is a separate piece, with gaps. Eastern Europe is missing.")
-        Fact("After", "One continuous Europe, from Iberia to the east.")
-        Fact("Why", "The EU grew on 1 May 2004.")
-        Text(
-            text = "Applies to 10, 20, 50 cent, 1 and 2 euro. Slovenia was first, on 1 January 2007.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 10.dp),
-        )
-    }
-}
-
 /**
  * Il dettaglio della mappa sul 50 cent: la foto BCE intera (540 px, moneta a filo) ritagliata sull'area della
  * mappa, che è dove cambia il disegno. Si ritaglia disegnando la foto più grande del riquadro e spostandola.
@@ -457,16 +454,3 @@ private const val CROP_LEFT = 20f
 private const val CROP_TOP = 50f
 private const val CROP_WIDTH = 240f
 private const val CROP_HEIGHT = 332f
-
-@Composable
-private fun Fact(label: String, text: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.width(60.dp),
-        )
-        Text(text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-    }
-}

@@ -564,12 +564,16 @@ contingente, non una tiratura).
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
-Tre card: (1) **storia**: timeline con una sola tinta, "The road to 1999" chiusa di default (6 tappe, 1957-1998, una riga
-ciascuna), poi gli anni di ingresso con bandiera e nome per intero (due per riga; con uno o due paesi e senza titolo
-l'anno sta sulla stessa riga). **Titoli** (dopo la prova sul telefono: "1999" faceva pensare che l'euro circolasse da
-allora): 1999 "The euro starts" (solo conti e pagamenti, le monete arrivano dopo), 2001 "A twelfth country", **2002
-"Coins and notes begin"** (una tappa senza paesi: è qui che l'euro arriva in tasca), e dal 2007 una nota una tantum ("coins
-and notes arrive the same day"). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
+Due card più le fonti: (1) **"The story of the euro"**: timeline con una sola tinta. **Ogni voce è un anno con un
+sottotesto facoltativo, niente titoli** (scelta del 2026-10-25: con titoli solo su alcune voci sembrava disomogenea, e per gli
+ingressi un titolo ripeterebbe i nomi dei paesi): "1957–1998 · Six steps to the single currency" è chiusa di default (le 6
+tappe si aprono con un tocco), poi 1999 ("The euro starts, as money in accounts and payments. Coins and notes come later."
+: senza questo "1999" faceva pensare che l'euro circolasse da allora), 2001 Grecia, **2002 "Coins and notes begin, in the
+twelve countries"** (una tappa senza paesi: è qui che l'euro arriva in tasca) e gli ingressi dal 2007, con bandiera e nome
+per intero (due per riga; con uno o due paesi e senza sottotesto l'anno sta sulla stessa riga). **Il confronto della mappa del
+lato comune sta nella voce del 2007** (la Slovenia è la prima a usare il disegno nuovo, il 1° gennaio 2007): una riga lilla
+"Compare the old and the new map" la apre, chiusa di default, e le due foto si scaricano solo allora. **I titoli delle card
+sono 20 sp Bold nel colore del testo** (`InsightsTitle`, come le Impostazioni; l'etichetta piccola in verde non bastava). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
 euro, Coins and notes, Only euro from, Replaced, Rate), come nel mockup: la versione con una frase sola era stata una
 semplificazione di troppo e al proprietario piaceva il riquadro; un blocco "By agreement" per Andorra, Monaco, San Marino e
 Vaticano ha il suo (Euro as official currency, Own euro coins from, Current agreement). **Semplificata su richiesta**
@@ -578,10 +582,10 @@ barra di avanzamento e 11 tappe prima del 1999. (2) **materiali**: otto monete i
 righe e, sotto, UNA CARD che spiega il materiale della moneta toccata (nome, spiegazione con cupronichel e ottone al nichel
 dentro la frase, diametro, peso, spessore, bordo, magnete): è la versione del primo mockup, che al proprietario piaceva più
 delle tre famiglie con il glossario a parte ("buttato a caso"); la BCE e la Bundesbank non danno le percentuali delle leghe
-e non si inventano. (3) **lato comune**: le foto BCE del 50 cent prima e dopo il 2007 in hotlink, ritagliate
-sull'area della mappa (`MapPhoto`: la foto è disegnata più grande e spostata; `requiredSize` la CENTRA, lo spostamento
-parte dalla metà dell'eccedenza), con tre frasi (prima: 15 paesi come pezzi separati; dopo: un'Europa continua; perché:
-l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la Commissione ammette riproduzioni piatte
+e non si inventano. **Lato comune** (dentro la voce del 2007): le foto BCE del 50 cent prima e dopo il 2007 in hotlink,
+ritagliate sull'area della mappa (`MapPhoto`: la foto è disegnata più grande e spostata; `requiredSize` la CENTRA, lo
+spostamento parte dalla metà dell'eccedenza), con una frase (prima: 15 paesi come pezzi separati; dopo: un'Europa continua;
+perché: l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la Commissione ammette riproduzioni piatte
 "non pregiudizievoli per l'immagine dell'euro" e non parla di app né di uso commerciale; stesso rischio accettato per le
 altre foto BCE. **Da verificare**: l'anno delle prime monete di San Marino (2002) non è confermato dalla pagina BCE; il
 "serpente" del 1972 è stato tolto dall'elenco (fonte debole). Dettaglio dei tassi: Germania e Bulgaria hanno lo stesso,

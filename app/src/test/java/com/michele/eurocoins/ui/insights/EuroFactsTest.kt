@@ -50,10 +50,26 @@ class EuroFactsTest {
     }
 
     @Test
-    fun theEntriesThatNeedATitleHaveOne() {
-        // Senza titolo "1999" faceva pensare che le monete girassero già da allora.
-        assertEquals("The euro starts", EURO_ENTRIES.first { it.year == "1999" }.title)
-        assertTrue(EURO_ENTRIES.first { it.year == "1999" }.note!!.contains("Coins and notes come later"))
+    fun the1999EntryDoesNotSuggestThatCoinsCirculateYet() {
+        // "1999" da solo faceva pensare che le monete girassero già da allora: il sottotesto lo dice.
+        assertTrue(EURO_ENTRIES.first { it.year == "1999" }.text!!.contains("Coins and notes come later"))
+    }
+
+    @Test
+    fun theCommonSideMapsAreInTheYearOfTheFirstCountryToUseThem() {
+        // La Slovenia, il 1° gennaio 2007, è la prima a usare il lato comune ridisegnato.
+        val entry = EURO_ENTRIES.single { it.maps }
+        assertEquals("2007", entry.year)
+        assertEquals(listOf("SI"), entry.members.map { it.iso })
+    }
+
+    @Test
+    fun theRoadEntryTextMatchesTheNumberOfSteps() {
+        assertEquals(6, ROAD_STEPS.size)
+        assertTrue(ROAD_TEXT.startsWith("Six "))
+        assertEquals("1957–1998", ROAD_YEARS)
+        assertEquals("1957", ROAD_STEPS.first().year)
+        assertEquals("1998", ROAD_STEPS.last().year)
     }
 
     @Test
