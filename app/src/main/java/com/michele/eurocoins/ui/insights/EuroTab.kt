@@ -40,7 +40,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
@@ -70,6 +69,7 @@ import com.michele.eurocoins.ui.regular.coinScaleFor
 internal fun EuroTab() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         JoiningCard()
+        AgreementCard()
         MaterialsCard()
         SourceCredits(
             sources = EURO_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
@@ -143,10 +143,10 @@ private fun JoiningCard() {
             }
         }
 
-        EURO_ENTRIES.forEach { entry ->
+        EURO_ENTRIES.forEachIndexed { index, entry ->
             val items = entry.members.map { it.iso to it.name }
-            // Tutte le voci hanno la stessa forma: anno, sottotesto, paesi (se ce ne sono).
-            TimelineRow(isLast = false) {
+            // Tutte le voci hanno la stessa forma: anno, sottotesto, paesi (se ce ne sono). L'ultima chiude la linea.
+            TimelineRow(isLast = index == EURO_ENTRIES.lastIndex) {
                 Text(entry.year, style = sansTitleMedium())
                 Body(entry.text)
                 if (items.isNotEmpty()) CountryGrid(items = items, selected = selected, onClick = toggle)
@@ -154,17 +154,32 @@ private fun JoiningCard() {
                 if (entry.maps) CommonSideCompare()
             }
         }
+    }
+}
 
-        TimelineRow(isLast = true, dashed = true) {
-            Text("By agreement", style = sansTitleMedium())
-            Body("They use the euro and mint their own coins, but are not euro area members.")
-            CountryGrid(
-                items = EURO_AGREEMENTS.map { it.iso to it.name },
-                selected = selected,
-                onClick = toggle,
-            )
-            EURO_AGREEMENTS.firstOrNull { it.iso == selected }?.let { AgreementPanel(it) }
-        }
+/**
+ * Gli stati che usano l'euro per accordo: una card a parte, non l'ultima voce della timeline (2026-10-25: in fondo alla
+ * cronologia sembrava un fatto avvenuto dopo il 2026, e invece non ha una data: Monaco, San Marino e il Vaticano lo
+ * usano dal 1999, Andorra dal 2002).
+ */
+@Composable
+private fun AgreementCard() {
+    var selected by rememberSaveable { mutableStateOf<String?>(null) }
+    DetailCard {
+        InsightsTitle("Also using the euro")
+        Text(
+            text = "4 countries use the euro and mint their own coins under agreements with the EU. " +
+                "They are not euro area members. Tap one for its details.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        CountryGrid(
+            items = EURO_AGREEMENTS.map { it.iso to it.name },
+            selected = selected,
+            onClick = { iso -> selected = if (selected == iso) null else iso },
+        )
+        EURO_AGREEMENTS.firstOrNull { it.iso == selected }?.let { AgreementPanel(it) }
     }
 }
 
@@ -178,7 +193,6 @@ private fun Body(text: String) {
 @Composable
 private fun TimelineRow(
     isLast: Boolean,
-    dashed: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val dotY = 12.dp
@@ -197,7 +211,6 @@ private fun TimelineRow(
                             start = Offset(x, dotY.toPx()),
                             end = Offset(x, size.height),
                             strokeWidth = 2.dp.toPx(),
-                            pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(8f, 8f)) else null,
                         )
                     }
                     drawCircle(color = dot, radius = 5.dp.toPx(), center = Offset(x, dotY.toPx()))
