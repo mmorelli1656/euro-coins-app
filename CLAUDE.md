@@ -556,14 +556,26 @@ schede a segmenti** (stessa grammatica di Years / Countries / All): **History** 
 per accordo, la mappa del 2007), **Coins** (di che metalli sono fatte le monete) e **Statistics** (Pro, lucchetto
 sull'etichetta da Free). Divisione scelta con il proprietario il 2026-10-25: la pagina era arrivata a più di quattro
 schermate con due argomenti scollegati, la storia (da leggere) e i materiali (da toccare); il selettore sta fermo in alto
-mentre si scorre, ogni scheda ha le sue fonti e riparte dall'alto. **Statistics è per ora un segnaposto** ("Go Pro" da
-Free, "Coming soon" da Pro): una sola scheda e non Collection e Spending separate, per non avere quattro segmenti. Pagina
-unica con segmenti e non una voce a parte (con lo scorrimento unico il lucchetto sarebbe finito a metà pagina). Non ancora
-fatto: aprire da Pro sull'ultima scheda vista (ora si apre sempre su History). Il nome "Insights" è provvisorio
-(questione di secondo ordine). Le statistiche (completamento per paese e catalogo, finiture, spesa con la riga "basato su N
-monete con un prezzo") sono nel mockup del 2026-10-24 ma non scritte. Regole decise per le statistiche: niente valore di
-mercato (nessuna fonte, e sfiora il consiglio finanziario), niente classifica di rarità dalle tirature (7 paesi hanno un
-contingente, non una tiratura).
+mentre si scorre, ogni scheda ha le sue fonti e riparte dall'alto. **Statistics** (Pro, `StatisticsTab.kt`, conti
+puri in `data/CollectionStats.kt` con `CollectionStatsTest`, `InsightsViewModel`): una sola scheda e non Collection e
+Spending separate, per non avere quattro segmenti. Pagina unica con segmenti e non una voce a parte (con lo scorrimento
+unico il lucchetto sarebbe finito a metà pagina). Non ancora fatto: aprire da Pro sull'ultima scheda vista (ora si apre
+sempre su History). Il nome "Insights" è provvisorio (questione di secondo ordine).
+
+**Contenuto di Statistics** (deciso con il proprietario il 2026-10-25 dopo due giri di mockup), in quest'ordine: **Your
+collection** (totale e le due barre: 93 / 613 e 195 / 328 = 288 / 941, gli stessi conti della Home), **By country** (un
+elenco, non la mappa a tessere, "non mi fa impazzire": bandiera, nome, barra, "x / y · n missing"; chip
+Commemorative / Regular Issues; ordine "Closest to complete" (completi in fondo) o A to Z; 6 paesi e "Show all"; il tocco
+apre la lista del paese già su Missing, o la schermata Regular del paese), **Milestones** (paesi, anni, serie Regular e
+emissioni comuni completi), **By year** (completamento commemorative 2004-2026), **By finish** (Standard / BU / Proof, una
+moneta con più finiture conta in ciascuna) e **Spending** (solo se almeno una voce ha un prezzo; "Based on N of M items with a
+price"; spesa per anno solo con prezzo e data). **Free o Pro: tutta la scheda è Pro**, con un'anteprima sfocata di "Your
+collection" e l'invito (il blur c'è da Android 12; sotto resta attenuata). Scartate: **Added over time** (le monete si
+registrano a gruppi, grafico a scalini), la mappa a tessere, il valore di mercato (nessuna fonte, sfiora il consiglio
+finanziario) e la classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tiratura). La spesa conta anche
+le voci di monete nascoste (microstati): i soldi sono spesi comunque; i progressi no. `CoinListViewModel(startMissing)` e la
+rotta `coins/{kind}/{value}?missing=true` servono al tocco su un paese. **Non provata sul telefono** (schermo spento al
+momento della consegna): da guardare il layout, il blur e il tocco sui paesi.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
