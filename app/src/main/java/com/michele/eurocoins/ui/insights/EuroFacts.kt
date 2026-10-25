@@ -24,14 +24,15 @@ internal class EuroMember(
 )
 
 /**
- * Una voce della storia: l'anno e, se serve, un sottotesto (niente titoli: l'anno fa da titolo, scelta del 2026-10-25
- * perché con titoli solo su alcune voci la timeline sembrava disomogenea). [members] sono i paesi entrati quell'anno
- * (vuoto per una tappa come le monete del 2002). [maps]: la voce porta il confronto della mappa prima e dopo il 2007
- * (a comparsa).
+ * Una voce della storia: l'anno e un sottotesto, SEMPRE (niente titoli: l'anno fa da titolo; e dove c'era solo l'anno
+ * con le bandiere, accanto a voci con il sottotesto, "stonava": scelta del 2026-10-25). Per gli ingressi il sottotesto
+ * dice il numero d'ordine ("The sixteenth country joins."), che non ripete i nomi dei paesi. [members] sono i paesi
+ * entrati quell'anno (vuoto per una tappa come le monete del 2002). [maps]: la voce porta il confronto della mappa
+ * prima e dopo il 2007 (a comparsa).
  */
 internal class EuroEntry(
     val year: String,
-    val text: String?,
+    val text: String,
     val members: List<EuroMember>,
     val maps: Boolean = false,
 )
@@ -39,12 +40,21 @@ internal class EuroEntry(
 /** Una tappa verso la moneta unica, prima del 1999. */
 internal class RoadStep(val year: String, val title: String, val text: String)
 
-/** Uno stato che usa l'euro per accordo con l'UE, senza essere nell'area euro. */
+/**
+ * Uno stato che usa l'euro per accordo con l'UE, senza essere nell'area euro. Ha le stesse righe di un paese dell'area
+ * ([since] = "Uses the euro since", [coins], [replaced], [rate]; scelta del 2026-10-25: nel riquadro non devono mancare
+ * le informazioni degli altri paesi) più due in più: [ownCoinsFrom] e [agreement]. [replaced] e [rate] sono già testo:
+ * Monaco aveva il franco francese, San Marino e il Vaticano la lira, Andorra non aveva una moneta sua e usava franco e
+ * peseta senza che avessero corso legale.
+ */
 internal class AgreementState(
     val iso: String,
     val name: String,
-    val official: String,
-    val coinsFrom: String,
+    val since: String,
+    val coins: String,
+    val replaced: String,
+    val rate: String,
+    val ownCoinsFrom: String,
     val agreement: String,
 )
 
@@ -83,36 +93,54 @@ internal val EURO_ENTRIES = listOf(
             EuroMember("ES", "Spain", "Spanish peseta", "ESP", "166.386", FIRST_GROUP, COINS_2002, null),
         ),
     ),
-    EuroEntry("2001", null, listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002, null))),
+    EuroEntry("2001", "The twelfth country joins. Its coins and notes follow in 2002.", listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002, null))),
     // Una tappa senza paesi: è qui che l'euro arriva in tasca (le banconote e le monete dei 12).
     EuroEntry("2002", "Coins and notes begin, in the twelve countries.", emptyList()),
     EuroEntry(
         year = "2007",
-        text = "Slovenia joins and is the first to use the redrawn common side.",
+        text = "The thirteenth country joins, with coins and notes from the first day. " +
+            "It is the first to use the redrawn common side.",
         members = listOf(EuroMember("SI", "Slovenia", "Slovenian tolar", "SIT", "239.640", "1 Jan 2007", "1 Jan 2007", "15 Jan 2007")),
         maps = true,
     ),
     EuroEntry(
-        "2008", null,
+        "2008", "Two more countries join: the fourteenth and the fifteenth.",
         listOf(
             EuroMember("CY", "Cyprus", "Cypriot pound", "CYP", "0.585274", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
             EuroMember("MT", "Malta", "Maltese lira", "MTL", "0.429300", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
         ),
     ),
-    EuroEntry("2009", null, listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009", "17 Jan 2009"))),
-    EuroEntry("2011", null, listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011", "15 Jan 2011"))),
-    EuroEntry("2014", null, listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014", "15 Jan 2014"))),
-    EuroEntry("2015", null, listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015", "16 Jan 2015"))),
-    EuroEntry("2023", null, listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023", "15 Jan 2023"))),
-    EuroEntry("2026", null, listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026", "1 Feb 2026"))),
+    EuroEntry("2009", "The sixteenth country joins.", listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009", "17 Jan 2009"))),
+    EuroEntry("2011", "The seventeenth country joins.", listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011", "15 Jan 2011"))),
+    EuroEntry("2014", "The eighteenth country joins.", listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014", "15 Jan 2014"))),
+    EuroEntry("2015", "The nineteenth country joins.", listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015", "16 Jan 2015"))),
+    EuroEntry("2023", "The twentieth country joins.", listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023", "15 Jan 2023"))),
+    EuroEntry("2026", "The twenty-first country joins.", listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026", "1 Feb 2026"))),
 )
 
 /** Gli anni delle prime monete proprie: 2002 per Monaco, San Marino e Vaticano, 2014 per Andorra. */
 internal val EURO_AGREEMENTS = listOf(
-    AgreementState("AD", "Andorra", "Agreement applied from 1 Apr 2012", "Jan 2014", "Signed 30 Jun 2011"),
-    AgreementState("MC", "Monaco", FIRST_GROUP, "2002", "In force 1 Dec 2011"),
-    AgreementState("SM", "San Marino", FIRST_GROUP, "2002", "In force 1 Sep 2012"),
-    AgreementState("VA", "Vatican City", FIRST_GROUP, "2002", "In force 1 Jan 2010"),
+    AgreementState(
+        "AD", "Andorra", since = "2002", coins = COINS_2002,
+        replaced = "French franc and Spanish peseta, used without legal tender",
+        rate = "€1 = 6.55957 FRF or 166.386 ESP",
+        ownCoinsFrom = "Jan 2014", agreement = "Signed 30 Jun 2011",
+    ),
+    AgreementState(
+        "MC", "Monaco", since = FIRST_GROUP, coins = COINS_2002,
+        replaced = "French franc (FRF)", rate = "€1 = 6.55957 FRF",
+        ownCoinsFrom = "2002", agreement = "In force 1 Dec 2011",
+    ),
+    AgreementState(
+        "SM", "San Marino", since = FIRST_GROUP, coins = COINS_2002,
+        replaced = "Italian lira (ITL)", rate = "€1 = 1,936.27 ITL",
+        ownCoinsFrom = "2002", agreement = "In force 1 Sep 2012",
+    ),
+    AgreementState(
+        "VA", "Vatican City", since = FIRST_GROUP, coins = COINS_2002,
+        replaced = "Italian lira (ITL)", rate = "€1 = 1,936.27 ITL",
+        ownCoinsFrom = "2002", agreement = "In force 1 Jan 2010",
+    ),
 )
 
 /**
@@ -186,5 +214,6 @@ internal val EURO_SOURCES = listOf(
     Triple("Joining", "ECB", "https://www.ecb.europa.eu/euro/changeover/html/index.en.html"),
     Triple("Coins", "ECB", "https://www.ecb.europa.eu/euro/coins/common/html/index.en.html"),
     Triple("Metals", "Bundesbank", "https://www.bundesbank.de/en/tasks/cash-management/frequently-asked-questions/frequently-asked-questions-euro-coins"),
+    Triple("Agreements", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/legislation-euro-coins_en"),
     Triple("Design", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/common-sides-euro-coins_en"),
 )

@@ -565,18 +565,25 @@ contingente, non una tiratura).
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
 Due card più le fonti: (1) **"The story of the euro"**: timeline con una sola tinta. **Ogni voce è un anno con un
-sottotesto facoltativo, niente titoli** (scelta del 2026-10-25: con titoli solo su alcune voci sembrava disomogenea, e per gli
-ingressi un titolo ripeterebbe i nomi dei paesi): "1957–1998 · Six steps to the single currency" è chiusa di default (le 6
+sottotesto, SEMPRE, e la stessa forma (anno, sottotesto, paesi); niente titoli** (scelta del 2026-10-25: con titoli solo su
+alcune voci sembrava disomogenea; poi anche le voci con solo anno e bandiere "stonavano" accanto a quelle con il
+sottotesto, e il layout compatto con l'anno a sinistra è stato tolto: `EuroFactsTest` controlla che nessuna voce sia senza
+testo). Per gli ingressi il sottotesto è il numero d'ordine ("The sixteenth country joins."), che non ripete i nomi dei
+paesi e dice quanti sono; un titolo li ripeterebbe. "1957–1998 · Six steps to the single currency" è chiusa di default (le 6
 tappe si aprono con un tocco), poi 1999 ("The euro starts, as money in accounts and payments. Coins and notes come later."
 : senza questo "1999" faceva pensare che l'euro circolasse da allora), 2001 Grecia, **2002 "Coins and notes begin, in the
 twelve countries"** (una tappa senza paesi: è qui che l'euro arriva in tasca) e gli ingressi dal 2007, con bandiera e nome
-per intero (due per riga; con uno o due paesi e senza sottotesto l'anno sta sulla stessa riga). **Il confronto della mappa del
+per intero (due per riga). **Il confronto della mappa del
 lato comune sta nella voce del 2007** (la Slovenia è la prima a usare il disegno nuovo, il 1° gennaio 2007): una riga lilla
 "Compare the old and the new map" la apre, chiusa di default, e le due foto si scaricano solo allora. **I titoli delle card
 sono 20 sp Bold nel colore del testo** (`InsightsTitle`, come le Impostazioni; l'etichetta piccola in verde non bastava). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
 euro, Coins and notes, Only euro from, Replaced, Rate), come nel mockup: la versione con una frase sola era stata una
 semplificazione di troppo e al proprietario piaceva il riquadro; un blocco "By agreement" per Andorra, Monaco, San Marino e
-Vaticano ha il suo (Euro as official currency, Own euro coins from, Current agreement). **Semplificata su richiesta**
+Vaticano ha un riquadro con **le stesse righe degli altri** (Uses the euro since, Coins and notes, Replaced, Rate: scelta
+del 2026-10-25, "nella scheda non compaiono le stesse info degli altri stati") più le due solo loro (Own euro coins from,
+Agreement). Monaco sostituì il franco francese (6,55957), San Marino e Vaticano la lira (1.936,27); Andorra non aveva una
+moneta sua e usava franco e peseta senza corso legale, quindi mostra entrambi i tassi (6,55957 FRF o 166,386 ESP) e "2002"
+come anno d'uso (l'accordo è del 2011, applicato dal 1° aprile 2012). **Semplificata su richiesta**
 ("troppo pesante e prolissa, con troppi indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate,
 barra di avanzamento e 11 tappe prima del 1999. (2) **materiali**: otto monete in scala (`DenominationCoin`) in due
 righe e, sotto, UNA CARD che spiega il materiale della moneta toccata (nome, spiegazione con cupronichel e ottone al nichel

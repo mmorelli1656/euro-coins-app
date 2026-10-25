@@ -143,28 +143,13 @@ private fun JoiningCard() {
 
         EURO_ENTRIES.forEach { entry ->
             val items = entry.members.map { it.iso to it.name }
-            val member = entry.members.firstOrNull { it.iso == selected }
-            // Solo paesi (uno o due): anno e paesi sulla stessa riga, per non dedicare un'intera riga all'anno.
-            if (entry.text == null && !entry.maps && items.size in 1..COMPACT_MAX) {
-                TimelineRow(isLast = false, dotY = 20.dp, bottom = 8.dp) {
-                    Row {
-                        Text(entry.year, style = sansTitleMedium(), modifier = Modifier.width(56.dp).padding(top = 8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            items.forEach { (iso, name) ->
-                                CountryItem(iso, name, selected = iso == selected, onClick = toggle, modifier = Modifier.fillMaxWidth())
-                            }
-                            member?.let { CountryPanel(it) }
-                        }
-                    }
-                }
-            } else {
-                TimelineRow(isLast = false) {
-                    Text(entry.year, style = sansTitleMedium())
-                    entry.text?.let { Body(it) }
-                    if (items.isNotEmpty()) CountryGrid(items = items, selected = selected, onClick = toggle)
-                    member?.let { CountryPanel(it) }
-                    if (entry.maps) CommonSideCompare()
-                }
+            // Tutte le voci hanno la stessa forma: anno, sottotesto, paesi (se ce ne sono).
+            TimelineRow(isLast = false) {
+                Text(entry.year, style = sansTitleMedium())
+                Body(entry.text)
+                if (items.isNotEmpty()) CountryGrid(items = items, selected = selected, onClick = toggle)
+                entry.members.firstOrNull { it.iso == selected }?.let { CountryPanel(it) }
+                if (entry.maps) CommonSideCompare()
             }
         }
 
@@ -192,10 +177,9 @@ private fun Body(text: String) {
 private fun TimelineRow(
     isLast: Boolean,
     dashed: Boolean = false,
-    dotY: Dp = 12.dp,
-    bottom: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val dotY = 12.dp
     val line = MaterialTheme.colorScheme.outline
     val dot = MaterialTheme.colorScheme.primary
     Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
@@ -218,14 +202,11 @@ private fun TimelineRow(
                 },
         )
         Column(
-            modifier = Modifier.weight(1f).padding(start = 8.dp, bottom = if (isLast) 0.dp else bottom),
+            modifier = Modifier.weight(1f).padding(start = 8.dp, bottom = if (isLast) 0.dp else 16.dp),
             content = content,
         )
     }
 }
-
-/** Fino a questo numero di paesi (e senza sottotesto), l'anno sta sulla stessa riga dei paesi. */
-private const val COMPACT_MAX = 2
 
 /** Bandiera e nome per intero, due per riga; il tocco sceglie il paese. */
 @Composable
@@ -310,11 +291,14 @@ private fun CountryPanel(member: EuroMember) {
 
 @Composable
 private fun AgreementPanel(state: AgreementState) {
+    // Le stesse righe di un paese dell'area euro, più le due che solo gli stati per accordo hanno.
     Panel(state.name) {
-        PanelRow("Euro as official currency", state.official, first = true)
-        PanelRow("Own euro coins from", state.coinsFrom)
-        PanelRow("Current agreement", state.agreement)
-        PanelRow("Status", "By agreement, not a member")
+        PanelRow("Uses the euro since", state.since, first = true)
+        PanelRow("Coins and notes", state.coins)
+        PanelRow("Replaced", state.replaced)
+        PanelRow("Rate", state.rate)
+        PanelRow("Own euro coins from", state.ownCoinsFrom)
+        PanelRow("Agreement", state.agreement)
     }
 }
 

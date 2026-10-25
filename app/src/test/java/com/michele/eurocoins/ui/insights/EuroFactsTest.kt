@@ -52,7 +52,45 @@ class EuroFactsTest {
     @Test
     fun the1999EntryDoesNotSuggestThatCoinsCirculateYet() {
         // "1999" da solo faceva pensare che le monete girassero già da allora: il sottotesto lo dice.
-        assertTrue(EURO_ENTRIES.first { it.year == "1999" }.text!!.contains("Coins and notes come later"))
+        assertTrue(EURO_ENTRIES.first { it.year == "1999" }.text.contains("Coins and notes come later"))
+    }
+
+    @Test
+    fun everyEntryHasASubtextSoTheTimelineLooksTheSame() {
+        assertTrue(EURO_ENTRIES.all { it.text.isNotBlank() })
+    }
+
+    @Test
+    fun theOrdinalSubtextsMatchTheRunningCountOfCountries() {
+        val ordinals = listOf(
+            "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth",
+            "nineteenth", "twentieth", "twenty-first",
+        )
+        var count = 0
+        for (entry in EURO_ENTRIES) {
+            val before = count
+            count += entry.members.size
+            if (before < 11) continue
+            for (n in before + 1..count) {
+                if (entry.members.isEmpty()) continue
+                assertTrue("${entry.year}: manca '${ordinals[n - 12]}'", entry.text.contains(ordinals[n - 12]))
+            }
+        }
+        assertEquals(21, count)
+    }
+
+    @Test
+    fun theAgreementStatesShowTheSameInformationAsTheEuroAreaCountries() {
+        for (a in EURO_AGREEMENTS) {
+            assertTrue("${a.name}: since", a.since.isNotBlank())
+            assertTrue("${a.name}: coins", a.coins.isNotBlank())
+            assertTrue("${a.name}: replaced", a.replaced.isNotBlank())
+            assertTrue("${a.name}: rate", a.rate.startsWith("€1 = "))
+        }
+        // I tassi sono quelli delle monete che sostituiscono: franco francese e lira italiana.
+        assertTrue(EURO_AGREEMENTS.single { it.iso == "MC" }.rate.contains("6.55957 FRF"))
+        assertTrue(EURO_AGREEMENTS.single { it.iso == "VA" }.rate.contains("1,936.27 ITL"))
+        assertTrue(EURO_AGREEMENTS.single { it.iso == "SM" }.rate.contains("1,936.27 ITL"))
     }
 
     @Test
