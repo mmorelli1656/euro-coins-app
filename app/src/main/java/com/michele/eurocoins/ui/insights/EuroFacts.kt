@@ -9,8 +9,9 @@ package com.michele.eurocoins.ui.insights
 
 /**
  * Un paese dell'area euro. [rate] è quanto vale 1 euro in [code], scritto come lo scrive la BCE. [joined] è quando
- * ha adottato l'euro, [coins] quando sono arrivati monete e banconote, [onlyEuro] il primo giorno in cui la vecchia
- * valuta non vale più (null dove non è noto con certezza: il primo gruppo e la Grecia).
+ * ha adottato l'euro, [coins] quando sono arrivati monete e banconote. Il riquadro ha quattro righe uguali per tutti:
+ * c'era una quinta ("Only euro from", l'ultimo giorno di doppia circolazione) solo per i paesi dal 2007, perché per i
+ * primi 12 la data non era verificata; tolta il 2026-10-25 perché disomogenea e poco chiara.
  */
 internal class EuroMember(
     val iso: String,
@@ -20,7 +21,6 @@ internal class EuroMember(
     val rate: String,
     val joined: String,
     val coins: String,
-    val onlyEuro: String?,
 )
 
 /**
@@ -80,50 +80,51 @@ internal val EURO_ENTRIES = listOf(
         year = "1999",
         text = "The euro starts, as money in accounts and payments. Coins and notes come later.",
         members = listOf(
-            EuroMember("AT", "Austria", "Austrian schilling", "ATS", "13.7603", FIRST_GROUP, COINS_2002, null),
-            EuroMember("BE", "Belgium", "Belgian franc", "BEF", "40.3399", FIRST_GROUP, COINS_2002, null),
-            EuroMember("FI", "Finland", "Finnish markka", "FIM", "5.94573", FIRST_GROUP, COINS_2002, null),
-            EuroMember("FR", "France", "French franc", "FRF", "6.55957", FIRST_GROUP, COINS_2002, null),
-            EuroMember("DE", "Germany", "Deutsche Mark", "DEM", "1.95583", FIRST_GROUP, COINS_2002, null),
-            EuroMember("IE", "Ireland", "Irish pound", "IEP", "0.787564", FIRST_GROUP, COINS_2002, null),
-            EuroMember("IT", "Italy", "Italian lira", "ITL", "1,936.27", FIRST_GROUP, COINS_2002, null),
-            EuroMember("LU", "Luxembourg", "Luxembourg franc", "LUF", "40.3399", FIRST_GROUP, COINS_2002, null),
-            EuroMember("NL", "Netherlands", "Dutch guilder", "NLG", "2.20371", FIRST_GROUP, COINS_2002, null),
-            EuroMember("PT", "Portugal", "Portuguese escudo", "PTE", "200.482", FIRST_GROUP, COINS_2002, null),
-            EuroMember("ES", "Spain", "Spanish peseta", "ESP", "166.386", FIRST_GROUP, COINS_2002, null),
+            EuroMember("AT", "Austria", "Austrian schilling", "ATS", "13.7603", FIRST_GROUP, COINS_2002),
+            EuroMember("BE", "Belgium", "Belgian franc", "BEF", "40.3399", FIRST_GROUP, COINS_2002),
+            EuroMember("FI", "Finland", "Finnish markka", "FIM", "5.94573", FIRST_GROUP, COINS_2002),
+            EuroMember("FR", "France", "French franc", "FRF", "6.55957", FIRST_GROUP, COINS_2002),
+            EuroMember("DE", "Germany", "Deutsche Mark", "DEM", "1.95583", FIRST_GROUP, COINS_2002),
+            EuroMember("IE", "Ireland", "Irish pound", "IEP", "0.787564", FIRST_GROUP, COINS_2002),
+            EuroMember("IT", "Italy", "Italian lira", "ITL", "1,936.27", FIRST_GROUP, COINS_2002),
+            EuroMember("LU", "Luxembourg", "Luxembourg franc", "LUF", "40.3399", FIRST_GROUP, COINS_2002),
+            EuroMember("NL", "Netherlands", "Dutch guilder", "NLG", "2.20371", FIRST_GROUP, COINS_2002),
+            EuroMember("PT", "Portugal", "Portuguese escudo", "PTE", "200.482", FIRST_GROUP, COINS_2002),
+            EuroMember("ES", "Spain", "Spanish peseta", "ESP", "166.386", FIRST_GROUP, COINS_2002),
         ),
     ),
-    EuroEntry("2001", "The twelfth country joins. Its coins and notes follow in 2002.", listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002, null))),
+    EuroEntry("2001", "The twelfth country joins. Its coins and notes follow in 2002.", listOf(EuroMember("GR", "Greece", "Greek drachma", "GRD", "340.750", "1 Jan 2001", COINS_2002))),
     // Una tappa senza paesi: è qui che l'euro arriva in tasca (le banconote e le monete dei 12).
     EuroEntry("2002", "Coins and notes begin, in the twelve countries.", emptyList()),
     EuroEntry(
         year = "2007",
         text = "The thirteenth country joins, with coins and notes from the first day. " +
             "It is the first to use the redrawn common side.",
-        members = listOf(EuroMember("SI", "Slovenia", "Slovenian tolar", "SIT", "239.640", "1 Jan 2007", "1 Jan 2007", "15 Jan 2007")),
+        members = listOf(EuroMember("SI", "Slovenia", "Slovenian tolar", "SIT", "239.640", "1 Jan 2007", "1 Jan 2007")),
         maps = true,
     ),
     EuroEntry(
         "2008", "Two more countries join: the fourteenth and the fifteenth.",
         listOf(
-            EuroMember("CY", "Cyprus", "Cypriot pound", "CYP", "0.585274", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
-            EuroMember("MT", "Malta", "Maltese lira", "MTL", "0.429300", "1 Jan 2008", "1 Jan 2008", "1 Feb 2008"),
+            EuroMember("CY", "Cyprus", "Cypriot pound", "CYP", "0.585274", "1 Jan 2008", "1 Jan 2008"),
+            EuroMember("MT", "Malta", "Maltese lira", "MTL", "0.429300", "1 Jan 2008", "1 Jan 2008"),
         ),
     ),
-    EuroEntry("2009", "The sixteenth country joins.", listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009", "17 Jan 2009"))),
-    EuroEntry("2011", "The seventeenth country joins.", listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011", "15 Jan 2011"))),
-    EuroEntry("2014", "The eighteenth country joins.", listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014", "15 Jan 2014"))),
-    EuroEntry("2015", "The nineteenth country joins.", listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015", "16 Jan 2015"))),
-    EuroEntry("2023", "The twentieth country joins.", listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023", "15 Jan 2023"))),
-    EuroEntry("2026", "The twenty-first country joins.", listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026", "1 Feb 2026"))),
+    EuroEntry("2009", "The sixteenth country joins.", listOf(EuroMember("SK", "Slovakia", "Slovak koruna", "SKK", "30.1260", "1 Jan 2009", "1 Jan 2009"))),
+    EuroEntry("2011", "The seventeenth country joins.", listOf(EuroMember("EE", "Estonia", "Estonian kroon", "EEK", "15.6466", "1 Jan 2011", "1 Jan 2011"))),
+    EuroEntry("2014", "The eighteenth country joins.", listOf(EuroMember("LV", "Latvia", "Latvian lats", "LVL", "0.702804", "1 Jan 2014", "1 Jan 2014"))),
+    EuroEntry("2015", "The nineteenth country joins.", listOf(EuroMember("LT", "Lithuania", "Lithuanian litas", "LTL", "3.45280", "1 Jan 2015", "1 Jan 2015"))),
+    EuroEntry("2023", "The twentieth country joins.", listOf(EuroMember("HR", "Croatia", "Croatian kuna", "HRK", "7.53450", "1 Jan 2023", "1 Jan 2023"))),
+    EuroEntry("2026", "The twenty-first country joins.", listOf(EuroMember("BG", "Bulgaria", "Bulgarian lev", "BGN", "1.95583", "1 Jan 2026", "1 Jan 2026"))),
 )
 
 /** Gli anni delle prime monete proprie: 2002 per Monaco, San Marino e Vaticano, 2014 per Andorra. */
 internal val EURO_AGREEMENTS = listOf(
     AgreementState(
         "AD", "Andorra", since = "2002", coins = COINS_2002,
-        replaced = "French franc and Spanish peseta",
-        rate = "€1 = 6.55957 FRF or 166.386 ESP",
+        // Due monete: una per riga, a destra, invece di una frase lunga che va a capo a metà parola.
+        replaced = "French franc (FRF)\nSpanish peseta (ESP)",
+        rate = "€1 = 6.55957 FRF\n€1 = 166.386 ESP",
         ownCoinsFrom = "Jan 2014", agreement = "Signed 30 Jun 2011",
     ),
     AgreementState(

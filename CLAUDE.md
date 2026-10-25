@@ -577,13 +577,15 @@ per intero (due per riga). **Il confronto della mappa del
 lato comune sta nella voce del 2007** (la Slovenia è la prima a usare il disegno nuovo, il 1° gennaio 2007): una riga lilla
 "Compare the old and the new map" la apre, chiusa di default, e le due foto si scaricano solo allora. **I titoli delle card
 sono 20 sp Bold nel colore del testo** (`InsightsTitle`, come le Impostazioni; l'etichetta piccola in verde non bastava). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
-euro, Coins and notes, Only euro from, Replaced, Rate), come nel mockup: la versione con una frase sola era stata una
+euro, Coins and notes, Replaced, Rate: **quattro righe uguali per tutti**; c'era una quinta, "Only euro from", l'ultimo
+giorno di doppia circolazione, solo dal 2007 perché per i primi 12 la data non era verificata: tolta il 2026-10-25 perché
+disomogenea e poco chiara, e anche dai dati), come nel mockup: la versione con una frase sola era stata una
 semplificazione di troppo e al proprietario piaceva il riquadro; un blocco "By agreement" per Andorra, Monaco, San Marino e
 Vaticano ha un riquadro con **le stesse righe degli altri** (Uses the euro since, Coins and notes, Replaced, Rate: scelta
 del 2026-10-25, "nella scheda non compaiono le stesse info degli altri stati") più le due solo loro (Own euro coins from,
 Agreement). Monaco sostituì il franco francese (6,55957), San Marino e Vaticano la lira (1.936,27); Andorra non aveva una
-moneta sua e usava franco e peseta senza corso legale, quindi mostra entrambi i tassi (6,55957 FRF o 166,386 ESP) e "2002"
-come anno d'uso (l'accordo è del 2011, applicato dal 1° aprile 2012). **Semplificata su richiesta**
+moneta sua e usava franco e peseta senza corso legale, quindi mostra entrambe le monete con la sigla e i due tassi, ciascuno su una riga (un valore lungo andava
+a capo a metà frase), e "2002" come anno d'uso (l'accordo è del 2011, applicato dal 1° aprile 2012). **Semplificata su richiesta**
 ("troppo pesante e prolissa, con troppi indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate,
 barra di avanzamento e 11 tappe prima del 1999. (2) **materiali**: otto monete in scala (`DenominationCoin`) in due
 righe e, sotto, UNA CARD che spiega il materiale della moneta toccata (nome, spiegazione con cupronichel e ottone al nichel

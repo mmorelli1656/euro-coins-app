@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -273,7 +275,17 @@ private fun CommonSideCompare() {
                 MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
                 MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
             }
-            Text(COMMON_SIDE_TEXT, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 10.dp))
+            // Giustificato e con la sillabazione, come le note del dettaglio: a bandiera, il bordo destro era
+            // irregolare accanto alle due foto, che hanno i bordi dritti.
+            Text(
+                text = COMMON_SIDE_TEXT,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    textAlign = TextAlign.Justify,
+                    lineBreak = LineBreak.Paragraph,
+                    hyphens = Hyphens.Auto,
+                ),
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            )
         }
     }
 }
@@ -283,7 +295,6 @@ private fun CountryPanel(member: EuroMember) {
     Panel(member.name) {
         PanelRow("Joined the euro", member.joined, first = true)
         PanelRow("Coins and notes", member.coins)
-        member.onlyEuro?.let { PanelRow("Only euro from", it) }
         PanelRow("Replaced", "${member.former} (${member.code})")
         PanelRow("Rate", "€1 = ${member.rate} ${member.code}")
     }

@@ -39,9 +39,9 @@ class EuroFactsTest {
 
     @Test
     fun theTwelveCountriesGetTheirCoinsInTwoThousandAndTwoAndTheLaterOnesTheSameDay() {
-        val (first, later) = members.partition { it.onlyEuro == null }
+        val (first, later) = members.partition { it.coins == "1 Jan 2002" }
         assertEquals(12, first.size) // gli 11 del 1999 più la Grecia
-        assertTrue(first.all { it.coins == "1 Jan 2002" })
+        assertEquals(9, later.size)
         assertTrue(later.all { it.coins == it.joined })
         // Il 1999 non porta monete: la tappa del 2002 sta tra la Grecia e la Slovenia e non ha paesi.
         val coinsStep = EURO_ENTRIES.single { it.year == "2002" }
