@@ -71,6 +71,8 @@ private const val PODIUM_MIN_ITEMS = 3
 internal fun MostExpensive(ranking: List<SpentItem>, onOpen: (SpentTarget) -> Unit) {
     if (ranking.isEmpty()) return
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
+    // Da Free la pagina è sfocata e senza tocchi: il pannello mostrerebbe la classifica leggibile.
+    val locked = LocalLockedStats.current
     Column(modifier = Modifier.fillMaxWidth().padding(top = 18.dp)) {
         Text(
             text = "Most expensive",
@@ -91,7 +93,7 @@ internal fun MostExpensive(ranking: List<SpentItem>, onOpen: (SpentTarget) -> Un
                     .fillMaxWidth()
                     .padding(top = 6.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { sheetOpen = true }
+                    .clickable(enabled = !locked) { sheetOpen = true }
                     .padding(vertical = 12.dp),
             )
         } else {
@@ -100,7 +102,7 @@ internal fun MostExpensive(ranking: List<SpentItem>, onOpen: (SpentTarget) -> Un
             }
         }
     }
-    if (sheetOpen) MostExpensiveSheet(ranking, onOpen = onOpen, onDismiss = { sheetOpen = false })
+    if (sheetOpen && !locked) MostExpensiveSheet(ranking, onOpen = onOpen, onDismiss = { sheetOpen = false })
 }
 
 private val FirstCoin = 60.dp

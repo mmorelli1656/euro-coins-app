@@ -98,24 +98,30 @@ fun InsightsScreen(
             }
             // Una scheda diversa = un'altra lista: `key` fa ripartire lo scorrimento dall'alto.
             androidx.compose.runtime.key(tab) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    when (tab) {
-                        InsightsTab.HISTORY -> HistoryTab()
-                        InsightsTab.COINS -> CoinsTab()
-                        InsightsTab.STATISTICS -> StatisticsTab(
-                            stats = stats,
-                            isPro = pro.isPro,
-                            onGoPro = pro.onGoPro,
-                            onCommemorativeCountry = onCommemorativeCountryClick,
-                            onRegularCountry = onRegularCountryClick,
-                            onSpentItem = onSpentItemClick,
-                        )
+                val lockedStats = stats
+                if (tab == InsightsTab.STATISTICS && !pro.isPro) {
+                    // Da Free: la pagina vera, sfocata, che scorre sotto la card dell'invito ferma al centro (ha il suo scorrimento).
+                    if (lockedStats != null) {
+                        StatisticsLocked(lockedStats, onGoPro = pro.onGoPro, modifier = Modifier.weight(1f).fillMaxWidth())
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                    ) {
+                        when (tab) {
+                            InsightsTab.HISTORY -> HistoryTab()
+                            InsightsTab.COINS -> CoinsTab()
+                            InsightsTab.STATISTICS -> StatisticsTab(
+                                stats = stats,
+                                onCommemorativeCountry = onCommemorativeCountryClick,
+                                onRegularCountry = onRegularCountryClick,
+                                onSpentItem = onSpentItemClick,
+                            )
+                        }
                     }
                 }
             }

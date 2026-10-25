@@ -1,21 +1,25 @@
 package com.michele.eurocoins.ui.insights
 
+import android.os.Build
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Lock
@@ -26,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -35,9 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,18 +72,23 @@ import java.util.Locale
 @Composable
 internal fun StatisticsTab(
     stats: CollectionStats?,
-    isPro: Boolean,
-    onGoPro: () -> Unit,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
 ) {
-    // Room non ha ancora risposto: niente da mostrare, ma nemmeno un invito al Pro fuori posto.
+    // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    if (!isPro) {
-        LockedPreview(stats, onGoPro)
-        return
-    }
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onSpentItem)
+}
+
+/** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
+@Composable
+private fun StatisticsCards(
+    stats: CollectionStats,
+    onCommemorativeCountry: (String) -> Unit,
+    onRegularCountry: (String) -> Unit,
+    onSpentItem: (SpentTarget) -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats)
         ByCountryCard(stats, onCommemorativeCountry, onRegularCountry)
@@ -89,62 +99,78 @@ internal fun StatisticsTab(
     }
 }
 
-/** Altezza della pila sfocata da Free: tre card, la terza che sfuma in fondo. */
-private val LockedStackHeight = 700.dp
-
-/** Sfocatura da Free: abbastanza forte da non far leggere nessun numero (richiesta del proprietario, 2026-10-25). */
+/** Sfocatura del corpo delle card da Free: abbastanza forte da non far leggere nessun numero (richiesta del proprietario). */
 private val LockedBlur = 12.dp
 
+/** `true` mentre si disegna la pagina da Free: il corpo di ogni card ([CardBody]) è sfocato e i tocchi sono spenti. */
+internal val LocalLockedStats = compositionLocalOf { false }
+
 /**
- * Da Free: l'invito al Pro in CIMA (si vede senza scorrere) e sotto una pila di tre card sfocate (Your collection, By
- * country, Milestones) che sfuma in fondo, così la pagina non sembra vuota e si intuisce cosa c'è dietro il lucchetto
- * (mockup del 2026-10-25). La pila non si legge né si tocca (nessuna descrizione per TalkBack, callback vuote); sotto
- * Android 12 il blur non c'è e resta solo l'attenuazione. Prima c'era la sola prima card, e prima ancora l'invito
- * sovrapposto che la copriva quasi tutta.
+ * Il corpo di una card (tutto tranne il titolo). Per il Pro è un semplice contenitore; da Free è sfocato a [LockedBlur] e
+ * senza descrizione per TalkBack, mentre il titolo, fuori da qui, resta nitido: si legge cosa c'è dietro il lucchetto ma
+ * nessun dato. Sotto Android 12 il blur non c'è: lì il corpo non si disegna, resta un riquadro spento (i numeri veri non
+ * devono mai leggersi).
  */
 @Composable
-private fun LockedPreview(stats: CollectionStats, onGoPro: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        InviteCard(onGoPro)
-        Box(modifier = Modifier.fillMaxWidth().height(LockedStackHeight).clipToBounds()) {
-            Column(
-                modifier = Modifier
-                    .wrapContentHeight(align = Alignment.Top, unbounded = true)
-                    .blur(LockedBlur)
-                    .alpha(0.85f)
-                    .clearAndSetSemantics {},
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Milestones prima di By country: quest'ultima è lunga e, in fondo, è quella che sfuma.
-                YourCollectionCard(stats)
-                MilestonesCard(stats.milestones)
-                ByCountryCard(stats, onCommemorativeCountry = {}, onRegularCountry = {})
+internal fun CardBody(content: @Composable ColumnScope.() -> Unit) {
+    if (!LocalLockedStats.current) {
+        Column(content = content)
+        return
+    }
+    val tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+    val modifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.blur(LockedBlur).alpha(0.85f)
+    } else {
+        Modifier.drawWithContent { drawRoundRect(tint, cornerRadius = CornerRadius(12.dp.toPx())) }
+    }
+    Column(modifier = modifier.clearAndSetSemantics {}, content = content)
+}
+
+/** Una card della scheda: titolo sempre nitido e corpo che da Free si sfoca ([CardBody]). */
+@Composable
+private fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    DetailCard {
+        InsightsTitle(title)
+        CardBody(content)
+    }
+}
+
+/**
+ * Da Free (mockup del 2026-10-25): la pagina VERA del Pro, con i titoli nitidi e il corpo di ogni card sfocato, che scorre
+ * sotto la card dell'invito, ferma al centro dello schermo. Tocchi spenti (callback vuote, "See all" disattivato). Prima
+ * c'erano la sola prima card sfocata, poi una pila di tre card sotto l'invito: più vuota e meno onesta su cosa si sblocca.
+ */
+@Composable
+internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            CompositionLocalProvider(LocalLockedStats provides true) {
+                StatisticsCards(stats, onCommemorativeCountry = {}, onRegularCountry = {}, onSpentItem = {})
             }
-            // Dissolvenza verso il fondo della pagina: la pila finisce senza un taglio netto.
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .background(Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.background))),
-            )
         }
+        InviteCard(onGoPro, Modifier.align(Alignment.Center).padding(horizontal = 32.dp))
     }
 }
 
 @Composable
-private fun InviteCard(onGoPro: () -> Unit) {
-    DetailCard {
+private fun InviteCard(onGoPro: () -> Unit, modifier: Modifier = Modifier) {
+    // Compatta (la card sta ferma sopra la pagina: con il font ingrandito una più alta coprirebbe troppo).
+    DetailCard(modifier = modifier) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Filled.Lock, contentDescription = null)
             Text(
                 text = "Statistics is part of Pro",
                 style = sansTitleMedium(),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 4.dp),
             )
             Text(
-                text = "Progress by country, milestones, and what you've spent. No ads.",
+                text = "Progress, milestones and spending. No ads.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -187,8 +213,7 @@ private fun Hint(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun YourCollectionCard(stats: CollectionStats) {
-    DetailCard {
-        InsightsTitle("Your collection")
+    StatCard("Your collection") {
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text(
                 text = stats.total.owned.toString(),
@@ -243,8 +268,7 @@ private fun ByCountryCard(
     val sorted = if (byName) source.sortedBy { it.name } else source.sortedWith(closestFirst)
     val shown = if (showAll) sorted else sorted.take(COUNTRIES_SHOWN)
 
-    DetailCard {
-        InsightsTitle("By country")
+    StatCard("By country") {
         Hint("How complete each country is. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
         Row(modifier = Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = !regular, onClick = { regular = false; showAll = false }, label = { Text("Commemorative") })
@@ -304,8 +328,7 @@ private fun CountryRow(country: CountryStat, onClick: () -> Unit) {
 
 @Composable
 private fun MilestonesCard(m: Milestones) {
-    DetailCard {
-        InsightsTitle("Milestones")
+    StatCard("Milestones") {
         Hint("Complete sets, the things collectors count.", Modifier.padding(top = 4.dp, bottom = 4.dp))
         MilestoneRow("Commemorative countries complete", m.countries)
         MilestoneRow("Commemorative years complete", m.years)
@@ -331,8 +354,7 @@ private fun MilestoneRow(label: String, progress: Progress) {
 @Composable
 private fun ByYearCard(years: List<YearStat>) {
     if (years.isEmpty()) return
-    DetailCard {
-        InsightsTitle("By year")
+    StatCard("By year") {
         Hint("Commemorative coins you own, year by year. The empty part is what's missing.", Modifier.padding(top = 4.dp))
         Row(
             modifier = Modifier.fillMaxWidth().height(96.dp).padding(top = 12.dp),
@@ -365,8 +387,7 @@ private fun ByYearCard(years: List<YearStat>) {
 
 @Composable
 private fun FinishCard(f: FinishCounts) {
-    DetailCard {
-        InsightsTitle("By finish")
+    StatCard("By finish") {
         Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
             FinishColumn("Standard", f.standard, Modifier.weight(1f))
             FinishColumn("BU", f.bu, Modifier.weight(1f))
@@ -391,8 +412,7 @@ internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, 
 
 @Composable
 private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
-    DetailCard {
-        InsightsTitle("Spending")
+    StatCard("Spending") {
         Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
             Hint(
