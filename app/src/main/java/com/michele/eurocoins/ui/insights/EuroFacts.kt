@@ -215,10 +215,18 @@ internal val HISTORY_SOURCES = listOf(
     Triple("Joining", "ECB", "https://www.ecb.europa.eu/euro/changeover/html/index.en.html"),
     Triple("Agreements", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/legislation-euro-coins_en"),
     Triple("Design", "European Commission", "https://economy-finance.ec.europa.eu/euro/euro-coins-and-notes/euro-coins/common-sides-euro-coins_en"),
+    // Le due foto della mappa e la frase sul 1° maggio 2004 vengono dalla pagina BCE dei lati comuni: ora è un link,
+    // non più la riga "Photos: ECB" senza collegamento.
+    Triple("Photos", "ECB", "https://www.ecb.europa.eu/euro/coins/common/html/index.en.html"),
 )
 
-/** Le fonti della scheda Coins. */
+/**
+ * Le fonti della scheda Coins: la tabella con misure e metalli (BCE), le descrizioni della Bundesbank (magnetismo) e la
+ * pagina BCE sulla sicurezza, da cui viene la frase attribuita alla BCE sul Nordic gold ("difficile da fondere, usato
+ * solo per le monete").
+ */
 internal val COIN_SOURCES = listOf(
     Triple("Coins", "ECB", "https://www.ecb.europa.eu/euro/coins/common/html/index.en.html"),
+    Triple("Security", "ECB", "https://www.ecb.europa.eu/euro/coins/security/html/index.en.html"),
     Triple("Metals", "Bundesbank", "https://www.bundesbank.de/en/tasks/cash-management/frequently-asked-questions/frequently-asked-questions-euro-coins"),
 )

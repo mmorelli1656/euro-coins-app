@@ -71,7 +71,7 @@ internal fun HistoryTab() {
         AgreementCard()
         SourceCredits(
             sources = HISTORY_SOURCES.map { (label, value, url) -> SourceItem(label, value, url) },
-            licenseLine = "Photos: ECB",
+            licenseLine = null,
         )
     }
 }
@@ -102,7 +102,7 @@ private fun JoiningCard() {
     val toggle: (String) -> Unit = { iso -> selected = if (selected == iso) null else iso }
 
     DetailCard {
-        InsightsTitle("The story of the euro")
+        InsightsTitle("The story of the Euro")
         Text(
             text = "From the Treaty of Rome to 21 countries. Tap a country for its dates and rate.",
             style = MaterialTheme.typography.bodySmall,

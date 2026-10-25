@@ -566,8 +566,8 @@ mercato (nessuna fonte, e sfiora il consiglio finanziario), niente classifica di
 contingente, non una tiratura).
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
-fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
-Due card più le fonti: (1) **"The story of the euro"**: timeline con una sola tinta. **Ogni voce è un anno con un
+fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
+Due card più le fonti: (1) **"The story of the Euro"** (con la E maiuscola nel titolo, su richiesta): timeline con una sola tinta. **Ogni voce è un anno con un
 sottotesto, SEMPRE, e la stessa forma (anno, sottotesto, paesi); niente titoli** (scelta del 2026-10-25: con titoli solo su
 alcune voci sembrava disomogenea; poi anche le voci con solo anno e bandiere "stonavano" accanto a quelle con il
 sottotesto, e il layout compatto con l'anno a sinistra è stato tolto: `EuroFactsTest` controlla che nessuna voce sia senza
