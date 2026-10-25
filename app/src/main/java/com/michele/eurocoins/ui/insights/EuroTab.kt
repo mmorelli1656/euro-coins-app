@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -54,12 +55,14 @@ import com.michele.eurocoins.ui.detail.SourceCredits
 import com.michele.eurocoins.ui.detail.SourceItem
 import com.michele.eurocoins.ui.detail.sansTitleMedium
 import com.michele.eurocoins.ui.regular.DenominationCoin
+import com.michele.eurocoins.ui.regular.coinScaleFor
 
 /**
  * Segmento "The euro" di Insights, libero per tutti: come si è arrivati alla moneta unica e chi l'ha adottata, di
  * che metalli sono fatte le monete, cosa è cambiato nel lato comune nel 2007. Mockup approvato il 2026-10-25;
  * semplificato su richiesta ("troppo pesante e prolissa, con troppi indicatori"): una sola tinta, niente legenda,
- * niente cerchi con i conteggi, le tappe prima del 1999 chiuse finché non si aprono.
+ * niente cerchi con i conteggi, le tappe prima del 1999 chiuse finché non si aprono. Il riquadro con i dettagli di un
+ * paese e la card che spiega il materiale di una moneta sono tornati dopo la prova sul telefono: piacevano.
  */
 @Composable
 internal fun EuroTab() {
@@ -77,14 +80,14 @@ internal fun EuroTab() {
 @Composable
 private fun JoiningCard() {
     var roadOpen by rememberSaveable { mutableStateOf(false) }
-    // Il paese toccato (codice ISO): la frase sulla sua vecchia valuta compare sotto il suo gruppo.
+    // Il paese toccato (codice ISO): il suo riquadro compare sotto il suo gruppo.
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val toggle: (String) -> Unit = { iso -> selected = if (selected == iso) null else iso }
 
     DetailCard {
         SectionLabel("Joining the euro")
         Text(
-            text = "From the Treaty of Rome to 21 countries. Tap a country for its old currency.",
+            text = "From the Treaty of Rome to 21 countries. Tap a country for its dates and rate.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
@@ -139,9 +142,9 @@ private fun JoiningCard() {
 
         EURO_ENTRIES.forEach { entry ->
             val items = entry.members.map { it.iso to it.name }
-            val detail = entry.members.firstOrNull { it.iso == selected }?.detail()
-            if (items.size <= COMPACT_MAX) {
-                // Pochi paesi: anno e paesi sulla stessa riga, per non dedicare un'intera riga all'anno.
+            val member = entry.members.firstOrNull { it.iso == selected }
+            // Senza titolo e con uno o due paesi: anno e paesi sulla stessa riga.
+            if (entry.title == null && items.size in 1..COMPACT_MAX) {
                 TimelineRow(isLast = false, dotY = 20.dp, bottom = 8.dp) {
                     Row {
                         Text(entry.year, style = sansTitleMedium(), modifier = Modifier.width(56.dp).padding(top = 8.dp))
@@ -150,16 +153,26 @@ private fun JoiningCard() {
                                 CountryItem(iso, name, selected = iso == selected, onClick = toggle, modifier = Modifier.fillMaxWidth())
                             }
                             entry.note?.let { Note(it) }
-                            detail?.let { Note(it) }
+                            member?.let { CountryPanel(it) }
                         }
                     }
                 }
             } else {
                 TimelineRow(isLast = false) {
-                    Text(entry.year, style = sansTitleMedium())
-                    CountryGrid(items = items, selected = selected, onClick = toggle)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(entry.year, style = sansTitleMedium())
+                        entry.title?.let {
+                            Text(
+                                text = it,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.padding(start = 10.dp),
+                            )
+                        }
+                    }
                     entry.note?.let { Note(it) }
-                    detail?.let { Note(it) }
+                    if (items.isNotEmpty()) CountryGrid(items = items, selected = selected, onClick = toggle)
+                    member?.let { CountryPanel(it) }
                 }
             }
         }
@@ -176,7 +189,7 @@ private fun JoiningCard() {
                 selected = selected,
                 onClick = toggle,
             )
-            EURO_AGREEMENTS.firstOrNull { it.iso == selected }?.let { Note(it.detail()) }
+            EURO_AGREEMENTS.firstOrNull { it.iso == selected }?.let { AgreementPanel(it) }
         }
     }
 }
@@ -263,59 +276,121 @@ private fun Note(text: String) {
     )
 }
 
+/** Il riquadro che si apre toccando un paese: date, vecchia valuta e tasso (le righe della BCE). */
+@Composable
+private fun CountryPanel(member: EuroMember) {
+    Panel(member.name) {
+        PanelRow("Joined the euro", member.joined, first = true)
+        PanelRow("Coins and notes", member.coins)
+        member.onlyEuro?.let { PanelRow("Only euro from", it) }
+        PanelRow("Replaced", "${member.former} (${member.code})")
+        PanelRow("Rate", "€1 = ${member.rate} ${member.code}")
+    }
+}
+
+@Composable
+private fun AgreementPanel(state: AgreementState) {
+    Panel(state.name) {
+        PanelRow("Euro as official currency", state.official, first = true)
+        PanelRow("Own euro coins from", state.coinsFrom)
+        PanelRow("Current agreement", state.agreement)
+        PanelRow("Status", "By agreement, not a member")
+    }
+}
+
+/** Riquadro sul fondo dell'app dentro una card bianca: titolo e righe etichetta-valore. */
+@Composable
+private fun Panel(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(title, style = sansTitleMedium(), modifier = Modifier.padding(bottom = 2.dp))
+        content()
+    }
+}
+
+@Composable
+private fun PanelRow(label: String, value: String, first: Boolean = false) {
+    if (!first) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f).padding(start = 12.dp),
+        )
+    }
+}
+
+/** Le otto monete in scala e, sotto, la card che spiega il materiale di quella toccata. */
 @Composable
 private fun MaterialsCard() {
+    var selected by rememberSaveable { mutableStateOf("2 euro") }
+    val material = COIN_MATERIALS.first { it.taglio == selected }
+
     DetailCard {
         SectionLabel("What the coins are made of")
-        MATERIAL_FAMILIES.forEachIndexed { index, family ->
-            if (index > 0) {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                    modifier = Modifier.padding(top = 14.dp),
-                )
-            }
-            Column(modifier = Modifier.padding(top = 14.dp)) {
-                Text(family.title, style = sansTitleMedium())
-                Text(family.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
-                family.detail?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp),
+        Text(
+            text = "Tap a coin.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        COIN_MATERIALS.chunked(4).forEach { coins ->
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                coins.forEach { coin ->
+                    CoinChoice(
+                        taglio = coin.taglio,
+                        selected = coin.taglio == selected,
+                        onClick = { selected = coin.taglio },
+                        modifier = Modifier.weight(1f),
                     )
                 }
-                Text(
-                    text = family.magnet,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-                family.coins.forEach { coin ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).padding(top = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // La moneta disegnata in scala reale (la stessa della scheda Denominations).
-                        DenominationCoin(taglio = coin.taglio, maxSize = 32.dp, modifier = Modifier.width(44.dp))
-                        Text(coin.taglio, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                        Text(
-                            text = "${coin.diameter} mm · ${coin.weight} g",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
             }
+        }
+        Panel("${material.taglio}: ${material.title}") {
+            Text(material.text, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp, bottom = 6.dp))
+            PanelRow("Diameter", "${material.diameter} mm", first = true)
+            PanelRow("Weight", "${material.weight} g")
+            PanelRow("Thickness", "${material.thickness} mm")
+            PanelRow("Edge", material.edge)
+            PanelRow("Magnet", material.magnet)
         }
         Text(
             text = MATERIALS_NOTE,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 14.dp),
+            modifier = Modifier.padding(top = 10.dp),
         )
     }
 }
+
+/** Una moneta disegnata in scala reale (la stessa della scheda Denominations) con il suo taglio sotto. */
+@Composable
+private fun CoinChoice(taglio: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(modifier = Modifier.height(COIN_SIZE), contentAlignment = Alignment.Center) {
+            DenominationCoin(taglio = taglio, maxSize = COIN_SIZE, modifier = Modifier.width(COIN_SIZE * (coinScaleFor(taglio) ?: 1f)))
+        }
+        Text(taglio, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+private val COIN_SIZE = 40.dp
 
 @Composable
 private fun CommonSideCard() {

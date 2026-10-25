@@ -564,13 +564,20 @@ classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tira
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `EURO_SOURCES`, mostrati come `SourceCredits`).
 Tre card: (1) **storia**: timeline con una sola tinta, "The road to 1999" chiusa di default (6 tappe, 1957-1998, una riga
-ciascuna), poi gli anni di ingresso con bandiera e nome per intero (due per riga; con uno o due paesi l'anno sta sulla
-stessa riga), il tocco su un paese scrive sotto una frase sola con la vecchia valuta e il tasso, e un blocco "By agreement"
-per Andorra, Monaco, San Marino e Vaticano. **Semplificata su richiesta** ("troppo pesante e prolissa, con troppi
-indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate, barra di avanzamento, pannello dei
-dettagli e 11 tappe prima del 1999. (2) **materiali**: tre famiglie (acciaio ramato, Nordic gold, due metalli) con le
-monete disegnate in scala (`DenominationCoin`), diametro e peso; la BCE e la Bundesbank non danno le percentuali delle
-leghe e non si inventano. (3) **lato comune**: le foto BCE del 50 cent prima e dopo il 2007 in hotlink, ritagliate
+ciascuna), poi gli anni di ingresso con bandiera e nome per intero (due per riga; con uno o due paesi e senza titolo
+l'anno sta sulla stessa riga). **Titoli** (dopo la prova sul telefono: "1999" faceva pensare che l'euro circolasse da
+allora): 1999 "The euro starts" (solo conti e pagamenti, le monete arrivano dopo), 2001 "A twelfth country", **2002
+"Coins and notes begin"** (una tappa senza paesi: è qui che l'euro arriva in tasca), e dal 2007 una nota una tantum ("coins
+and notes arrive the same day"). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
+euro, Coins and notes, Only euro from, Replaced, Rate), come nel mockup: la versione con una frase sola era stata una
+semplificazione di troppo e al proprietario piaceva il riquadro; un blocco "By agreement" per Andorra, Monaco, San Marino e
+Vaticano ha il suo (Euro as official currency, Own euro coins from, Current agreement). **Semplificata su richiesta**
+("troppo pesante e prolissa, con troppi indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate,
+barra di avanzamento e 11 tappe prima del 1999. (2) **materiali**: otto monete in scala (`DenominationCoin`) in due
+righe e, sotto, UNA CARD che spiega il materiale della moneta toccata (nome, spiegazione con cupronichel e ottone al nichel
+dentro la frase, diametro, peso, spessore, bordo, magnete): è la versione del primo mockup, che al proprietario piaceva più
+delle tre famiglie con il glossario a parte ("buttato a caso"); la BCE e la Bundesbank non danno le percentuali delle leghe
+e non si inventano. (3) **lato comune**: le foto BCE del 50 cent prima e dopo il 2007 in hotlink, ritagliate
 sull'area della mappa (`MapPhoto`: la foto è disegnata più grande e spostata; `requiredSize` la CENTRA, lo spostamento
 parte dalla metà dell'eccedenza), con tre frasi (prima: 15 paesi come pezzi separati; dopo: un'Europa continua; perché:
 l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la Commissione ammette riproduzioni piatte
