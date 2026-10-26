@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -384,7 +382,6 @@ private fun AgreementPanel(state: AgreementState) {
 }
 
 /** Riquadro sul fondo dell'app dentro una card bianca: titolo e righe etichetta-valore. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Panel(title: String, trailing: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     Column(
@@ -395,20 +392,10 @@ private fun Panel(title: String, trailing: (@Composable () -> Unit)? = null, con
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        if (trailing == null) {
-            Text(title, style = sansTitleMedium(), modifier = Modifier.padding(bottom = 2.dp))
-        } else {
-            // Titolo e pillola sulla stessa riga; se non ci stanno, la pillola va sotto il titolo.
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(title, style = sansTitleMedium())
-                trailing()
-            }
-        }
+        Text(title, style = sansTitleMedium(), modifier = Modifier.padding(bottom = 2.dp))
+        // Sempre SOTTO il titolo (2026-10-26): accanto ci stava solo per alcuni materiali ("10 cent: Nordic gold") e per
+        // gli altri andava a capo, e il proprietario voleva la stessa posizione ovunque.
+        trailing?.let { Box(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) { it() } }
         content()
     }
 }

@@ -631,9 +631,11 @@ con l'altezza, freccia che gira in 200 ms) e `TimelineRow` disegna linea e palli
 intrinseca): l'altezza segue l'animazione e la chiusura è la stessa cosa al contrario. Provata sul telefono con fotogrammi presi
 a ridosso del tocco (apertura e chiusura dei sei passi); la mappa usa lo stesso componente, non provata a parte. Se serve ancora
 più leggera: `tween` in `Reveal`. (2) **Pillola magnetica rimessa** nella scheda Coins (`MagnetPill.kt`): era nei mockup e
-nella prima versione, poi era diventata una riga "Magnet" della tabella. Sta accanto al titolo del materiale (a capo sotto se non
-ci sta), con icona calamita barrata se non è magnetica (`MagnetIcons`, tratto Tabler "magnet" più diagonale); tre tinte (neutra,
-verde del primario, lilla per il solo centro del 1 e 2 euro) e il significato non sta nel solo colore. `CoinMaterial.magnetism`
+nella prima versione, poi era diventata una riga "Magnet" della tabella. Sta SEMPRE SOTTO il titolo del materiale: la prima
+versione la metteva accanto e andava a capo solo dove non ci stava, e il proprietario voleva la stessa posizione ovunque (accanto
+non ci starebbe per "Copper-covered steel" né per "Centre slightly magnetic"). Icona calamita, barrata se non è magnetica
+(`MagnetIcons`, tratto Tabler "magnet" più diagonale); tre tinte (neutra, verde del primario al 40%, lilla per il solo
+centro del 1 e 2 euro) e il significato non sta nel solo colore. `CoinMaterial.magnetism`
 è ora un enum (`Magnetism`) e la riga "Magnet" è tolta.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
