@@ -149,6 +149,17 @@ internal val EURO_AGREEMENTS = listOf(
  * otto monete (la versione "una card che spiega" piaciuta al proprietario, al posto delle tre famiglie).
  * Misure come stringhe già pronte (mm e g).
  */
+internal enum class Magnetism(val label: String) {
+    /** 1, 2 e 5 cent: acciaio ricoperto di rame. */
+    STRONG("Strongly magnetic"),
+
+    /** 10, 20 e 50 cent: Nordic gold. */
+    NONE("Not magnetic"),
+
+    /** 1 e 2 euro: solo il centro, appena. */
+    CENTRE("Centre slightly magnetic"),
+}
+
 internal class CoinMaterial(
     val taglio: String,
     val title: String,
@@ -157,7 +168,7 @@ internal class CoinMaterial(
     val weight: String,
     val thickness: String,
     val edge: String,
-    val magnet: String,
+    val magnetism: Magnetism,
 )
 
 private const val STEEL_TITLE = "Copper-covered steel"
@@ -169,12 +180,12 @@ private const val TWO_METALS_TITLE = "Two metals"
 
 /** Dall'1 cent al 2 euro; l'ordine è quello del selettore. */
 internal val COIN_MATERIALS = listOf(
-    CoinMaterial("1 cent", STEEL_TITLE, STEEL_TEXT, "16.25", "2.30", "1.67", "Smooth", "Strongly magnetic"),
-    CoinMaterial("2 cent", STEEL_TITLE, STEEL_TEXT, "18.75", "3.06", "1.67", "Smooth with a groove", "Strongly magnetic"),
-    CoinMaterial("5 cent", STEEL_TITLE, STEEL_TEXT, "21.25", "3.92", "1.67", "Smooth", "Strongly magnetic"),
-    CoinMaterial("10 cent", NORDIC_TITLE, NORDIC_TEXT, "19.75", "4.10", "1.93", "Fine scallops", "Not magnetic"),
-    CoinMaterial("20 cent", NORDIC_TITLE, NORDIC_TEXT, "22.25", "5.74", "2.14", "Plain (flower shape)", "Not magnetic"),
-    CoinMaterial("50 cent", NORDIC_TITLE, NORDIC_TEXT, "24.25", "7.80", "2.38", "Fine scallops", "Not magnetic"),
+    CoinMaterial("1 cent", STEEL_TITLE, STEEL_TEXT, "16.25", "2.30", "1.67", "Smooth", Magnetism.STRONG),
+    CoinMaterial("2 cent", STEEL_TITLE, STEEL_TEXT, "18.75", "3.06", "1.67", "Smooth with a groove", Magnetism.STRONG),
+    CoinMaterial("5 cent", STEEL_TITLE, STEEL_TEXT, "21.25", "3.92", "1.67", "Smooth", Magnetism.STRONG),
+    CoinMaterial("10 cent", NORDIC_TITLE, NORDIC_TEXT, "19.75", "4.10", "1.93", "Fine scallops", Magnetism.NONE),
+    CoinMaterial("20 cent", NORDIC_TITLE, NORDIC_TEXT, "22.25", "5.74", "2.14", "Plain (flower shape)", Magnetism.NONE),
+    CoinMaterial("50 cent", NORDIC_TITLE, NORDIC_TEXT, "24.25", "7.80", "2.38", "Fine scallops", Magnetism.NONE),
     CoinMaterial(
         taglio = "1 euro",
         title = TWO_METALS_TITLE,
@@ -182,7 +193,7 @@ internal val COIN_MATERIALS = listOf(
             "nickel and cupronickel. Nickel brass is brass, which is copper and zinc, with nickel added. " +
             "Cupronickel is copper with nickel.",
         diameter = "23.25", weight = "7.50", thickness = "2.33", edge = "Interrupted milled",
-        magnet = "Centre slightly magnetic",
+        magnetism = Magnetism.CENTRE,
     ),
     CoinMaterial(
         taglio = "2 euro",
@@ -191,7 +202,7 @@ internal val COIN_MATERIALS = listOf(
             "nickel and nickel brass. Cupronickel is copper with nickel. " +
             "Nickel brass is brass, which is copper and zinc, with nickel added.",
         diameter = "25.75", weight = "8.50", thickness = "2.20", edge = "Edge lettering, fine milled",
-        magnet = "Centre slightly magnetic",
+        magnetism = Magnetism.CENTRE,
     ),
 )
 

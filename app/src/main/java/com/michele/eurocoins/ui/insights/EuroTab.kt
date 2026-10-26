@@ -1,6 +1,15 @@
 package com.michele.eurocoins.ui.insights
 
-import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +18,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -126,27 +137,25 @@ private fun JoiningCard() {
                 Icon(
                     imageVector = Icons.Filled.ExpandMore,
                     contentDescription = if (roadOpen) "Hide the steps" else "Show the steps",
-                    modifier = Modifier.rotate(if (roadOpen) 180f else 0f),
+                    modifier = Modifier.rotate(chevronAngle(roadOpen)),
                 )
             }
-            Column(modifier = Modifier.animateContentSize()) {
-                if (roadOpen) {
-                    ROAD_STEPS.forEach { step ->
-                        Row(modifier = Modifier.padding(top = 10.dp)) {
+            Reveal(roadOpen) {
+                ROAD_STEPS.forEach { step ->
+                    Row(modifier = Modifier.padding(top = 10.dp)) {
+                        Text(
+                            text = step.year,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.width(48.dp),
+                        )
+                        Column {
+                            Text(step.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                             Text(
-                                text = step.year,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.width(48.dp),
+                                text = step.text,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Column {
-                                Text(step.title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    text = step.text,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
                         }
                     }
                 }
@@ -220,24 +229,26 @@ private fun TimelineRow(
     val dotY = 12.dp
     val line = MaterialTheme.colorScheme.outline
     val dot = MaterialTheme.colorScheme.primary
-    Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-        Spacer(
-            modifier = Modifier
-                .width(20.dp)
-                .fillMaxHeight()
-                .drawBehind {
-                    val x = size.width / 2
-                    if (!isLast) {
-                        drawLine(
-                            color = line,
-                            start = Offset(x, dotY.toPx()),
-                            end = Offset(x, size.height),
-                            strokeWidth = 2.dp.toPx(),
-                        )
-                    }
-                    drawCircle(color = dot, radius = 5.dp.toPx(), center = Offset(x, dotY.toPx()))
-                },
-        )
+    // Linea e pallino si disegnano sulla riga stessa, NON in uno Spacer alto quanto la riga (`IntrinsicSize.Min`): le
+    // dimensioni intrinseche vedono il contenuto già aperto e la riga saltava subito all'altezza finale, con il
+    // contenuto che si animava dentro un riquadro già grande. Così l'altezza segue l'animazione di apertura e chiusura.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val x = 10.dp.toPx()
+                if (!isLast) {
+                    drawLine(
+                        color = line,
+                        start = Offset(x, dotY.toPx()),
+                        end = Offset(x, size.height),
+                        strokeWidth = 2.dp.toPx(),
+                    )
+                }
+                drawCircle(color = dot, radius = 5.dp.toPx(), center = Offset(x, dotY.toPx()))
+            },
+    ) {
+        Spacer(modifier = Modifier.width(20.dp))
         Column(
             modifier = Modifier.weight(1f).padding(start = 8.dp, bottom = if (isLast) 0.dp else 16.dp),
             content = content,
@@ -298,27 +309,55 @@ private fun CommonSideCompare() {
         Icon(
             imageVector = Icons.Filled.ExpandMore,
             contentDescription = if (open) "Hide the maps" else "Show the maps",
-            modifier = Modifier.rotate(if (open) 180f else 0f),
+            modifier = Modifier.rotate(chevronAngle(open)),
         )
     }
-    Column(modifier = Modifier.animateContentSize()) {
-        if (open) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
-                MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
-            }
-            // Giustificato (vedi `justifiedStyle`): a bandiera, il bordo destro era irregolare accanto alle due foto,
-            // che hanno i bordi dritti.
-            Text(
-                text = COMMON_SIDE_TEXT,
-                style = justifiedStyle(),
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-            )
+    Reveal(open) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            MapPhoto(COMMON_SIDE_OLD_URL, "Until 2006", Modifier.weight(1f))
+            MapPhoto(COMMON_SIDE_NEW_URL, "From 2007", Modifier.weight(1f))
         }
+        // Giustificato (vedi `justifiedStyle`): a bandiera, il bordo destro era irregolare accanto alle due foto,
+        // che hanno i bordi dritti.
+        Text(
+            text = COMMON_SIDE_TEXT,
+            style = justifiedStyle(),
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+        )
     }
+}
+
+/**
+ * Apertura e chiusura leggere dei contenuti a comparsa di History (2026-10-26): si apre e si chiude con la stessa curva,
+ * un breve scorrimento in altezza con dissolvenza (220 ms in apertura, 180 in chiusura, la chiusura un poco più svelta).
+ * Prima era un `animateContentSize` con una molla: in apertura il riquadro si riempiva a scatto, in chiusura il contenuto
+ * spariva subito e restava solo il vuoto che si restringeva (la chiusura "non c'era").
+ */
+@Composable
+private fun Reveal(visible: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        // La dissolvenza segue l'altezza (LinearOutSlowIn sale subito): con quella di default restava trasparente finché
+        // il riquadro era già tutto aperto, e si vedeva un vuoto che poi si riempiva.
+        // Ancorata in alto (di default è in basso: il contenuto scorreva sotto l'intestazione e in chiusura il primo
+        // elemento restava tagliato): si apre e si chiude come una fisarmonica, dal bordo della riga che si tocca.
+        enter = expandVertically(tween(220, easing = FastOutSlowInEasing), expandFrom = Alignment.Top) +
+            fadeIn(tween(220, easing = LinearOutSlowInEasing)),
+        exit = shrinkVertically(tween(180, easing = FastOutSlowInEasing), shrinkTowards = Alignment.Top) +
+            fadeOut(tween(140, easing = FastOutLinearInEasing)),
+    ) {
+        Column(content = content)
+    }
+}
+
+/** La freccia gira con la stessa durata del contenuto che apre. */
+@Composable
+private fun chevronAngle(open: Boolean): Float {
+    val angle by animateFloatAsState(if (open) 180f else 0f, tween(200, easing = FastOutSlowInEasing), label = "chevron")
+    return angle
 }
 
 @Composable
@@ -345,8 +384,9 @@ private fun AgreementPanel(state: AgreementState) {
 }
 
 /** Riquadro sul fondo dell'app dentro una card bianca: titolo e righe etichetta-valore. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Panel(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun Panel(title: String, trailing: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -355,7 +395,20 @@ private fun Panel(title: String, content: @Composable ColumnScope.() -> Unit) {
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        Text(title, style = sansTitleMedium(), modifier = Modifier.padding(bottom = 2.dp))
+        if (trailing == null) {
+            Text(title, style = sansTitleMedium(), modifier = Modifier.padding(bottom = 2.dp))
+        } else {
+            // Titolo e pillola sulla stessa riga; se non ci stanno, la pillola va sotto il titolo.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(title, style = sansTitleMedium())
+                trailing()
+            }
+        }
         content()
     }
 }
@@ -401,7 +454,7 @@ private fun MaterialsCard() {
                 }
             }
         }
-        Panel("${material.taglio}: ${material.title}") {
+        Panel("${material.taglio}: ${material.title}", trailing = { MagnetPill(material.magnetism) }) {
             Text(
                 text = material.text,
                 style = justifiedStyle(),
@@ -411,7 +464,6 @@ private fun MaterialsCard() {
             PanelRow("Weight", "${material.weight} g")
             PanelRow("Thickness", "${material.thickness} mm")
             PanelRow("Edge", material.edge)
-            PanelRow("Magnet", material.magnet)
         }
         Text(
             text = MATERIALS_NOTE,

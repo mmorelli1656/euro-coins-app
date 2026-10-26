@@ -621,6 +621,21 @@ tema scuro, tutte le sei card, tocco su una riga che non fa nulla, da Pro la sch
 ingrandito (la card dell'invito potrebbe coprire molto), Android sotto 12 (nessun dispositivo) e le prestazioni su telefoni lenti
 (blur su sei card).
 
+**Rifiniture di History e Coins (2026-10-26, richiesta del proprietario)**: (1) **animazione dei due contenuti a comparsa**
+di History ("1957–1998", i sei passi, e "Compare the old and the new map"): "non mi fa impazzire, più leggera e anche in
+chiusura". Era un `animateContentSize` con la molla di sistema dentro una `TimelineRow` che usava `height(IntrinsicSize.Min)`:
+le dimensioni intrinseche vedono il contenuto già aperto, quindi la riga saltava subito all'altezza finale e il contenuto si
+animava dentro un riquadro già grande (in chiusura spariva subito e restava il vuoto). Ora `Reveal` (`AnimatedVisibility`,
+220 ms in apertura e 180 in chiusura, `expandFrom`/`shrinkTowards` ANCORATI IN ALTO, dissolvenza con `LinearOutSlowIn` che sale
+con l'altezza, freccia che gira in 200 ms) e `TimelineRow` disegna linea e pallino sulla riga stessa (nessuna dimensione
+intrinseca): l'altezza segue l'animazione e la chiusura è la stessa cosa al contrario. Provata sul telefono con fotogrammi presi
+a ridosso del tocco (apertura e chiusura dei sei passi); la mappa usa lo stesso componente, non provata a parte. Se serve ancora
+più leggera: `tween` in `Reveal`. (2) **Pillola magnetica rimessa** nella scheda Coins (`MagnetPill.kt`): era nei mockup e
+nella prima versione, poi era diventata una riga "Magnet" della tabella. Sta accanto al titolo del materiale (a capo sotto se non
+ci sta), con icona calamita barrata se non è magnetica (`MagnetIcons`, tratto Tabler "magnet" più diagonale); tre tinte (neutra,
+verde del primario, lilla per il solo centro del 1 e 2 euro) e il significato non sta nel solo colore. `CoinMaterial.magnetism`
+è ora un enum (`Magnetism`) e la riga "Magnet" è tolta.
+
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
 Due card più le fonti: (1) **"The story of the Euro"** (con la E maiuscola nel titolo, su richiesta): timeline con una sola tinta. **Ogni voce è un anno con un
