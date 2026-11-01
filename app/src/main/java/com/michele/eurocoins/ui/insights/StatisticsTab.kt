@@ -49,13 +49,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.CollectionStats
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.FinishCounts
+import com.michele.eurocoins.data.MilestoneNext
+import com.michele.eurocoins.data.MilestoneTarget
 import com.michele.eurocoins.data.Milestones
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.SpendingStats
@@ -104,7 +109,7 @@ private fun StatisticsCards(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats)
         ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
-        MilestonesCard(stats.milestones)
+        MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularCountry, onYear)
         FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
         stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
@@ -438,19 +443,37 @@ private fun ValueCoin(taglio: String) {
 
 private val VALUE_COIN_SIZE = 30.dp
 
+/**
+ * Milestones (2026-11-01, mockup approvato): i quattro traguardi con la barra e, sotto ognuno, il PIÙ VICINO da completare
+ * ("Closest Italy · 3 to go") come riga toccabile; a traguardo raggiunto "All done". Così la card dice anche cosa fare adesso
+ * e non è fine a sé stessa. Il tocco porta alla lista già su Missing (paese, anno, emissione comune) o, per le serie Regular,
+ * alla schermata del paese.
+ */
 @Composable
-private fun MilestonesCard(m: Milestones) {
+private fun MilestonesCard(
+    m: Milestones,
+    onCommemorativeCountry: (String) -> Unit,
+    onRegularCountry: (String) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+) {
+    val open: (MilestoneTarget) -> Unit = { target ->
+        when (target) {
+            is MilestoneTarget.CommemorativeCountry -> onCommemorativeCountry(target.paese)
+            is MilestoneTarget.Year -> onYear(target.anno, target.joint)
+            is MilestoneTarget.RegularCountry -> onRegularCountry(target.paese)
+        }
+    }
     StatCard("Milestones") {
-        Hint("Complete sets, the things collectors count.", Modifier.padding(top = 4.dp, bottom = 4.dp))
-        MilestoneRow("Commemorative countries complete", m.countries)
-        MilestoneRow("Commemorative years complete", m.years)
-        MilestoneRow("Regular series complete", m.regularSeries)
-        MilestoneRow("Joint 2 euro issues complete", m.jointIssues)
+        Hint("Complete sets, and the next one within reach.", Modifier.padding(top = 4.dp, bottom = 4.dp))
+        MilestoneRow("Commemorative countries complete", m.countries, m.nextCountry, open)
+        MilestoneRow("Commemorative years complete", m.years, m.nextYear, open)
+        MilestoneRow("Regular series complete", m.regularSeries, m.nextSeries, open)
+        MilestoneRow("Joint 2 euro issues complete", m.jointIssues, m.nextJoint, open)
     }
 }
 
 @Composable
-private fun MilestoneRow(label: String, progress: Progress) {
+private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?, onOpen: (MilestoneTarget) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
             Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -460,6 +483,36 @@ private fun MilestoneRow(label: String, progress: Progress) {
             }
         }
         StatBar(progress.fraction, Modifier.padding(top = 6.dp))
+        when {
+            next != null -> Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                    .clickable { onOpen(next.target) }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = buildAnnotatedString {
+                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) { append("Closest ") }
+                        withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(next.label) }
+                        append(" · ${next.remaining} to go")
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            progress.total > 0 && progress.owned == progress.total -> Text(
+                text = "All done",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
 

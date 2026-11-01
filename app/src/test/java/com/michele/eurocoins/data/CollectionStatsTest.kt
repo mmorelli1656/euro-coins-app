@@ -278,4 +278,69 @@ class CollectionStatsTest {
         assertEquals(1, s.values.first { it.taglio == "2 euro" }.progress.owned)
         assertEquals(0, s.values.first { it.taglio == "5 cent" }.progress.owned)
     }
+
+    @Test
+    fun theClosestMilestoneIsTheOneWithFewestCoinsLeft() {
+        // Con la collezione vuota il più vicino è il paese con meno monete in tutto, e porta al suo elenco.
+        val empty = stats().milestones
+        val fewest = coins.groupBy { it.paese }.minWith(compareBy({ it.value.size }, { it.value.first().displayCountry() }))
+        assertEquals(fewest.value.size, empty.nextCountry!!.remaining)
+        assertEquals(MilestoneTarget.CommemorativeCountry(fewest.key), empty.nextCountry!!.target)
+
+        // Una moneta del paese più piccolo lo avvicina di uno, e uno dei paesi con più monete non lo supera.
+        val owned = stats(items = listOf(item(fewest.value.first()))).milestones.nextCountry!!
+        assertEquals(fewest.value.size - 1, owned.remaining)
+        assertEquals(MilestoneTarget.CommemorativeCountry(fewest.key), owned.target)
+    }
+
+    @Test
+    fun aCompletedCountryIsNeverTheClosestAndNothingIsLeftWhenAllAreDone() {
+        val country = coins.groupBy { it.paese }.minBy { it.value.size }
+        val s = stats(items = country.value.map { item(it) }).milestones
+        assertEquals(1, s.countries.owned)
+        assertTrue(s.nextCountry!!.target != MilestoneTarget.CommemorativeCountry(country.key))
+
+        val everything = stats(items = coins.map { item(it) }).milestones
+        assertEquals(everything.countries.total, everything.countries.owned)
+        assertNull(everything.nextCountry)
+        assertNull(everything.nextYear)
+        assertNull(everything.nextJoint)
+    }
+
+    @Test
+    fun theClosestYearAndJointIssueOpenTheListThatStillHasMissingCoins() {
+        // Tutto posseduto tranne UNA moneta di un'emissione comune: l'anno e l'emissione comune sono il più vicino, e il tocco
+        // apre la lista comune (è l'unica che ha ancora monete mancanti).
+        val jointCoin = coins.first { it.emissioneComune }
+        val m = stats(items = coins.filter { it != jointCoin }.map { item(it) }).milestones
+        assertEquals(MilestoneNext(jointCoin.anno.toString(), 1, MilestoneTarget.Year(jointCoin.anno, joint = true)), m.nextYear)
+        assertEquals(MilestoneNext(jointCoin.anno.toString(), 1, MilestoneTarget.Year(jointCoin.anno, joint = true)), m.nextJoint)
+
+        // Se manca invece una moneta di un singolo paese di quell'anno, il tocco apre la lista dei paesi.
+        val single = coins.first { !it.emissioneComune && it.anno == jointCoin.anno }
+        val s = stats(items = coins.filter { it != single }.map { item(it) }).milestones
+        assertEquals(MilestoneNext(single.anno.toString(), 1, MilestoneTarget.Year(single.anno, joint = false)), s.nextYear)
+        // Le emissioni comuni sono 5 e, con tutte possedute, non c'è nessun più vicino.
+        assertEquals(5, s.jointIssues.total)
+        assertNull(s.nextJoint)
+    }
+
+    @Test
+    fun theClosestRegularSeriesNamesTheSeriesOnlyWhereThereAreMany() {
+        val spain = series.filter { it.paese == "Spagna" }.minBy { it.ordineCronologico }
+        val year = spain.immagini.first { it.taglio == "2 euro" }.annoInizio ?: 2005
+        val s = stats(regular = REGULAR_DENOMINATIONS.map { regularItem(spain, it, year) }).milestones
+        // La serie 1 della Spagna è completa: non può essere la più vicina.
+        assertTrue(s.regularSeries.owned >= 1)
+        val next = s.nextSeries!!
+        assertTrue(next.remaining in 1..8)
+        assertTrue(next.target is MilestoneTarget.RegularCountry)
+        // Un paese con più serie porta il numero della serie nel nome, uno con una sola no.
+        val multi = series.groupBy { it.paese }.filter { it.value.size > 1 }.keys
+        val single = series.groupBy { it.paese }.filter { it.value.size == 1 }.keys
+        val label = stats().milestones.nextSeries!!.label
+        val paese = (stats().milestones.nextSeries!!.target as MilestoneTarget.RegularCountry).paese
+        assertEquals(paese in multi, ", Series " in label)
+        assertTrue(paese in multi || paese in single)
+    }
 }

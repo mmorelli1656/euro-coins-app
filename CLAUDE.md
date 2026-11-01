@@ -643,8 +643,21 @@ monete; taglio 20 cent → elenco dei paesi su Missing; "2007 · Common issue" �
 font ingrandito, la vista Free (la card si sfoca come le altre) e "Show all" in Year.
 
 **Regola per tutta la scheda Statistics (2026-11-01, richiesta del proprietario)**: **ogni card deve avere qualcosa di cliccabile,
-nessuna è fine a sé stessa**. Progress, Spending e By finish lo sono; restano da fare Your collection (la riga di un catalogo apre
-la sua lista su Owned) e Milestones (proposta in corso).
+nessuna è fine a sé stessa**. Progress, Spending, By finish e Milestones lo sono; resta da fare Your collection (la riga di un
+catalogo apre la sua lista su Owned).
+
+**Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
+Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest
+Italy · 3 to go"; "All done" se il traguardo è raggiunto, niente riga se non c'è nulla da proporre). Più vicino = **meno
+monete (o righe) mancanti**, a parità il nome (l'anno più recente per gli anni). `Milestones.nextCountry/nextYear/nextSeries/
+nextJoint` (`MilestoneNext`, `MilestoneTarget`). Dove porta: paese commemorativo → lista su Missing; anno → lista su Missing,
+**quella dei singoli paesi se ha ancora monete mancanti, altrimenti quella dell'emissione comune** (l'anno si conta con tutte le
+sue monete, quindi "2012 · 5 to go" può aprire una lista con meno monete); emissione comune → la sua lista; serie Regular →
+schermata del paese (non la serie: il chip della serie è stato interno alla schermata e la rotta non lo porta). Un paese con più
+serie si nomina "Spain, Series 2", uno con una serie sola solo "Germany". Costo: nessuna rotta nuova. **Idea in coda, concordata
+col proprietario**: medaglie ("badge") sbloccate da obiettivi, calcolate dalla collezione (nessun dato da salvare, backup
+invariato), in una seconda parte della card Milestones, con le bloccate in grigio e il progresso; il tocco apre un pannello
+con come si ottengono e porta a ciò che manca. Mockup ancora da fare. **Non verificato sul telefono** (bloccato).
 
 **By finish a righe toccabili (2026-11-01, mockup cliccabile approvato)**: non più tre numeri in colonna ma tre righe come in
 Progress (`FinishRow`): numero grande, nome della finitura, barra con la quota sulle commemorative possedute ("84% of your 93";

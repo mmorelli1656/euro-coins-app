@@ -27,7 +27,25 @@ data class Milestones(
     val years: Progress,
     val regularSeries: Progress,
     val jointIssues: Progress,
+    /** Per ogni traguardo il candidato più vicino da completare (`null` = non c'è: già tutti completi o niente da contare). */
+    val nextCountry: MilestoneNext? = null,
+    val nextYear: MilestoneNext? = null,
+    val nextSeries: MilestoneNext? = null,
+    val nextJoint: MilestoneNext? = null,
 )
+
+/**
+ * Il traguardo più vicino di un tipo ("Italy · 3 to go"): [label] già nel nome mostrato, [remaining] quante monete (o righe)
+ * mancano, [target] dove porta il tocco.
+ */
+data class MilestoneNext(val label: String, val remaining: Int, val target: MilestoneTarget)
+
+/** Dove porta il tocco su un traguardo più vicino: la lista già su "Missing", o la schermata del paese per le serie Regular. */
+sealed interface MilestoneTarget {
+    data class CommemorativeCountry(val paese: String) : MilestoneTarget
+    data class Year(val anno: Int, val joint: Boolean) : MilestoneTarget
+    data class RegularCountry(val paese: String) : MilestoneTarget
+}
 
 /**
  * Quanto speso, solo da ciò che l'utente ha scritto (prezzo e data sono facoltativi). [itemsWithPrice] su [totalItems] è
@@ -123,12 +141,39 @@ fun collectionStats(
         CountryStat(paese, list.first().displayCountry(), list.regularProgress(regularItems))
     }
     val byRow = regularItems.groupBy { it.seriesKey to it.taglio }
-    val seriesComplete = series.groupBy { it.paese }.values.flatMap { country ->
-        country.mapNotNull { s ->
-            val rows = denominationsOf(country, s)
-            if (rows.isEmpty()) null else rows.all { it.rowItemsFrom(byRow).isNotEmpty() }
+    // Per ogni serie le righe (tagli) ancora senza nulla: serve sia a contare le serie complete sia a trovare la più vicina.
+    val seriesMissing: List<Triple<RegularIssueSeries, Int, Int>> = series.groupBy { it.paese }.values.flatMap { country ->
+        val ordered = country.sortedBy { it.ordineCronologico }
+        ordered.mapIndexedNotNull { index, s ->
+            val rows = denominationsOf(ordered, s)
+            if (rows.isEmpty()) null else Triple(s, index + 1, rows.count { it.rowItemsFrom(byRow).isEmpty() })
         }
     }
+    val seriesComplete = seriesMissing.map { it.third == 0 }
+    val seriesPerCountry = series.groupBy { it.paese }.mapValues { it.value.size }
+    val nextSeries = seriesMissing.filter { it.third > 0 }.minWithOrNull(
+        compareBy({ it.third }, { it.first.displayCountry() }, { it.second }),
+    )?.let { (s, number, missing) ->
+        val name = s.displayCountry()
+        // Un paese con una sola serie si nomina senza "Series 1".
+        val label = if ((seriesPerCountry[s.paese] ?: 1) > 1) "$name, ${seriesTitle(number)}" else name
+        MilestoneNext(label, missing, MilestoneTarget.RegularCountry(s.paese))
+    }
+    val nextCountry = countries.filter { it.progress.owned < it.progress.total }
+        .minWithOrNull(compareBy({ it.progress.total - it.progress.owned }, { it.name }))
+        ?.let { MilestoneNext(it.name, it.progress.total - it.progress.owned, MilestoneTarget.CommemorativeCountry(it.paese)) }
+    // L'anno si conta con tutte le sue monete (anche quelle dell'emissione comune), ma il tocco apre la lista che ha ancora
+    // monete mancanti: quella dei singoli paesi, o quella dell'emissione comune se è l'unica rimasta.
+    val nextYear = years.filter { it.progress.owned < it.progress.total }
+        .minWithOrNull(compareBy({ it.progress.total - it.progress.owned }, { -it.anno }))
+        ?.let { y ->
+            val single = yearRows.firstOrNull { it.anno == y.anno && !it.joint }
+            val jointOnly = single == null || single.progress.owned == single.progress.total
+            MilestoneNext(y.anno.toString(), y.progress.total - y.progress.owned, MilestoneTarget.Year(y.anno, joint = jointOnly))
+        }
+    val nextJoint = yearRows.filter { it.joint && it.progress.owned < it.progress.total }
+        .minWithOrNull(compareBy({ it.progress.total - it.progress.owned }, { -it.anno }))
+        ?.let { MilestoneNext(it.anno.toString(), it.progress.total - it.progress.owned, MilestoneTarget.Year(it.anno, joint = true)) }
 
     val finishItems = items.filter { it.coinKey in visibleKeys }
     fun finish(quality: CoinQuality) = finishItems.filter { it.quality == quality }.map { it.coinKey }.toSet().size
@@ -146,6 +191,10 @@ fun collectionStats(
             years = completeOf(years.map { it.progress }),
             regularSeries = Progress(seriesComplete.count { it }, seriesComplete.size),
             jointIssues = completeOf(joint),
+            nextCountry = nextCountry,
+            nextYear = nextYear,
+            nextSeries = nextSeries,
+            nextJoint = nextJoint,
         ),
         finishes = FinishCounts(finish(CoinQuality.STANDARD), finish(CoinQuality.BU), finish(CoinQuality.PROOF)),
         spending = spendingOf(items, regularItems, coins, series),
