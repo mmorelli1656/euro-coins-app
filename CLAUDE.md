@@ -637,8 +637,10 @@ comune**: due righe, quella dei singoli paesi e quella con la pillola COMMON ISS
 lista del paese su Missing (come prima); paese Regular → schermata del paese; anno → `coins/year/<anno>?missing=true` (o
 `year-common`); taglio → `regular-denominations/<taglio>?missing=true` (`RegularDenominationListViewModel(startMissing)`,
 nuovo). La card "By year" a grafico è tolta (le righe la sostituiscono). **Non fatto**: By finish dentro Your collection e
-la revisione di Milestones (restano card a sé). **Non verificato sul telefono** (era bloccato): da guardare layout, allineamento
-di chip e selettore, righe Year con la pillola, righe Value con le monete e i tre tocchi nuovi.
+la revisione di Milestones (restano card a sé). **Verificato sul telefono (tema scuro)**: chip e selettore allineati, righe
+Year con la pillola COMMON ISSUE, righe Value con le monete in scala, e i tre tocchi nuovi (anno 2005 → lista su Missing con 2
+monete; taglio 20 cent → elenco dei paesi su Missing; "2007 · Common issue" → 7 monete, come dice la riga). Non provati: tema chiaro,
+font ingrandito, la vista Free (la card si sfoca come le altre) e "Show all" in Year.
 
 **Rifiniture di History e Coins (2026-10-26, richiesta del proprietario)**: (1) **animazione dei due contenuti a comparsa**
 di History ("1957–1998", i sei passi, e "Compare the old and the new map"): "non mi fa impazzire, più leggera e anche in
