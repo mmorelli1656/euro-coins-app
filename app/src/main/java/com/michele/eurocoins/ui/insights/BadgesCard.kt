@@ -61,6 +61,7 @@ import com.michele.eurocoins.data.Badge
 import com.michele.eurocoins.data.BadgeId
 import com.michele.eurocoins.data.BadgeTarget
 import com.michele.eurocoins.data.Progress
+import com.michele.eurocoins.data.StatsCard
 
 /** Quante medaglie per riga della griglia. */
 private const val BADGES_PER_ROW = 4
@@ -113,8 +114,8 @@ internal fun BadgesCard(badges: List<Badge>, onGo: (BadgeTarget) -> Unit) {
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     var open by rememberSaveable { mutableStateOf(false) }
     val selected = badges.firstOrNull { it.id.name == selectedName }
-    StatCard("Badges", Icons.Outlined.MilitaryTech) {
-        Hint("${badges.count { it.earned }} of ${badges.size} earned. Tap one to see how.", Modifier.padding(top = 2.dp))
+    StatCard(StatsCard.BADGES.title, StatsCard.BADGES.icon) {
+        Hint("${badges.count { it.earned }} of ${badges.size} earned. Tap one for details.", Modifier.padding(top = 2.dp))
         BadgeGrid(
             badges = badges,
             selected = selected,

@@ -205,7 +205,7 @@ fun EuroCoinsNavHost(
         }
         composable(ROUTE_INSIGHTS) {
             val viewModel: InsightsViewModel = viewModel(
-                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository) } },
+                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository, userSettings) } },
             )
             // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
             val openCommemorativeCountry = { paese: String ->

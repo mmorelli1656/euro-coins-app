@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.CollectionStats
 import com.michele.eurocoins.data.RegularIssueRepository
+import com.michele.eurocoins.data.StatsLayout
 import com.michele.eurocoins.data.collectionStats
+import com.michele.eurocoins.ui.settings.UserSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +24,13 @@ import kotlinx.coroutines.flow.stateIn
 class InsightsViewModel(
     private val repository: CoinRepository,
     private val regularIssueRepository: RegularIssueRepository,
+    private val userSettings: UserSettings,
 ) : ViewModel() {
+
+    /** Ordine e card nascoste di Statistics: una preferenza del telefono, vedi [StatsLayout]. */
+    val layout: StateFlow<StatsLayout> = userSettings.statsLayout
+
+    fun setLayout(layout: StatsLayout) = userSettings.setStatsLayout(layout)
 
     val stats: StateFlow<CollectionStats?> = combine(
         repository.coins,

@@ -2,6 +2,7 @@ package com.michele.eurocoins.ui.insights
 
 import android.os.Build
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,6 +53,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -72,6 +77,8 @@ import com.michele.eurocoins.data.Milestones
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.SpendingStats
 import com.michele.eurocoins.data.SpentTarget
+import com.michele.eurocoins.data.StatsCard
+import com.michele.eurocoins.data.StatsLayout
 import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.detail.DetailCard
@@ -100,10 +107,11 @@ internal fun StatisticsTab(
     onCommemorativeOwned: () -> Unit,
     onRegularOwned: () -> Unit,
     onBadgeGo: (BadgeTarget) -> Unit,
+    layout: StatsLayout,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -120,14 +128,20 @@ private fun StatisticsCards(
     onCommemorativeOwned: () -> Unit,
     onRegularOwned: () -> Unit,
     onBadgeGo: (BadgeTarget) -> Unit,
+    layout: StatsLayout,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
-        ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
-        MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
-        BadgesCard(stats.badges, onBadgeGo)
-        FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
-        stats.spending?.let { SpendingCard(it, onSpentItem) }
+        // Nell'ordine scelto dall'utente (Pro), senza le card nascoste; Expenses esce comunque se non c'è nessun prezzo.
+        layout.visible.forEach { card ->
+            when (card) {
+                StatsCard.COLLECTION -> YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
+                StatsCard.PROGRESS -> ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
+                StatsCard.MILESTONES -> MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
+                StatsCard.BADGES -> BadgesCard(stats.badges, onBadgeGo)
+                StatsCard.SHINE -> FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
+                StatsCard.EXPENSES -> stats.spending?.let { SpendingCard(it, onSpentItem) }
+            }
+        }
     }
 }
 
@@ -208,6 +222,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onCommemorativeOwned = {},
                     onRegularOwned = {},
                     onBadgeGo = {},
+                    layout = StatsLayout(),
                 )
             }
         }
@@ -228,7 +243,7 @@ private fun InviteCard(onGoPro: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(top = 4.dp),
             )
             Text(
-                text = "Progress, milestones and spending. No ads.",
+                text = "Your collection in numbers. No ads.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -271,7 +286,7 @@ internal fun Hint(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun YourCollectionCard(stats: CollectionStats, onCommemorativeOwned: () -> Unit, onRegularOwned: () -> Unit) {
-    StatCard("Your collection", Icons.Outlined.Inventory2) {
+    StatCard(StatsCard.COLLECTION.title, StatsCard.COLLECTION.icon) {
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text(
                 text = stats.total.owned.toString(),
@@ -385,8 +400,8 @@ private fun ProgressCard(
     val isValues = regular && byOther
     val shown = if (showAll || isValues) sorted else sorted.take(PROGRESS_SHOWN)
 
-    StatCard("Progress", Icons.Outlined.TrendingUp) {
-        Hint("The closest to complete first. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
+    StatCard(StatsCard.PROGRESS.title, StatsCard.PROGRESS.icon) {
+        Hint("Closest first. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
         // Due selettori IDENTICI (2026-11-01, il proprietario non voleva chip da una parte e segmenti dall'altra): stesso componente,
         // stessa forma, stessa larghezza. Il primo sceglie il catalogo, il secondo l'asse.
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
@@ -518,56 +533,81 @@ private fun MilestonesCard(
             is MilestoneTarget.RegularCountry -> onRegularSeries(target.paese, target.seriesNumber)
         }
     }
-    StatCard("Milestones", Icons.Outlined.Flag) {
-        Hint("Complete sets, and the next one within reach.", Modifier.padding(top = 4.dp, bottom = 4.dp))
-        MilestoneRow("Commemorative countries complete", m.countries, m.nextCountry, open)
-        MilestoneRow("Commemorative years complete", m.years, m.nextYear, open)
-        MilestoneRow("Regular series complete", m.regularSeries, m.nextSeries, open)
-        MilestoneRow("Joint 2 euro issues complete", m.jointIssues, m.nextJoint, open)
+    StatCard(StatsCard.MILESTONES.title, StatsCard.MILESTONES.icon) {
+        Column(modifier = Modifier.padding(top = 6.dp)) {
+            MilestoneRow("Countries", m.countries, m.nextCountry, open)
+            MilestoneRow("Years", m.years, m.nextYear, open)
+            MilestoneRow("Regular series", m.regularSeries, m.nextSeries, open)
+            MilestoneRow("Common issues", m.jointIssues, m.nextJoint, open)
+        }
     }
 }
 
+/**
+ * Una riga di Milestones (2026-11-01, variante A dopo mockup): un anello con il numero di set completi, il nome con "x / y" e
+ * sotto il PIÙ VICINO da completare ("Closest Italy · 3 to go"), tutta toccabile; a traguardo raggiunto "All done" e nessun tocco.
+ * Prima erano una barra con il conteggio e, sotto, una riga tinta: due blocchi per traguardo, alti, e barre quasi vuote
+ * ("0 / 24") che sembravano fredde. L'anello dà il tono "gioco" delle medaglie.
+ */
 @Composable
 private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?, onOpen: (MilestoneTarget) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-            Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+    val done = progress.total > 0 && progress.owned == progress.total
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = next != null) { next?.let { onOpen(it.target) } }
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ProgressRing(progress)
+        Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(progress.owned.toString(), style = sansTitleMedium().copy(fontSize = 20.sp, fontWeight = FontWeight.Medium))
-                Hint(" / ${progress.total}", Modifier.padding(bottom = 2.dp))
+                Text(label, style = MaterialTheme.typography.bodyLarge)
+                Hint(" ${progress.owned} / ${progress.total}", Modifier.padding(start = 6.dp, bottom = 1.dp))
             }
-        }
-        StatBar(progress.fraction, Modifier.padding(top = 6.dp))
-        when {
-            next != null -> Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                    .clickable { onOpen(next.target) }
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
+            when {
+                next != null -> Text(
                     text = buildAnnotatedString {
                         withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) { append("Closest ") }
                         withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(next.label) }
                         append(" · ${next.remaining} to go")
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(top = 2.dp),
                 )
-                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                done -> Text(
+                    text = "All done",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
-            progress.total > 0 && progress.owned == progress.total -> Text(
-                text = "All done",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(top = 8.dp),
-            )
         }
+        // La freccia c'è solo dove il tocco apre qualcosa; lo spazio resta, così le righe restano allineate.
+        Box(modifier = Modifier.size(24.dp)) {
+            if (next != null) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** L'anello di avanzamento: traccia tenue, arco pieno dall'alto e al centro il numero di set completi. */
+@Composable
+private fun ProgressRing(progress: Progress) {
+    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val fill = MaterialTheme.colorScheme.primary
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
+            val inset = stroke.width / 2
+            val arc = Size(size.width - stroke.width, size.height - stroke.width)
+            drawArc(track, 0f, 360f, useCenter = false, topLeft = Offset(inset, inset), size = arc, style = stroke)
+            if (progress.fraction > 0f) {
+                drawArc(fill, -90f, 360f * progress.fraction.coerceAtMost(1f), useCenter = false, topLeft = Offset(inset, inset), size = arc, style = stroke)
+            }
+        }
+        Text(progress.owned.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -579,8 +619,8 @@ private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?
  */
 @Composable
 private fun FinishCard(f: FinishCounts, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
-    StatCard("Shine", Icons.Outlined.Flare) {
-        Hint("Your commemorative coins by finish. Tap one to see them.", Modifier.padding(top = 4.dp))
+    StatCard(StatsCard.SHINE.title, StatsCard.SHINE.icon) {
+        Hint("Commemorative coins by finish. Tap to see them.", Modifier.padding(top = 4.dp))
         Column(modifier = Modifier.padding(top = 6.dp)) {
             FinishRow(CoinQuality.STANDARD, f.standard, ownedCoins, onFinish)
             FinishRow(CoinQuality.BU, f.bu, ownedCoins, onFinish)
@@ -627,12 +667,12 @@ internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, 
 
 @Composable
 private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
-    StatCard("Expenses", Icons.Outlined.Receipt) {
+    StatCard(StatsCard.EXPENSES.title, StatsCard.EXPENSES.icon) {
         Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
             Hint(
                 if (s.itemsWithPrice < s.totalItems) {
-                    "Based on ${s.itemsWithPrice} of ${s.totalItems} items with a price. Add prices to see the full picture."
+                    "Based on ${s.itemsWithPrice} of ${s.totalItems} items with a price."
                 } else {
                     "Based on all ${s.totalItems} items."
                 },
@@ -648,7 +688,7 @@ private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
         }
         MostExpensive(s.ranking, onSpentItem)
         if (s.byYear.size >= 2) {
-            Hint("Spent per year, from the ${s.itemsInYears} items with a price and a date.", Modifier.padding(top = 14.dp))
+            Hint("Per year, from ${s.itemsInYears} items with a price and a date.", Modifier.padding(top = 14.dp))
             val max = s.byYear.maxOf { it.second }.coerceAtLeast(1L)
             Row(
                 modifier = Modifier.fillMaxWidth().height(120.dp).padding(top = 10.dp),

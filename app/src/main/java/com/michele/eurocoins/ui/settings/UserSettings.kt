@@ -2,6 +2,7 @@ package com.michele.eurocoins.ui.settings
 
 import android.content.Context
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.StatsLayout
 import com.michele.eurocoins.ui.browse.BrowseMode
 import com.michele.eurocoins.ui.regular.RegularBrowseMode
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,7 @@ class UserSettings(context: Context) {
     private val _rotateHomeCoins = MutableStateFlow(prefs.getBoolean(KEY_ROTATE_HOME_COINS, true))
     private val _quickAdd = MutableStateFlow(prefs.getBoolean(KEY_QUICK_ADD, false))
     private val _showMints = MutableStateFlow(prefs.getBoolean(KEY_SHOW_MINTS, true))
+    private val _statsLayout = MutableStateFlow(StatsLayout.decode(prefs.getString(KEY_STATS_LAYOUT, null)))
     private val _setupTour = MutableStateFlow(loadSetupTour(context))
 
     /** true = nasconde monete e card di Andorra, Monaco, San Marino e Città del Vaticano nelle commemorative. */
@@ -144,6 +146,17 @@ class UserSettings(context: Context) {
         _showMints.value = value
     }
 
+    /**
+     * Ordine e card nascoste della scheda Statistics di Insights (solo Pro). Preferenza di VISUALIZZAZIONE del telefono, come il
+     * tema: non va nel backup e non tocca i dati. Vedi [StatsLayout].
+     */
+    val statsLayout: StateFlow<StatsLayout> = _statsLayout.asStateFlow()
+
+    fun setStatsLayout(layout: StatsLayout) {
+        prefs.edit().putString(KEY_STATS_LAYOUT, layout.encode()).apply()
+        _statsLayout.value = layout
+    }
+
     fun setRotateHomeCoins(value: Boolean) {
         prefs.edit().putBoolean(KEY_ROTATE_HOME_COINS, value).apply()
         _rotateHomeCoins.value = value
@@ -193,6 +206,7 @@ class UserSettings(context: Context) {
         const val KEY_ROTATE_HOME_COINS = "rotate_home_coins"
         const val KEY_QUICK_ADD = "quick_add"
         const val KEY_SHOW_MINTS = "show_mints"
+        const val KEY_STATS_LAYOUT = "stats_layout"
         const val KEY_SETUP_TOUR = "setup_tour"
         const val KEY_LAST_SHOWCASE = "last_showcase"
         const val KEY_SHOWCASE_DAY_PREFIX = "showcase_day_"
