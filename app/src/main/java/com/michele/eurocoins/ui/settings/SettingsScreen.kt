@@ -552,7 +552,7 @@ private fun ProCard(
                 Text(
                     when {
                         isPro -> "No ads. Thank you!"
-                        else -> "Statistics · German mints · No ads"
+                        else -> "No ads · Statistics · Mints"
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
