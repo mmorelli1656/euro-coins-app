@@ -1,6 +1,5 @@
 package com.michele.eurocoins.ui.insights
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -109,27 +108,58 @@ private fun BadgeId.copy(): BadgeCopy = when (this) {
 @Composable
 internal fun BadgesCard(badges: List<Badge>, onGo: (BadgeTarget) -> Unit) {
     if (badges.isEmpty()) return
+    // L'ultima medaglia toccata resta in memoria anche a dettaglio chiuso: serve a farlo richiudere con la sua animazione.
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
+    var open by rememberSaveable { mutableStateOf(false) }
     val selected = badges.firstOrNull { it.id.name == selectedName }
     StatCard("Badges") {
         Hint("${badges.count { it.earned }} of ${badges.size} earned. Tap one to see how.", Modifier.padding(top = 2.dp))
-        BadgeGrid(badges, selected?.id, Modifier.padding(top = 14.dp)) { selectedName = if (selected?.id == it.id) null else it.id.name }
-        Column(modifier = Modifier.animateContentSize()) {
-            if (selected != null) BadgeDetail(selected, onGo)
+        BadgeGrid(
+            badges = badges,
+            selected = selected,
+            open = open,
+            onGo = onGo,
+            modifier = Modifier.padding(top = 14.dp),
+        ) { tapped ->
+            if (open && selected?.id == tapped.id) {
+                open = false
+            } else {
+                selectedName = tapped.id.name
+                open = true
+            }
         }
     }
 }
 
+/**
+ * La griglia, quattro per riga. Il dettaglio di una medaglia si apre SUBITO SOTTO la sua riga (prima stava sotto tutta la griglia,
+ * quattro righe più in basso e spesso fuori schermo), con la stessa apertura dall'alto della History ([Reveal]).
+ */
 @Composable
-private fun BadgeGrid(badges: List<Badge>, selected: BadgeId?, modifier: Modifier = Modifier, onTap: (Badge) -> Unit) {
+private fun BadgeGrid(
+    badges: List<Badge>,
+    selected: Badge?,
+    open: Boolean,
+    onGo: (BadgeTarget) -> Unit,
+    modifier: Modifier = Modifier,
+    onTap: (Badge) -> Unit,
+) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         badges.chunked(BADGES_PER_ROW).forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                row.forEach { badge ->
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) { BadgeCell(badge, badge.id == selected, reserveProgress = row.any { !it.earned }, onTap = onTap) }
+            // Riga e dettaglio sono UN elemento: con lo spazio tra gli elementi un dettaglio chiuso (altezza zero) lascerebbe 10 dp in più.
+            Column {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    row.forEach { badge ->
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) {
+                            BadgeCell(badge, open && badge.id == selected?.id, reserveProgress = row.any { !it.earned }, onTap = onTap)
+                        }
+                    }
+                    // Una riga corta lascia lo spazio delle medaglie che mancano, così le colonne restano allineate.
+                    repeat(BADGES_PER_ROW - row.size) { Box(modifier = Modifier.weight(1f)) }
                 }
-                // Una riga corta lascia lo spazio delle medaglie che mancano, così le colonne restano allineate.
-                repeat(BADGES_PER_ROW - row.size) { Box(modifier = Modifier.weight(1f)) }
+                if (selected != null) {
+                    Reveal(visible = open && row.any { it.id == selected.id }) { BadgeDetail(selected, onGo) }
+                }
             }
         }
     }
@@ -221,7 +251,7 @@ private fun Medal(badge: Badge, copy: BadgeCopy, shape: Shape) {
 @Composable
 private fun BadgeDetail(badge: Badge, onGo: (BadgeTarget) -> Unit) {
     val copy = badge.id.copy()
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp)) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
         Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(copy.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))

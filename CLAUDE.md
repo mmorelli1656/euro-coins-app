@@ -685,6 +685,10 @@ medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, 
 fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
 nascondere sì, riordinare no, da fare con il numero di card definitivo).
 
+**Titoli delle card (2026-11-01)**: "By finish" → **Shine** (scelta del proprietario tra Shine, Finishes e Polish: BU e Proof sono le finiture lucide) e "Spending" → **Money**. "Splurge" era la proposta ma il proprietario ha notato che è slang poco comprensibile a chi sa poco inglese: **per i testi usare parole semplici**, niente slang né giochi di parole che richiedano un buon inglese. I nomi interni nel codice (FinishCard, SpendingCard) non sono cambiati.
+
+**Badges: dettaglio sotto la riga (2026-11-01)**: il dettaglio di una medaglia non sta più sotto tutta la griglia (quattro righe più in basso, spesso fuori schermo, con l'`animateContentSize` che il proprietario non amava) ma SUBITO SOTTO la riga toccata, con la stessa apertura dall'alto con dissolvenza della History (`Reveal`). Riga e dettaglio sono un solo elemento della colonna: con lo spazio tra gli elementi un dettaglio chiuso lascerebbe 10 dp in più.
+
 **Badges: ordine e simboli (2026-11-01, tre giri di mockup con il proprietario: "devono essere catchy", gamification)**: la griglia è
 in QUATTRO RIGHE PER TEMA, l'ordine lo decide `BadgeId` (non il calcolo; `BadgesTest.theBadgesComeInFourThemedRowsOfFour`):
 (1) monete commemorative: First coin, 100, 250, 500; (2) set commemorativi: First country, 5 countries, Common issue, Five mints;

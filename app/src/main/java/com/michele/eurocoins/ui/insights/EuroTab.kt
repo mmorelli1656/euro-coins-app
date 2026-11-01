@@ -367,7 +367,7 @@ private fun TapHint(rest: String, modifier: Modifier = Modifier) {
  * spariva subito e restava solo il vuoto che si restringeva (la chiusura "non c'era").
  */
 @Composable
-private fun Reveal(visible: Boolean, content: @Composable ColumnScope.() -> Unit) {
+internal fun Reveal(visible: Boolean, content: @Composable ColumnScope.() -> Unit) {
     AnimatedVisibility(
         visible = visible,
         // La dissolvenza segue l'altezza (LinearOutSlowIn sale subito): con quella di default restava trasparente finché

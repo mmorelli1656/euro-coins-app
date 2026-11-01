@@ -556,7 +556,7 @@ private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?
  */
 @Composable
 private fun FinishCard(f: FinishCounts, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
-    StatCard("By finish") {
+    StatCard("Shine") {
         Hint("Your commemorative coins by finish. Tap one to see them.", Modifier.padding(top = 4.dp))
         Column(modifier = Modifier.padding(top = 6.dp)) {
             FinishRow(CoinQuality.STANDARD, f.standard, ownedCoins, onFinish)
@@ -604,7 +604,7 @@ internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, 
 
 @Composable
 private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
-    StatCard("Spending") {
+    StatCard("Money") {
         Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
             Hint(
