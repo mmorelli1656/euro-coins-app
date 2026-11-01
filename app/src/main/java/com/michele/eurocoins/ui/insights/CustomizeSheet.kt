@@ -20,7 +20,7 @@ import androidx.compose.material.icons.outlined.Flare
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.Receipt
-import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -70,7 +70,7 @@ internal val StatsCard.title: String
 internal val StatsCard.icon: ImageVector
     get() = when (this) {
         StatsCard.COLLECTION -> Icons.Outlined.Inventory2
-        StatsCard.PROGRESS -> Icons.Outlined.TrendingUp
+        StatsCard.PROGRESS -> Icons.AutoMirrored.Outlined.TrendingUp
         StatsCard.MILESTONES -> Icons.Outlined.Flag
         StatsCard.BADGES -> Icons.Outlined.MilitaryTech
         StatsCard.SHINE -> Icons.Outlined.Flare
