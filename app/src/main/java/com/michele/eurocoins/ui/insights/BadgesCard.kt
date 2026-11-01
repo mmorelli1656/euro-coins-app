@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,8 +54,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.Badge
@@ -67,6 +70,9 @@ import com.michele.eurocoins.data.StatsCard
 private const val BADGES_PER_ROW = 4
 
 private val MedalSize = 52.dp
+
+/** Quanto può crescere il testo delle etichette sotto le medaglie (la cella ha una larghezza fissa): oltre, le parole si spezzano. */
+private const val MAX_LABEL_FONT_SCALE = 1.15f
 
 /** Nome, spiegazione e simbolo (icona Material o disegno [BadgeArt]) di una medaglia: i testi sono nostri, i numeri arrivano dal dato. */
 private class BadgeCopy(val name: String, val how: String, val icon: ImageVector? = null, val art: BadgeArt? = null)
@@ -184,6 +190,10 @@ private fun BadgeCell(badge: Badge, selected: Boolean, reserveProgress: Boolean,
             .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
         Medal(badge, copy, shape)
+        // La cella ha una larghezza fissa (un quarto della card): con il font al 130% "countries" non ci stava e si spezzava a metà parola
+        // ("countrie" / "s"). Qui il testo cresce al massimo del 115%, come la pillola "COMMON ISSUE" in Browse; il resto della pagina segue il font.
+        val capped = LocalDensity.current.let { Density(it.density, fontScale = it.fontScale.coerceAtMost(MAX_LABEL_FONT_SCALE)) }
+        CompositionLocalProvider(LocalDensity provides capped) {
         Text(
             text = copy.name,
             style = MaterialTheme.typography.bodySmall,
@@ -201,6 +211,7 @@ private fun BadgeCell(badge: Badge, selected: Boolean, reserveProgress: Boolean,
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
+        }
         }
     }
 }

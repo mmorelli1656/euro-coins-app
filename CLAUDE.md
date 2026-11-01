@@ -699,6 +699,8 @@ nascondere sì, riordinare no, da fare con il numero di card definitivo).
 
 **Badges: dettaglio sotto la riga (2026-11-01)**: il dettaglio di una medaglia non sta più sotto tutta la griglia (quattro righe più in basso, spesso fuori schermo, con l'`animateContentSize` che il proprietario non amava) ma SUBITO SOTTO la riga toccata, con la stessa apertura dall'alto con dissolvenza della History (`Reveal`). Riga e dettaglio sono un solo elemento della colonna: con lo spazio tra gli elementi un dettaglio chiuso lascerebbe 10 dp in più.
 
+**Giro di controllo finale (2026-11-01)**: 371 test verdi, release R8 compilata (mapping: enum e classi serializzabili nuove intatte), nessun residuo di debug. Sul telefono verificati in tema scuro e chiaro: Home, Browse, All, dettaglio con il "mazzo", Regular (Values, paese, dettaglio), Impostazioni, Insights (History, Coins, Statistics intera). **Trovato e corretto un difetto con il font al 130%**: "5 countries" si spezzava a metà parola nelle medaglie; ora il testo delle etichette cresce al massimo del 115% (`MAX_LABEL_FONT_SCALE`). **Non verificati**: la vista Free di Statistics e la card Pro a font grande, il pannello Customize e "New milestone" a font grande, il backup con Drive vero, l'acquisto, TalkBack.
+
 **Badges: ordine e simboli (2026-11-01, tre giri di mockup con il proprietario: "devono essere catchy", gamification)**: la griglia è
 in QUATTRO RIGHE PER TEMA, l'ordine lo decide `BadgeId` (non il calcolo; `BadgesTest.theBadgesComeInFourThemedRowsOfFour`):
 (1) monete commemorative: First coin, 100, 250, 500; (2) set commemorativi: First country, 5 countries, Common issue, Five mints;
