@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -229,8 +230,8 @@ private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: ()
                 }
             }
             Hint("Only what you can still complete.", Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp))
-            // Altezza minima: cambiando tipo il pannello non deve ridimensionarsi (gli elenchi hanno lunghezze diverse).
-            Column(modifier = Modifier.heightIn(min = 320.dp, max = 460.dp).verticalScroll(rememberScrollState())) {
+            // Altezza FISSA: cambiando tipo il pannello non deve ridimensionarsi (gli elenchi hanno lunghezze diverse; con solo un minimo il tipo Coins, di sei righe, restava più basso).
+            Column(modifier = Modifier.height(440.dp).verticalScroll(rememberScrollState())) {
                 val options = goalOptions(kind, stats, ui.goals)
                 if (options.isEmpty()) Hint("Nothing left here to complete.", Modifier.padding(vertical = 16.dp))
                 options.forEach { option ->
