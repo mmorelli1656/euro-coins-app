@@ -16,20 +16,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Celebration
 import androidx.compose.material.icons.outlined.Collections
 import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Looks3
 import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -71,13 +68,14 @@ private const val BADGES_PER_ROW = 4
 private val MedalSize = 52.dp
 
 /** Nome, spiegazione e icona di una medaglia: i testi sono nostri, i numeri (progresso, note) arrivano dal dato. */
-private class BadgeCopy(val name: String, val how: String, val icon: ImageVector)
+private class BadgeCopy(val name: String, val how: String, val icon: ImageVector? = null, val number: String? = null)
 
 private fun BadgeId.copy(): BadgeCopy = when (this) {
     BadgeId.FIRST_COIN -> BadgeCopy("First coin", "Add your first coin to the collection.", Icons.Outlined.MonetizationOn)
-    BadgeId.COINS_50 -> BadgeCopy("50 coins", "Own 50 coins across both catalogs.", Icons.Outlined.Savings)
-    BadgeId.COINS_100 -> BadgeCopy("100 coins", "Own 100 coins across both catalogs.", Icons.Outlined.Layers)
-    BadgeId.COINS_250 -> BadgeCopy("250 coins", "Own 250 coins across both catalogs.", Icons.Outlined.MilitaryTech)
+    // Le soglie delle monete mostrano il numero dentro la medaglia: una scala sola, senza tre icone scollegate.
+    BadgeId.COINS_100 -> BadgeCopy("100 coins", "Own 100 commemorative coins.", number = "100")
+    BadgeId.COINS_250 -> BadgeCopy("250 coins", "Own 250 commemorative coins.", number = "250")
+    BadgeId.COINS_500 -> BadgeCopy("500 coins", "Own 500 commemorative coins.", number = "500")
     BadgeId.FIRST_BU -> BadgeCopy("First BU", "Own a coin in BU finish.", Icons.Outlined.Diamond)
     BadgeId.FIRST_PROOF -> BadgeCopy("First Proof", "Own a coin in Proof finish.", Icons.Outlined.AutoAwesome)
     BadgeId.JOINT_ISSUE -> BadgeCopy("Common issue", "Complete one of the five common issues, with the coin of every country.", Icons.Outlined.Public)
@@ -88,7 +86,11 @@ private fun BadgeId.copy(): BadgeCopy = when (this) {
     BadgeId.FIVE_MINTS -> BadgeCopy("Five mints", "Own one coin from all five German mints: A, D, F, G and J.", Icons.Outlined.AccountBalance)
     BadgeId.BIG_SPENDER -> BadgeCopy("Big spender", "Spend at least €100 on your collection. Your wallet noticed.", Icons.Outlined.Payments)
     BadgeId.TRIPLE_THREAT -> BadgeCopy("Triple threat", "Own the same coin in Standard, BU and Proof. Why choose?", Icons.Outlined.Looks3)
-    BadgeId.LUCKY_FIND -> BadgeCopy("Lucky find", "Own a coin you paid face value or less for. Found it in your change?", Icons.Outlined.Celebration)
+    BadgeId.POCKET_CHANGE -> BadgeCopy(
+        "Pocket change",
+        "Add a coin you got for its face value or less, like a 2 euro from your change. Price it at €2.00 or less.",
+        Icons.Outlined.AccountBalanceWallet,
+    )
     BadgeId.LETTER_SPOTTER -> BadgeCopy("Letter spotter", "Find the Greek 2002 coin with a letter in the star (EFS).", Icons.Outlined.Visibility)
 }
 
@@ -144,7 +146,7 @@ private fun BadgeCell(badge: Badge, selected: Boolean, reserveProgress: Boolean,
             }
             .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
-        Medal(badge, copy.icon, shape)
+        Medal(badge, copy, shape)
         Text(
             text = copy.name,
             style = MaterialTheme.typography.bodySmall,
@@ -170,7 +172,7 @@ private fun cellProgress(b: Badge): String =
     if (b.id == BadgeId.BIG_SPENDER) "${b.progress * 100 / b.target}%" else "${b.progress} / ${b.target}"
 
 @Composable
-private fun Medal(badge: Badge, icon: ImageVector, shape: Shape) {
+private fun Medal(badge: Badge, copy: BadgeCopy, shape: Shape) {
     val primary = MaterialTheme.colorScheme.primary
     val dash = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
     val radius = if (badge.id.isFun) 14.dp else MedalSize / 2
@@ -200,12 +202,12 @@ private fun Medal(badge: Badge, icon: ImageVector, shape: Shape) {
                 },
             ),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (badge.earned) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            modifier = Modifier.size(26.dp),
-        )
+        val tint = if (badge.earned) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        if (copy.number != null) {
+            Text(copy.number, color = tint, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
+        } else if (copy.icon != null) {
+            Icon(imageVector = copy.icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
+        }
     }
 }
 

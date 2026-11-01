@@ -656,17 +656,21 @@ possedute, e il FILTER ha il pallino; indietro riporta a Statistics. Non provati
 
 **Badges (2026-11-01, mockup cliccabile approvato, `data/Badges.kt` + `ui/insights/BadgesCard.kt`)**: card dopo Milestones.
 **Sedici medaglie DERIVATE dalla collezione ogni volta, mai salvate** (niente backup, niente migrazioni, non si perdono
-ripristinando; `badgesOf`, `BadgesTest`). Dodici "badge" tonde con progresso (First coin, 50/100/250 coins, First BU, First
+ripristinando; `badgesOf`, `BadgesTest`). Dodici "badge" tonde con progresso (First coin, 100/250/500 coins, First BU, First
 Proof, Common issue, First country, 5 countries, First series, 10 series, Five mints) e quattro "Just for fun" a QUADRATO MORBIDO
 (il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
-moneta in Standard, BU e Proof), **Lucky find** (una moneta pagata al valore facciale o meno: €2.00 le commemorative, il taglio
-per le Regular, `faceValueCents`), **Letter spotter** (la 2002 greca con EFS). Scartata la **Shopping spree** (cinque monete con
+moneta in Standard, BU e Proof), **Pocket change** (una moneta registrata al valore facciale o meno, come una 2 euro trovata nel resto: €2.00 le
+commemorative, il taglio per le Regular, `faceValueCents`; ex "Lucky find", rinominata perché nome, icona a coriandoli e "face
+value" non dicevano cosa fare: ora portafoglio e "Price it at €2.00 or less"), **Letter spotter** (la 2002 greca con EFS). **Soglie delle monete (2026-11-01, mockup approvato "molto meglio")**: First coin conta ogni moneta, ma 100 / 250 / 500 contano
+SOLO le commemorative (613 oggi; 50 era troppo basso per chi ne ha già 93) e mostrano il NUMERO dentro la medaglia al posto di tre
+icone scollegate (salvadanaio, livelli, medaglia): una scala sola. Le Regular restano fuori dalle soglie (un equivalente, per
+esempio 100 e 250 righe su 328, sarebbe 18 medaglie: non chiesto). Scartata la Scartata la **Shopping spree** (cinque monete con
 la stessa data) su giudizio del proprietario. Conquistata = cerchio pieno `primary`; da fare = bordo tratteggiato e il progresso
 sotto ("37 / 40": per le "prime" la barra segue il candidato più vicino, non un vuoto 0 / 1; per i soldi la percentuale). Il tocco
 apre SOTTO la griglia (non un pannello) il perché, e se non conquistata barra, progresso, riga "X is the closest: 3 to go" e un
 tasto verso ciò che manca (stesse destinazioni di Milestones e di "Most expensive", risolte in `EuroCoinsNavHost`; nessun tasto per
-BU, Proof, Big spender e Lucky find: non c'è niente da aprire). **Sempre tutte e sedici** (2026-11-01, correzione del proprietario):
-la prima versione nascondeva le medaglie che dipendono da dati facoltativi (prezzi → Big spender e Lucky find; una lettera di
+BU, Proof, Big spender e Pocket change: non c'è niente da aprire). **Sempre tutte e sedici** (2026-11-01, correzione del proprietario):
+la prima versione nascondeva le medaglie che dipendono da dati facoltativi (prezzi → Big spender e Pocket change; una lettera di
 zecca → Five mints) finché non erano usati, per non mostrare un traguardo bloccato per sempre; sul telefono il contatore diceva
 "15" e il proprietario ne ha contate 15 su 16: nasconderle toglieva anche la scoperta della funzione. Ora restano visibili con una
 nota che dice come arrivarci ("Add prices to your coins to get started.", "Record the mint of your German coins to get started.";

@@ -8,10 +8,10 @@ import java.util.Locale
  * perdono ripristinando, non servono migrazioni.
  */
 enum class BadgeId(val isFun: Boolean = false) {
-    FIRST_COIN, COINS_50, COINS_100, COINS_250,
+    FIRST_COIN, COINS_100, COINS_250, COINS_500,
     FIRST_BU, FIRST_PROOF,
     JOINT_ISSUE, FIRST_COUNTRY, FIVE_COUNTRIES, FIRST_SERIES, TEN_SERIES, FIVE_MINTS,
-    BIG_SPENDER(true), TRIPLE_THREAT(true), LUCKY_FIND(true), LETTER_SPOTTER(true),
+    BIG_SPENDER(true), TRIPLE_THREAT(true), POCKET_CHANGE(true), LETTER_SPOTTER(true),
 }
 
 /** Dove porta il tasto di una medaglia non ancora conquistata: le stesse destinazioni di Milestones e di "Most expensive". */
@@ -73,22 +73,24 @@ internal fun badgesOf(
     seriesInfo: BadgeSeriesInfo,
 ): List<Badge> {
     val owned = stats.total.owned
+    // Le soglie contano solo le commemorative (100, 250, 500 su 613): le Regular hanno il loro catalogo e non entrano in queste.
+    val commemorativeOwned = stats.commemorative.owned
     val m = stats.milestones
     val out = mutableListOf<Badge>()
 
-    fun count(id: BadgeId, goal: Int) {
-        val earned = owned >= goal
+    fun count(id: BadgeId, have: Int, goal: Int, what: String) {
+        val earned = have >= goal
         out += Badge(
-            id, earned, owned.coerceAtMost(goal), goal,
-            note = if (earned) "You own $owned coins." else "You own $owned of $goal.",
+            id, earned, have.coerceAtMost(goal), goal,
+            note = if (earned) "You own $have $what." else "${goal - have} to go.",
             go = if (earned) null else BadgeTarget.AllMissing,
             goLabel = if (earned) null else "Browse the coins you're missing",
         )
     }
-    count(BadgeId.FIRST_COIN, 1)
-    count(BadgeId.COINS_50, 50)
-    count(BadgeId.COINS_100, 100)
-    count(BadgeId.COINS_250, 250)
+    count(BadgeId.FIRST_COIN, owned, 1, "coins")
+    count(BadgeId.COINS_100, commemorativeOwned, 100, "commemorative coins")
+    count(BadgeId.COINS_250, commemorativeOwned, 250, "commemorative coins")
+    count(BadgeId.COINS_500, commemorativeOwned, 500, "commemorative coins")
 
     out += Badge(BadgeId.FIRST_BU, stats.finishes.bu >= 1, stats.finishes.bu.coerceAtMost(1), 1, note = finishNote(stats.finishes.bu, "BU"))
     out += Badge(BadgeId.FIRST_PROOF, stats.finishes.proof >= 1, stats.finishes.proof.coerceAtMost(1), 1, note = finishNote(stats.finishes.proof, "Proof"))
@@ -161,12 +163,8 @@ internal fun badgesOf(
     val lucky = items.count { (it.priceCents ?: 0) in 1..COMMEMORATIVE_FACE_CENTS } +
             regularItems.count { r -> (r.priceCents ?: 0).let { it > 0 && it <= faceValueCents(r.taglio) } }
     out += Badge(
-        BadgeId.LUCKY_FIND, lucky > 0, if (lucky > 0) 1 else 0, 1,
-        note = when {
-            lucky > 0 -> "$lucky ${if (lucky == 1) "coin" else "coins"} at or under face value."
-            stats.spending == null -> "Add prices to your coins to get started."
-            else -> null
-        },
+        BadgeId.POCKET_CHANGE, lucky > 0, if (lucky > 0) 1 else 0, 1,
+        note = if (lucky > 0) "$lucky ${if (lucky == 1) "coin" else "coins"} at or under face value." else "Add a price of €2.00 or less to a coin.",
     )
     val spotted = regularItems.any { it.variety == VARIETY_EFS }
     out += Badge(

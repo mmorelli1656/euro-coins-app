@@ -46,18 +46,24 @@ class BadgesTest {
     }
 
     @Test
-    fun theCoinCountBadgesFollowTheTotalAcrossBothCatalogs() {
+    fun theCoinThresholdsCountOnlyCommemorativeCoins() {
         val items = coins.take(60).map { item(it) }
         val b = badges(items)
         assertTrue(b.getValue(BadgeId.FIRST_COIN).earned)
-        assertTrue(b.getValue(BadgeId.COINS_50).earned)
         assertFalse(b.getValue(BadgeId.COINS_100).earned)
         assertEquals(60, b.getValue(BadgeId.COINS_100).progress)
         assertEquals(100, b.getValue(BadgeId.COINS_100).target)
-        // Le Regular fanno parte dello stesso totale.
+        assertEquals(250, b.getValue(BadgeId.COINS_250).target)
+        assertEquals(500, b.getValue(BadgeId.COINS_500).target)
+        // Le Regular non fanno avanzare le soglie: sono un altro catalogo.
         val germany = series.first { it.paese == "Germania" }
         val rows = denominationsOf(listOf(germany), germany).map { regularItem(germany, it.image.taglio, 2005) }
-        assertEquals(60 + rows.size, badges(items, rows).getValue(BadgeId.COINS_100).progress)
+        assertEquals(60, badges(items, rows).getValue(BadgeId.COINS_100).progress)
+        // ...ma una sola Regular basta per la prima moneta.
+        assertTrue(badges(regular = rows).getValue(BadgeId.FIRST_COIN).earned)
+        assertEquals(0, badges(regular = rows).getValue(BadgeId.COINS_100).progress)
+        // Cento commemorative conquistano la prima soglia.
+        assertTrue(badges(coins.take(100).map { item(it) }).getValue(BadgeId.COINS_100).earned)
     }
 
     @Test
@@ -118,15 +124,15 @@ class BadgesTest {
     }
 
     @Test
-    fun luckyFindIsAPricePaidAtOrUnderFaceValue() {
+    fun pocketChangeIsAPricePaidAtOrUnderFaceValue() {
         val coin = coins.first()
         // Una moneta con prezzo sopra il facciale: la medaglia compare ma non è conquistata.
-        assertFalse(badges(listOf(item(coin, priceCents = 350))).getValue(BadgeId.LUCKY_FIND).earned)
-        assertTrue(badges(listOf(item(coin, priceCents = 200))).getValue(BadgeId.LUCKY_FIND).earned)
+        assertFalse(badges(listOf(item(coin, priceCents = 350))).getValue(BadgeId.POCKET_CHANGE).earned)
+        assertTrue(badges(listOf(item(coin, priceCents = 200))).getValue(BadgeId.POCKET_CHANGE).earned)
         // Una Regular: il facciale è quello del taglio (50 cent).
         val germany = series.first { it.paese == "Germania" }
-        assertTrue(badges(regular = listOf(regularItem(germany, "50 cent", 2005, priceCents = 50))).getValue(BadgeId.LUCKY_FIND).earned)
-        assertFalse(badges(regular = listOf(regularItem(germany, "50 cent", 2005, priceCents = 51))).getValue(BadgeId.LUCKY_FIND).earned)
+        assertTrue(badges(regular = listOf(regularItem(germany, "50 cent", 2005, priceCents = 50))).getValue(BadgeId.POCKET_CHANGE).earned)
+        assertFalse(badges(regular = listOf(regularItem(germany, "50 cent", 2005, priceCents = 51))).getValue(BadgeId.POCKET_CHANGE).earned)
     }
 
     @Test
