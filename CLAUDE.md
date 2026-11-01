@@ -685,6 +685,22 @@ medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, 
 fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
 nascondere sì, riordinare no, da fare con il numero di card definitivo).
 
+**Badges: ordine e simboli (2026-11-01, tre giri di mockup con il proprietario: "devono essere catchy", gamification)**: la griglia è
+in QUATTRO RIGHE PER TEMA, l'ordine lo decide `BadgeId` (non il calcolo; `BadgesTest.theBadgesComeInFourThemedRowsOfFour`):
+(1) monete commemorative: First coin, 100, 250, 500; (2) set commemorativi: First country, 5 countries, Common issue, Five mints;
+(3) Regular: First series, 10 series, ΕΥΡΩ hunter, Pocket change (le monete trovate nel resto sono le circolanti); (4) finiture e
+soldi: First BU, First Proof, Triple threat, Big spender. **Niente scritte nei simboli** (tolti "100", "250", "EFS"): le monete si
+IMPILANO e crescono di forma (una moneta, una colonna da 4, due colonne, tre colonne: provato 1/3/5/7 monete in una colonna e tra
+250 e 500 c'era "poca differenza"), disegnate in `ui/insights/BadgeArt.kt` su una griglia di 34 unità a tratto sottile; Common
+issue = il cerchio delle dodici stelle europee (non il mondo); First series = il tassello di puzzle di Material (`Extension`: "chiudi
+il set"). **Scartati per First series**, in ordine: l'icona `Collections`, una fila di monete di taglio crescente, la griglia 4 × 2 di
+otto monete in scala reale (troppo piccola a 52 dp, anche in tre file) e quattro tagli, un francobollo con moneta, tre pannelli,
+un album, l'ottagono con moneta e un tassello disegnato a mano: **qualunque simbolo fatto di monete piccole non funziona a 52 dp**.
+Letter spotter → **ΕΥΡΩ hunter** (la serie EFS greca intera, otto tagli, "ΕΥΡΩ" in lettere greche: proposta del proprietario) con il
+tempio (`AccountBalance`: la Grecia), Five mints con la fabbrica (`Factory`) perché la banca va alla Grecia, Triple threat con
+tre strati (`Layers`, non più il "3"). Le etichette hanno `widthIn(max = 68.dp)`: "Big spender" e "Triple threat" riempivano la
+cella e si toccavano, ora vanno a capo. Non ancora vista sul telefono dopo questo giro.
+
 **Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
 Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest
 Italy · 3 to go"; "All done" se il traguardo è raggiunto, niente riga se non c'è nulla da proporre). Più vicino = **meno
