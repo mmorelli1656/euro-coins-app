@@ -12,7 +12,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -95,13 +94,6 @@ fun InsightsScreen(
                 title = { Text("Insights") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
-                },
-                // Customize: solo sulla scheda Statistics e solo da Pro (da Free la pagina sfocata mostra sempre tutto). Nella barra e non
-                // accanto al selettore: lì l'icona comparsa e sparita cambierebbe la larghezza dei segmenti passando da una scheda all'altra.
-                actions = {
-                    if (canCustomize) {
-                        IconButton(onClick = { customizing = true }) { Icon(Icons.Outlined.Tune, contentDescription = "Customize") }
-                    }
                 },
             )
         },

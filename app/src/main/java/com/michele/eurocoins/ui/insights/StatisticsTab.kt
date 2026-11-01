@@ -32,6 +32,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -113,6 +114,16 @@ internal fun StatisticsTab(
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
     StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout, onCustomize)
+    // In FONDO alla pagina e non in alto (2026-11-01): i comandi si tengono a portata di pollice, e arrivati in fondo il pollice è già
+    // lì. Con tutte le card spente c'è già il pulsante nel messaggio, quindi qui non serve un secondo.
+    if (layout.visible.isNotEmpty()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.OutlinedButton(onClick = onCustomize, shape = RoundedCornerShape(50)) {
+                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Customize", modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
