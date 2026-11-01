@@ -643,8 +643,8 @@ cambia, una moneta per volta; **non riproporre**). (3) **Inviti a toccare** (202
 SUA, con l'icona del dito (`Icons.Outlined.TouchApp`), "Tap" in grassetto nel colore primario e il resto in grigio: in History il
 sottotesto di "The story of the Euro" è su due righe ("From the Treaty of Rome to 21 countries." e "Tap a country for its dates
 and rate."), in Coins "Tap a coin.". Bandiere e monete restano senza riquadro (21 bordi sarebbero troppo). Passo successivo, solo
-se ancora poco evidente: un bordo leggero sul primo elemento. **Non verificato sul telefono** (era bloccato): da guardare il
-layout e l'allineamento dell'icona.
+se ancora poco evidente: un bordo leggero sul primo elemento. Verificato sul telefono (tema scuro): le due righe, l'icona e il
+"Tap" in History e in Coins escono come nel mockup; non provato in chiaro né con il font ingrandito.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
