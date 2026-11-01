@@ -82,7 +82,7 @@ private val RowHeight = 56.dp
 /**
  * "Customize" (2026-11-01, mockup approvato): sceglie quali card di Statistics mostrare e in che ordine. Una riga per card con la
  * maniglia a tre linee (si trascina), il simbolo, il nome e l'interruttore; "Reset" in alto a destra rimette ordine e card come
- * erano (come nel pannello "Filter & sort") e si spegne finché non si è cambiato niente. Il riepilogo non si spegne.
+ * erano (come nel pannello "Filter & sort") e si spegne finché non si è cambiato niente. Ogni card si può spegnere, anche il riepilogo.
  *
  * Il trascinamento passa SOLO dalla maniglia: il pannello si chiude trascinando dal bordo in alto, e una riga trascinata non deve
  * trascinarlo. Ogni spostamento oltre mezza riga scambia subito le due card e si salva (nessun "Save"), come un interruttore.
@@ -193,7 +193,6 @@ internal fun CustomizeSheet(layout: StatsLayout, onChange: (StatsLayout) -> Unit
                             Switch(
                                 checked = shown,
                                 onCheckedChange = { apply(working.toggle(card)) },
-                                enabled = card.canHide,
                                 thumbContent = if (shown) {
                                     { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
                                 } else {
@@ -212,14 +211,7 @@ internal fun CustomizeSheet(layout: StatsLayout, onChange: (StatsLayout) -> Unit
                     }
                 }
             }
-            val hiddenCount = working.hidden.count { it.canHide }
-            Text(
-                text = if (hiddenCount > 0) "$hiddenCount hidden. Your data stays as it is." else " ",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 16.dp),
-            )
+            Box(modifier = Modifier.height(20.dp))
         }
     }
 }

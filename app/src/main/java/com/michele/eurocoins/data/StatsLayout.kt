@@ -11,10 +11,6 @@ enum class StatsCard(val key: String) {
     BADGES("badges"),
     SHINE("shine"),
     EXPENSES("expenses"),
-    ;
-
-    /** La card del riepilogo sta sempre: la pagina non può restare vuota. */
-    val canHide: Boolean get() = this != COLLECTION
 }
 
 /**
@@ -34,9 +30,11 @@ data class StatsLayout(
     /** `true` = ordine e visibilità sono quelli di fabbrica (il Reset si spegne). */
     val isDefault: Boolean get() = order == StatsCard.entries && hidden.isEmpty()
 
-    /** Accende o spegne una card; la card del riepilogo non si spegne. */
-    fun toggle(card: StatsCard): StatsLayout =
-        if (!card.canHide) this else copy(hidden = if (card in hidden) hidden - card else hidden + card)
+    /**
+     * Accende o spegne una card, anche il riepilogo (2026-11-01, scelta del proprietario: il blocco era una difesa contro la pagina
+     * vuota, ma l'icona nella barra resta sempre e se le card sono tutte spente la pagina lo dice e offre Customize).
+     */
+    fun toggle(card: StatsCard): StatsLayout = copy(hidden = if (card in hidden) hidden - card else hidden + card)
 
     /** Sposta [card] alla posizione [to] (0-based, dentro i limiti). */
     fun move(card: StatsCard, to: Int): StatsLayout {
@@ -51,7 +49,7 @@ data class StatsLayout(
     }
 
     /** `collection,progress,...;shine` : prima l'ordine, dopo il punto e virgola le card nascoste. */
-    fun encode(): String = order.joinToString(",") { it.key } + ";" + hidden.filter { it.canHide }.joinToString(",") { it.key }
+    fun encode(): String = order.joinToString(",") { it.key } + ";" + hidden.joinToString(",") { it.key }
 
     companion object {
         fun decode(text: String?): StatsLayout {
@@ -61,7 +59,7 @@ data class StatsLayout(
             val saved = parts[0].split(",").mapNotNull { byKey[it.trim()] }.distinct()
             // Le card che il salvataggio non conosce (arrivate con un aggiornamento) vanno in fondo.
             val order = saved + StatsCard.entries.filter { it !in saved }
-            val hidden = parts.getOrNull(1).orEmpty().split(",").mapNotNull { byKey[it.trim()] }.filter { it.canHide }.toSet()
+            val hidden = parts.getOrNull(1).orEmpty().split(",").mapNotNull { byKey[it.trim()] }.toSet()
             return StatsLayout(order, hidden)
         }
     }

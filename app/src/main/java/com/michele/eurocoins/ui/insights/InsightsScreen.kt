@@ -156,6 +156,7 @@ fun InsightsScreen(
                                 onRegularOwned = onRegularOwnedClick,
                                 onBadgeGo = onBadgeClick,
                                 layout = layout,
+                                onCustomize = { customizing = true },
                             )
                         }
                     }

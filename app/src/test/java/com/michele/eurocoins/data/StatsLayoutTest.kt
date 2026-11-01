@@ -25,10 +25,13 @@ class StatsLayoutTest {
     }
 
     @Test
-    fun theCollectionCardCanNeverBeHidden() {
-        assertEquals(StatsLayout(), StatsLayout().toggle(StatsCard.COLLECTION))
-        // Nemmeno da un salvataggio scritto a mano.
-        assertTrue(StatsCard.COLLECTION in StatsLayout.decode("collection,progress;collection").visible)
+    fun everyCardCanBeHiddenIncludingTheCollectionSummary() {
+        assertTrue(StatsCard.COLLECTION !in StatsLayout().toggle(StatsCard.COLLECTION).visible)
+        assertTrue(StatsCard.COLLECTION in StatsLayout.decode("collection,progress;collection").hidden)
+        // Anche tutte insieme: la pagina resta vuota e lo dice, non è un errore.
+        val none = StatsCard.entries.fold(StatsLayout()) { layout, card -> layout.toggle(card) }
+        assertTrue(none.visible.isEmpty())
+        assertEquals(none, StatsLayout.decode(none.encode()))
     }
 
     @Test

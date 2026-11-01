@@ -108,10 +108,11 @@ internal fun StatisticsTab(
     onRegularOwned: () -> Unit,
     onBadgeGo: (BadgeTarget) -> Unit,
     layout: StatsLayout,
+    onCustomize: () -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout, onCustomize)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -129,8 +130,11 @@ private fun StatisticsCards(
     onRegularOwned: () -> Unit,
     onBadgeGo: (BadgeTarget) -> Unit,
     layout: StatsLayout,
+    onCustomize: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Tutte spente (si può): la pagina lo dice e offre il pannello, invece di restare bianca.
+        if (layout.visible.isEmpty()) NoCardsShown(onCustomize)
         // Nell'ordine scelto dall'utente (Pro), senza le card nascoste; Expenses esce comunque se non c'è nessun prezzo.
         layout.visible.forEach { card ->
             when (card) {
@@ -141,6 +145,18 @@ private fun StatisticsCards(
                 StatsCard.SHINE -> FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
                 StatsCard.EXPENSES -> stats.spending?.let { SpendingCard(it, onSpentItem) }
             }
+        }
+    }
+}
+
+/** Tutte le card sono spente: un messaggio e il modo di riaprire Customize, al posto di una pagina bianca. */
+@Composable
+private fun NoCardsShown(onCustomize: () -> Unit) {
+    DetailCard {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("No cards to show", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            Hint("Turn some back on whenever you like.", Modifier.padding(top = 4.dp, bottom = 12.dp))
+            androidx.compose.material3.OutlinedButton(onClick = onCustomize, shape = RoundedCornerShape(50)) { Text("Customize") }
         }
     }
 }
@@ -223,6 +239,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onRegularOwned = {},
                     onBadgeGo = {},
                     layout = StatsLayout(),
+                    onCustomize = {},
                 )
             }
         }
