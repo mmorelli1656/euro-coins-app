@@ -133,7 +133,7 @@ private fun BadgeGrid(badges: List<Badge>, selected: BadgeId?, modifier: Modifie
         badges.chunked(BADGES_PER_ROW).forEach { row ->
             Row(modifier = Modifier.fillMaxWidth()) {
                 row.forEach { badge ->
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) { BadgeCell(badge, badge.id == selected, onTap) }
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.TopCenter) { BadgeCell(badge, badge.id == selected, reserveProgress = row.any { !it.earned }, onTap = onTap) }
                 }
                 // Una riga corta lascia lo spazio delle medaglie che mancano, così le colonne restano allineate.
                 repeat(BADGES_PER_ROW - row.size) { Box(modifier = Modifier.weight(1f)) }
@@ -143,7 +143,7 @@ private fun BadgeGrid(badges: List<Badge>, selected: BadgeId?, modifier: Modifie
 }
 
 @Composable
-private fun BadgeCell(badge: Badge, selected: Boolean, onTap: (Badge) -> Unit) {
+private fun BadgeCell(badge: Badge, selected: Boolean, reserveProgress: Boolean, onTap: (Badge) -> Unit) {
     val copy = badge.id.copy()
     val shape: Shape = if (badge.id.isFun) RoundedCornerShape(14.dp) else CircleShape
     Column(
@@ -167,12 +167,15 @@ private fun BadgeCell(badge: Badge, selected: Boolean, onTap: (Badge) -> Unit) {
             maxLines = 2,
             modifier = Modifier.padding(top = 6.dp),
         )
-        // Lo spazio del progresso c'è anche per le conquistate: le etichette restano alla stessa altezza.
-        Text(
-            text = if (badge.earned) " " else cellProgress(badge),
-            fontSize = 11.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-        )
+        // La riga del progresso c'è anche per le conquistate, ma solo se nella riga c'è almeno una medaglia da fare: una riga
+        // tutta conquistata non lascia uno spazio vuoto sotto le etichette.
+        if (!badge.earned || reserveProgress) {
+            Text(
+                text = if (badge.earned) " " else cellProgress(badge),
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            )
+        }
     }
 }
 

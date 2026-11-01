@@ -668,7 +668,10 @@ tasto verso ciò che manca (stesse destinazioni di Milestones e di "Most expensi
 BU, Proof, Big spender e Lucky find: non c'è niente da aprire). **Regola: le medaglie che dipendono da dati facoltativi compaiono
 solo se l'utente li ha già usati** (prezzi → Big spender e Lucky find; una lettera di zecca → Five mints), come la card Spending:
 niente traguardi bloccati per sempre; il contatore è "x of N" con N le visibili. Triple threat e Letter spotter sono sempre
-visibili. Da Free la card si sfoca come le altre. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
+visibili. Da Free la card si sfoca come le altre. **Verificato sul telefono (tema scuro, dati veri)**: "8 of 15 earned", cerchi
+pieni e tratteggiati, quadrati morbidi sotto "Just for fun", tocco su "First country" (barra 37 / 40, "Italy is the closest: 3 to
+go") e il tasto che apre le 3 monete italiane mancanti. Una riga tutta conquistata non riserva la riga vuota del progresso (gli
+spazi si allargavano). Non provati: tema chiaro, font ingrandito, vista Free, il tasto delle altre medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
 fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
 nascondere sì, riordinare no, da fare con il numero di card definitivo).
 
