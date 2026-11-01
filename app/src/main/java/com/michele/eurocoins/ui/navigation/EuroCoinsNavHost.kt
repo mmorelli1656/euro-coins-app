@@ -66,9 +66,12 @@ private const val ROUTE_INSIGHTS = "insights"
 private const val ROUTE_SETTINGS_CATALOGS = "settings/catalogs"
 // `missing` (facoltativo, falso se manca): la lista si apre già filtrata su "Missing".
 // `quality` (facoltativo): la lista parte su "Owned" in quella finitura (nome di `CoinQuality`).
-private const val ROUTE_COINS = "coins/{kind}/{value}?missing={missing}&quality={quality}"
+// `owned` (facoltativo): la lista parte su "Owned", in qualunque finitura.
+private const val ROUTE_COINS = "coins/{kind}/{value}?missing={missing}&quality={quality}&owned={owned}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
+// `owned` (facoltativo): si apre sulla scheda All già su "Owned" (da Insights, "Your collection").
+private const val ROUTE_REGULAR_ISSUES_PATTERN = "regular-issues?owned={owned}"
 // `series` (facoltativo, 1-based): la schermata si apre già su quella serie.
 private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}?series={series}"
 private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
@@ -79,6 +82,7 @@ private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
 private const val ARG_MISSING = "missing"
 private const val ARG_QUALITY = "quality"
+private const val ARG_OWNED = "owned"
 private const val ARG_SERIES = "series"
 private const val ARG_COIN_ID = "coinId"
 private const val ARG_PAESE = "paese"
@@ -216,6 +220,9 @@ fun EuroCoinsNavHost(
                 },
                 onValueClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}?$ARG_MISSING=true") },
                 // Una finitura di "By finish": tutte le commemorative possedute in quella finitura.
+                // Una riga di "Your collection": ciò che si possiede in quel catalogo (le commemorative nella scheda All, le Regular nella sua).
+                onCommemorativeOwnedClick = { navController.navigate("coins/$KIND_ALL/all?$ARG_OWNED=true") },
+                onRegularOwnedClick = { navController.navigate("regular-issues?$ARG_OWNED=true") },
                 onFinishClick = { quality -> navController.navigate("coins/$KIND_ALL/all?$ARG_QUALITY=${quality.name}") },
                 // Una voce di "Most expensive": il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
                 onSpentItemClick = { target ->
@@ -276,11 +283,13 @@ fun EuroCoinsNavHost(
                 navArgument(ARG_VALUE) { type = NavType.StringType },
                 navArgument(ARG_MISSING) { type = NavType.BoolType; defaultValue = false },
                 navArgument(ARG_QUALITY) { type = NavType.StringType; defaultValue = "" },
+                navArgument(ARG_OWNED) { type = NavType.BoolType; defaultValue = false },
             ),
         ) { backStackEntry ->
             val kind = backStackEntry.arguments?.getString(ARG_KIND) ?: return@composable
             val value = backStackEntry.arguments?.getString(ARG_VALUE) ?: return@composable
             val missing = backStackEntry.arguments?.getBoolean(ARG_MISSING) ?: false
+            val owned = backStackEntry.arguments?.getBoolean(ARG_OWNED) ?: false
             val quality = backStackEntry.arguments?.getString(ARG_QUALITY)?.let { name -> CoinQuality.entries.firstOrNull { it.name == name } }
             val filter = when (kind) {
                 KIND_YEAR -> CoinFilter.Year(value.toInt())
@@ -289,9 +298,9 @@ fun EuroCoinsNavHost(
                 else -> CoinFilter.Country(value)
             }
             val viewModel: CoinListViewModel = viewModel(
-                key = "coins-$kind-$value-$missing-$quality",
+                key = "coins-$kind-$value-$missing-$quality-$owned",
                 factory = viewModelFactory {
-                    initializer { CoinListViewModel(repository, filter, startMissing = missing, startQuality = quality) }
+                    initializer { CoinListViewModel(repository, filter, startMissing = missing, startQuality = quality, startOwned = owned) }
                 },
             )
             CoinListScreen(
@@ -327,9 +336,15 @@ fun EuroCoinsNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(ROUTE_REGULAR_ISSUES) {
+        composable(
+            route = ROUTE_REGULAR_ISSUES_PATTERN,
+            arguments = listOf(navArgument(ARG_OWNED) { type = NavType.BoolType; defaultValue = false }),
+        ) { backStackEntry ->
+            val owned = backStackEntry.arguments?.getBoolean(ARG_OWNED) ?: false
             val viewModel: RegularIssuesViewModel = viewModel(
-                factory = viewModelFactory { initializer { RegularIssuesViewModel(regularIssueRepository, userSettings.defaultRegularTab.value) } },
+                factory = viewModelFactory {
+                    initializer { RegularIssuesViewModel(regularIssueRepository, userSettings.defaultRegularTab.value, startOwned = owned) }
+                },
             )
             RegularIssuesScreen(
                 viewModel = viewModel,

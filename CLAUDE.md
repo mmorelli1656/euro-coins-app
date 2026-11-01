@@ -643,8 +643,14 @@ monete; taglio 20 cent → elenco dei paesi su Missing; "2007 · Common issue" �
 font ingrandito, la vista Free (la card si sfoca come le altre) e "Show all" in Year.
 
 **Regola per tutta la scheda Statistics (2026-11-01, richiesta del proprietario)**: **ogni card deve avere qualcosa di cliccabile,
-nessuna è fine a sé stessa**. Progress, Spending, By finish e Milestones lo sono; resta da fare Your collection (la riga di un
-catalogo apre la sua lista su Owned).
+nessuna è fine a sé stessa**. Progress, Spending, By finish, Milestones e Your collection lo sono.
+
+**Your collection cliccabile (2026-11-01, variante A dopo mockup)**: la riga di ogni catalogo (`CatalogRow`) ha un chevron dopo
+la percentuale e apre ciò che si possiede, già su Owned: le commemorative nella scheda All (`coins/all/all?owned=true`,
+`CoinListViewModel.startOwned`), le Regular nella scheda All di Regular Issues (`regular-issues?owned=true`,
+`RegularIssuesViewModel.startOwned`: scheda ALL e `allOwnership` OWNED). Con niente di posseduto la riga non si tocca e la
+freccia manca (lo spazio resta, i numeri non si spostano). Progress apre su Missing, questa su Owned: le due card si completano.
+Scartata la B (riga "View owned" sotto ogni catalogo: +2 righe e un invito che le altre card non hanno).
 
 **Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
 Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest

@@ -90,10 +90,12 @@ internal fun StatisticsTab(
     onValue: (String) -> Unit,
     onFinish: (CoinQuality) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
+    onCommemorativeOwned: () -> Unit,
+    onRegularOwned: () -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -107,9 +109,11 @@ private fun StatisticsCards(
     onValue: (String) -> Unit,
     onFinish: (CoinQuality) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
+    onCommemorativeOwned: () -> Unit,
+    onRegularOwned: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        YourCollectionCard(stats)
+        YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
         ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
         MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
         FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
@@ -177,6 +181,8 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onValue = {},
                     onFinish = {},
                     onSpentItem = {},
+                    onCommemorativeOwned = {},
+                    onRegularOwned = {},
                 )
             }
         }
@@ -239,7 +245,7 @@ private fun Hint(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun YourCollectionCard(stats: CollectionStats) {
+private fun YourCollectionCard(stats: CollectionStats, onCommemorativeOwned: () -> Unit, onRegularOwned: () -> Unit) {
     StatCard("Your collection") {
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text(
@@ -254,23 +260,41 @@ private fun YourCollectionCard(stats: CollectionStats) {
             )
         }
         StatBar(stats.total.fraction, Modifier.padding(top = 6.dp))
-        CatalogRow("Commemorative", stats.commemorative)
-        CatalogRow("Regular Issues", stats.regular)
+        CatalogRow("Commemorative", stats.commemorative, onCommemorativeOwned)
+        CatalogRow("Regular Issues", stats.regular, onRegularOwned)
     }
 }
 
+/**
+ * Una riga di catalogo di Your collection (2026-11-01, variante A dopo mockup): il tocco apre l'elenco di ciò che si possiede
+ * in quel catalogo, già su Owned. Con niente di posseduto non c'è nulla da aprire: la riga non è cliccabile e la freccia
+ * manca, ma il suo spazio resta, così i numeri non si spostano.
+ */
 @Composable
-private fun CatalogRow(name: String, progress: Progress) {
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-        // Conteggio e percentuale pesano uguale, separati dal puntino come nel totale qui sopra (scelta del proprietario).
-        Text(
-            text = "${progress.owned} / ${progress.total} · ${percent(progress)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+private fun CatalogRow(name: String, progress: Progress, onOpen: () -> Unit) {
+    val enabled = progress.owned > 0
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled, onClick = onOpen)
+            .padding(top = 8.dp, bottom = 6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            // Conteggio e percentuale pesano uguale, separati dal puntino come nel totale qui sopra (scelta del proprietario).
+            Text(
+                text = "${progress.owned} / ${progress.total} · ${percent(progress)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Box(modifier = Modifier.size(24.dp)) {
+                if (enabled) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        StatBar(progress.fraction, Modifier.padding(top = 4.dp))
     }
-    StatBar(progress.fraction)
 }
 
 /** Quante righe mostra Progress prima di "Show all". */

@@ -69,6 +69,10 @@ fun InsightsScreen(
     onFinishClick: (CoinQuality) -> Unit,
     /** Apre il dettaglio di una voce della classifica "Most expensive". */
     onSpentItemClick: (SpentTarget) -> Unit,
+    /** Apre ciò che si possiede nelle commemorative (scheda All su Owned). */
+    onCommemorativeOwnedClick: () -> Unit,
+    /** Apre ciò che si possiede nelle Regular Issues (scheda All su Owned). */
+    onRegularOwnedClick: () -> Unit,
     onBack: () -> Unit,
 ) {
     val pro = LocalProAccess.current
@@ -133,6 +137,8 @@ fun InsightsScreen(
                                 onValue = onValueClick,
                                 onFinish = onFinishClick,
                                 onSpentItem = onSpentItemClick,
+                                onCommemorativeOwned = onCommemorativeOwnedClick,
+                                onRegularOwned = onRegularOwnedClick,
                             )
                         }
                     }
