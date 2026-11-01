@@ -40,7 +40,11 @@ internal fun DrawScope.drawBadgeArt(art: BadgeArt, color: Color) {
     }
 
     when (art) {
-        BadgeArt.COIN -> coin(5f, 19f, 24f, 4.5f)
+        // Una moneta di fronte (cerchio e anello interno), non di taglio: una barretta sola si leggeva come un segno "meno".
+        BadgeArt.COIN -> {
+            drawCircle(color, radius = 10f * k, center = Offset(17f * k, 17f * k), style = stroke)
+            drawCircle(color, radius = 5.8f * k, center = Offset(17f * k, 17f * k), style = stroke)
+        }
         BadgeArt.STACK_100 -> column(8f, 18f, 4)
         BadgeArt.STACK_250 -> {
             column(3f, 13f, 3)
@@ -57,8 +61,8 @@ internal fun DrawScope.drawBadgeArt(art: BadgeArt, color: Color) {
                 val angle = i * PI.toFloat() / 6f
                 drawCircle(
                     color = color,
-                    radius = 1.7f * k,
-                    center = Offset((17f + 11.5f * sin(angle)) * k, (17f - 11.5f * cos(angle)) * k),
+                    radius = 2.0f * k,
+                    center = Offset((17f + 13f * sin(angle)) * k, (17f - 13f * cos(angle)) * k),
                 )
             }
         }

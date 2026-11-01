@@ -699,7 +699,7 @@ un album, l'ottagono con moneta e un tassello disegnato a mano: **qualunque simb
 Letter spotter → **ΕΥΡΩ hunter** (la serie EFS greca intera, otto tagli, "ΕΥΡΩ" in lettere greche: proposta del proprietario) con il
 tempio (`AccountBalance`: la Grecia), Five mints con la fabbrica (`Factory`) perché la banca va alla Grecia, Triple threat con
 tre strati (`Layers`, non più il "3"). Le etichette hanno `widthIn(max = 68.dp)`: "Big spender" e "Triple threat" riempivano la
-cella e si toccavano, ora vanno a capo. Non ancora vista sul telefono dopo questo giro.
+cella e si toccavano, ora vanno a capo. **Verificato sul telefono (tema scuro)**: quattro righe, colonne di monete che crescono, tassello, tempio, "EYPΩ hunter" a capo su due righe ("ΕΥΡΩ" in maiuscole greche si legge come E Y P Ω), "Big spender" e "Triple threat" non si toccano più. First coin è una MONETA DI FRONTE (cerchio e anello), non di taglio: la barretta sola sembrava un segno "meno"; il cerchio delle stelle è stato ingrandito (raggio 13, punti da 2). Non provati: font ingrandito, tema chiaro, vista Free.
 
 **Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
 Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest
