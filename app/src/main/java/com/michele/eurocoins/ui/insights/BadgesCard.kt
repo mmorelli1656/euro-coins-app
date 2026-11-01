@@ -1,6 +1,7 @@
 package com.michele.eurocoins.ui.insights
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,15 +20,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.Collections
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Factory
 import androidx.compose.material.icons.outlined.Diamond
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Looks3
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
-import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.Payments
-import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,41 +67,41 @@ private const val BADGES_PER_ROW = 4
 
 private val MedalSize = 52.dp
 
-/** Nome, spiegazione e icona di una medaglia: i testi sono nostri, i numeri (progresso, note) arrivano dal dato. */
-private class BadgeCopy(val name: String, val how: String, val icon: ImageVector? = null, val number: String? = null)
+/** Nome, spiegazione e simbolo (icona Material o disegno [BadgeArt]) di una medaglia: i testi sono nostri, i numeri arrivano dal dato. */
+private class BadgeCopy(val name: String, val how: String, val icon: ImageVector? = null, val art: BadgeArt? = null)
 
 private fun BadgeId.copy(): BadgeCopy = when (this) {
-    BadgeId.FIRST_COIN -> BadgeCopy("First coin", "Add your first coin to the collection.", Icons.Outlined.MonetizationOn)
-    // Le soglie delle monete mostrano il numero dentro la medaglia: una scala sola, senza tre icone scollegate.
-    BadgeId.COINS_100 -> BadgeCopy("100 coins", "Own 100 commemorative coins.", number = "100")
-    BadgeId.COINS_250 -> BadgeCopy("250 coins", "Own 250 commemorative coins.", number = "250")
-    BadgeId.COINS_500 -> BadgeCopy("500 coins", "Own 500 commemorative coins.", number = "500")
+    // Le monete si impilano: una moneta, una colonna, due, tre (2026-11-01, "poca differenza tra 250 e 500"). Niente numeri nei simboli.
+    BadgeId.FIRST_COIN -> BadgeCopy("First coin", "Add your first coin to the collection.", art = BadgeArt.COIN)
+    BadgeId.COINS_100 -> BadgeCopy("100 coins", "Own 100 commemorative coins.", art = BadgeArt.STACK_100)
+    BadgeId.COINS_250 -> BadgeCopy("250 coins", "Own 250 commemorative coins.", art = BadgeArt.STACK_250)
+    BadgeId.COINS_500 -> BadgeCopy("500 coins", "Own 500 commemorative coins.", art = BadgeArt.STACK_500)
     BadgeId.FIRST_BU -> BadgeCopy("First BU", "Own a coin in BU finish.", Icons.Outlined.Diamond)
     BadgeId.FIRST_PROOF -> BadgeCopy("First Proof", "Own a coin in Proof finish.", Icons.Outlined.AutoAwesome)
-    BadgeId.JOINT_ISSUE -> BadgeCopy("Common issue", "Complete one of the five common issues, with the coin of every country.", Icons.Outlined.Public)
+    BadgeId.JOINT_ISSUE -> BadgeCopy("Common issue", "Complete one of the five common issues, with the coin of every country.", art = BadgeArt.EU_STARS)
     BadgeId.FIRST_COUNTRY -> BadgeCopy("First country", "Complete every commemorative of one country.", Icons.Outlined.Flag)
     BadgeId.FIVE_COUNTRIES -> BadgeCopy("5 countries", "Complete five countries in Commemorative.", Icons.Outlined.Map)
-    BadgeId.FIRST_SERIES -> BadgeCopy("First series", "Complete all eight values of one Regular series.", Icons.Outlined.Collections)
+    BadgeId.FIRST_SERIES -> BadgeCopy("First series", "Complete all eight values of one Regular series.", Icons.Outlined.Extension)
     BadgeId.TEN_SERIES -> BadgeCopy("10 series", "Complete ten Regular series.", Icons.Outlined.EmojiEvents)
-    BadgeId.FIVE_MINTS -> BadgeCopy("Five mints", "Own one coin from all five German mints: A, D, F, G and J.", Icons.Outlined.AccountBalance)
+    BadgeId.FIVE_MINTS -> BadgeCopy("Five mints", "Own one coin from all five German mints: A, D, F, G and J.", Icons.Outlined.Factory)
     BadgeId.BIG_SPENDER -> BadgeCopy("Big spender", "Spend at least €100 on your collection. Your wallet noticed.", Icons.Outlined.Payments)
-    BadgeId.TRIPLE_THREAT -> BadgeCopy("Triple threat", "Own the same coin in Standard, BU and Proof. Why choose?", Icons.Outlined.Looks3)
+    BadgeId.TRIPLE_THREAT -> BadgeCopy("Triple threat", "Own the same coin in Standard, BU and Proof. Why choose?", Icons.Outlined.Layers)
     BadgeId.POCKET_CHANGE -> BadgeCopy(
         "Pocket change",
         "Add a coin you got for its face value or less, like a 2 euro from your change. Price it at €2.00 or less.",
         Icons.Outlined.AccountBalanceWallet,
     )
-    // La scritta "EFS" nella medaglia, come i numeri delle soglie: il simbolo è la serie stessa.
+    // ΕΥΡΩ = "euro" in greco (lettere greche maiuscole), e il tempio è la Grecia: la serie EFS è greca.
     BadgeId.LETTER_HUNTER -> BadgeCopy(
-        "Letter hunter",
+        "ΕΥΡΩ hunter",
         "Find all eight Greek 2002 coins with a letter in the star (E, F or S): the whole EFS series.",
-        number = "EFS",
+        Icons.Outlined.AccountBalance,
     )
 }
 
 /**
- * La card Badges (2026-11-01, mockup approvato): dodici medaglie con un progresso e quattro "just for fun" a quadrato morbido
- * (il cerchio dice "soglia", il quadrato "battuta"), in UNA griglia sola: il filetto "Just for fun" è stato tolto su richiesta
+ * La card Badges (2026-11-01, mockup approvato): sedici medaglie in quattro righe per tema (monete commemorative, set commemorativi,
+ * Regular, finiture e soldi), di cui quattro "just for fun" a quadrato morbido (il cerchio dice "soglia", il quadrato "battuta"), in UNA griglia sola: il filetto "Just for fun" è stato tolto su richiesta
  * del proprietario, la forma basta a distinguerle e le quattro chiudono l'ultima riga. Le conquistate sono piene, le altre spente con il
  * progresso sotto; il tocco apre sotto la griglia il perché e, se non conquistata, la barra e un tasto verso ciò che manca.
  * Derivata dalla collezione, mai salvata. Da Free si sfoca con le altre card ([StatCard]).
@@ -157,7 +158,8 @@ private fun BadgeCell(badge: Badge, selected: Boolean, reserveProgress: Boolean,
             color = if (badge.earned) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 2,
-            modifier = Modifier.padding(top = 6.dp),
+            // Larghezza massima: "Big spender" e "Triple threat" riempivano la cella e si toccavano; così vanno a capo con un po' d'aria.
+            modifier = Modifier.padding(top = 6.dp).widthIn(max = 68.dp),
         )
         // La riga del progresso c'è anche per le conquistate, ma solo se nella riga c'è almeno una medaglia da fare: una riga
         // tutta conquistata non lascia uno spazio vuoto sotto le etichette.
@@ -207,8 +209,8 @@ private fun Medal(badge: Badge, copy: BadgeCopy, shape: Shape) {
             ),
     ) {
         val tint = if (badge.earned) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        if (copy.number != null) {
-            Text(copy.number, color = tint, fontSize = 17.sp, fontWeight = FontWeight.Medium, maxLines = 1, softWrap = false)
+        if (copy.art != null) {
+            Canvas(modifier = Modifier.size(30.dp)) { drawBadgeArt(copy.art, tint) }
         } else if (copy.icon != null) {
             Icon(imageVector = copy.icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
         }

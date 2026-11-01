@@ -8,10 +8,11 @@ import java.util.Locale
  * perdono ripristinando, non servono migrazioni.
  */
 enum class BadgeId(val isFun: Boolean = false) {
+    // L'ordine della griglia, quattro per riga: monete commemorative, set commemorativi, Regular, finiture e soldi.
     FIRST_COIN, COINS_100, COINS_250, COINS_500,
-    FIRST_BU, FIRST_PROOF,
-    JOINT_ISSUE, FIRST_COUNTRY, FIVE_COUNTRIES, FIRST_SERIES, TEN_SERIES, FIVE_MINTS,
-    BIG_SPENDER(true), TRIPLE_THREAT(true), POCKET_CHANGE(true), LETTER_HUNTER(true),
+    FIRST_COUNTRY, FIVE_COUNTRIES, JOINT_ISSUE, FIVE_MINTS,
+    FIRST_SERIES, TEN_SERIES, LETTER_HUNTER(true), POCKET_CHANGE(true),
+    FIRST_BU, FIRST_PROOF, TRIPLE_THREAT(true), BIG_SPENDER(true),
 }
 
 /** Dove porta il tasto di una medaglia non ancora conquistata: le stesse destinazioni di Milestones e di "Most expensive". */
@@ -178,7 +179,8 @@ internal fun badgesOf(
         go = if (hunted) null else BadgeTarget.Milestone(MilestoneTarget.RegularCountry("Grecia", 1)),
         goLabel = if (hunted) null else "Show the Greek coins",
     )
-    return out
+    // L'ordine lo decide [BadgeId], non quello in cui si calcolano.
+    return BadgeId.entries.mapNotNull { id -> out.firstOrNull { it.id == id } }
 }
 
 private fun finishNote(count: Int, label: String) =

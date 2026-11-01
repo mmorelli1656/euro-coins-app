@@ -201,9 +201,17 @@ class BadgesTest {
     }
 
     @Test
-    fun theFunBadgesCloseTheList() {
-        val order = badges(listOf(item(coins.first(), priceCents = 500))).keys.toList()
-        val firstFun = order.indexOfFirst { it.isFun }
-        assertTrue(order.drop(firstFun).all { it.isFun })
+    fun theBadgesComeInFourThemedRowsOfFour() {
+        val order = badges().keys.toList()
+        assertEquals(16, order.size)
+        assertEquals(
+            listOf(
+                listOf(BadgeId.FIRST_COIN, BadgeId.COINS_100, BadgeId.COINS_250, BadgeId.COINS_500),
+                listOf(BadgeId.FIRST_COUNTRY, BadgeId.FIVE_COUNTRIES, BadgeId.JOINT_ISSUE, BadgeId.FIVE_MINTS),
+                listOf(BadgeId.FIRST_SERIES, BadgeId.TEN_SERIES, BadgeId.LETTER_HUNTER, BadgeId.POCKET_CHANGE),
+                listOf(BadgeId.FIRST_BU, BadgeId.FIRST_PROOF, BadgeId.TRIPLE_THREAT, BadgeId.BIG_SPENDER),
+            ),
+            order.chunked(4),
+        )
     }
 }
