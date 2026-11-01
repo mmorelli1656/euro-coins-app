@@ -661,7 +661,7 @@ Proof, Common issue, First country, 5 countries, First series, 10 series, Five m
 (il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
 moneta in Standard, BU e Proof), **Pocket change** (una moneta registrata al valore facciale o meno, come una 2 euro trovata nel resto: €2.00 le
 commemorative, il taglio per le Regular, `faceValueCents`; ex "Lucky find", rinominata perché nome, icona a coriandoli e "face
-value" non dicevano cosa fare: ora portafoglio e "Price it at €2.00 or less"), **Letter spotter** (la 2002 greca con EFS). **Soglie delle monete (2026-11-01, mockup approvato "molto meglio")**: First coin conta ogni moneta, ma 100 / 250 / 500 contano
+value" non dicevano cosa fare: ora portafoglio e "Price it at €2.00 or less"), **Letter hunter** (tutta la serie EFS: gli otto tagli della Grecia 2002 con la lettera nella stella, progresso x / 8 con "Still to find: 1 cent, 1 euro."; ex "Letter spotter" che bastava una moneta sola; simbolo la scritta "EFS" nel quadrato, come i numeri delle soglie). **Soglie delle monete (2026-11-01, mockup approvato "molto meglio")**: First coin conta ogni moneta, ma 100 / 250 / 500 contano
 SOLO le commemorative (613 oggi; 50 era troppo basso per chi ne ha già 93) e mostrano il NUMERO dentro la medaglia al posto di tre
 icone scollegate (salvadanaio, livelli, medaglia): una scala sola. Le Regular restano fuori dalle soglie (un equivalente, per
 esempio 100 e 250 righe su 328, sarebbe 18 medaglie: non chiesto). Scartata la Scartata la **Shopping spree** (cinque monete con

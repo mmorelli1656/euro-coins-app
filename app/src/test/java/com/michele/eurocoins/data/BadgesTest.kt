@@ -159,14 +159,28 @@ class BadgesTest {
     }
 
     @Test
-    fun letterSpotterIsTheGreekEfsVariety() {
+    fun letterHunterNeedsTheWholeGreekEfsSeries() {
         val greece = series.first { it.paese == "Grecia" && it.ordineCronologico == 1 }
-        val locked = badges().getValue(BadgeId.LETTER_SPOTTER)
+        val locked = badges().getValue(BadgeId.LETTER_HUNTER)
         assertFalse(locked.earned)
+        assertEquals(8, locked.target)
+        assertEquals(0, locked.progress)
         assertEquals(BadgeTarget.Milestone(MilestoneTarget.RegularCountry("Grecia", 1)), locked.go)
         // Una Grecia 2002 senza la varietà non conta.
-        assertFalse(badges(regular = listOf(regularItem(greece, "2 euro", 2002))).getValue(BadgeId.LETTER_SPOTTER).earned)
-        assertTrue(badges(regular = listOf(regularItem(greece, "2 euro", 2002, variety = VARIETY_EFS))).getValue(BadgeId.LETTER_SPOTTER).earned)
+        assertEquals(0, badges(regular = listOf(regularItem(greece, "2 euro", 2002))).getValue(BadgeId.LETTER_HUNTER).progress)
+        // Una moneta EFS non basta; lo stesso taglio in due qualità conta una volta sola.
+        val one = badges(regular = listOf(regularItem(greece, "2 euro", 2002, variety = VARIETY_EFS)))
+        assertEquals(1, one.getValue(BadgeId.LETTER_HUNTER).progress)
+        assertFalse(one.getValue(BadgeId.LETTER_HUNTER).earned)
+        val twice = badges(regular = listOf(
+            regularItem(greece, "2 euro", 2002, variety = VARIETY_EFS),
+            regularItem(greece, "2 euro", 2002, variety = VARIETY_EFS).copy(quality = CoinQuality.BU),
+        ))
+        assertEquals(1, twice.getValue(BadgeId.LETTER_HUNTER).progress)
+        // Tutti e otto i tagli.
+        val all = REGULAR_DENOMINATIONS.map { regularItem(greece, it, 2002, variety = VARIETY_EFS) }
+        assertEquals(8, all.size)
+        assertTrue(badges(regular = all).getValue(BadgeId.LETTER_HUNTER).earned)
     }
 
     @Test

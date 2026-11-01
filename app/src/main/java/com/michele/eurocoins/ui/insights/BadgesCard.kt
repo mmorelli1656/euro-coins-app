@@ -27,7 +27,6 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.MonetizationOn
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -91,7 +90,12 @@ private fun BadgeId.copy(): BadgeCopy = when (this) {
         "Add a coin you got for its face value or less, like a 2 euro from your change. Price it at €2.00 or less.",
         Icons.Outlined.AccountBalanceWallet,
     )
-    BadgeId.LETTER_SPOTTER -> BadgeCopy("Letter spotter", "Find the Greek 2002 coin with a letter in the star (EFS).", Icons.Outlined.Visibility)
+    // La scritta "EFS" nella medaglia, come i numeri delle soglie: il simbolo è la serie stessa.
+    BadgeId.LETTER_HUNTER -> BadgeCopy(
+        "Letter hunter",
+        "Find all eight Greek 2002 coins with a letter in the star (E, F or S): the whole EFS series.",
+        number = "EFS",
+    )
 }
 
 /**

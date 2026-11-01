@@ -11,7 +11,7 @@ enum class BadgeId(val isFun: Boolean = false) {
     FIRST_COIN, COINS_100, COINS_250, COINS_500,
     FIRST_BU, FIRST_PROOF,
     JOINT_ISSUE, FIRST_COUNTRY, FIVE_COUNTRIES, FIRST_SERIES, TEN_SERIES, FIVE_MINTS,
-    BIG_SPENDER(true), TRIPLE_THREAT(true), POCKET_CHANGE(true), LETTER_SPOTTER(true),
+    BIG_SPENDER(true), TRIPLE_THREAT(true), POCKET_CHANGE(true), LETTER_HUNTER(true),
 }
 
 /** Dove porta il tasto di una medaglia non ancora conquistata: le stesse destinazioni di Milestones e di "Most expensive". */
@@ -166,12 +166,17 @@ internal fun badgesOf(
         BadgeId.POCKET_CHANGE, lucky > 0, if (lucky > 0) 1 else 0, 1,
         note = if (lucky > 0) "$lucky ${if (lucky == 1) "coin" else "coins"} at or under face value." else "Add a price of €2.00 or less to a coin.",
     )
-    val spotted = regularItems.any { it.variety == VARIETY_EFS }
+    // La serie EFS intera: gli otto tagli della Grecia 2002 con la lettera nella stella (E, F, S), non una moneta sola.
+    val efsCoins = greekEfsLetterGroups().sumOf { it.taglios.size }
+    val efsHave = regularItems.filter { it.variety == VARIETY_EFS && it.paese == "Grecia" }.map { it.taglio }.toSet()
+    val efsMissing = greekEfsLetterGroups().flatMap { it.taglios }.filter { it !in efsHave }
+    val efsOwned = efsCoins - efsMissing.size
+    val hunted = efsOwned >= efsCoins
     out += Badge(
-        BadgeId.LETTER_SPOTTER, spotted, if (spotted) 1 else 0, 1,
-        note = if (spotted) "A Greek 2002 coin with a letter in the star." else "Keep an eye on the stars.",
-        go = if (spotted) null else BadgeTarget.Milestone(MilestoneTarget.RegularCountry("Grecia", 1)),
-        goLabel = if (spotted) null else "Show the Greek coins",
+        BadgeId.LETTER_HUNTER, hunted, efsOwned, efsCoins,
+        note = if (hunted) "All $efsCoins Greek 2002 coins with a letter in the star." else "Still to find: ${efsMissing.joinToString(", ")}.",
+        go = if (hunted) null else BadgeTarget.Milestone(MilestoneTarget.RegularCountry("Grecia", 1)),
+        goLabel = if (hunted) null else "Show the Greek coins",
     )
     return out
 }
