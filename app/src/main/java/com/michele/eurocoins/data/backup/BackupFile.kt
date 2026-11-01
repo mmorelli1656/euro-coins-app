@@ -2,6 +2,8 @@ package com.michele.eurocoins.data.backup
 
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.Goal
+import com.michele.eurocoins.data.GoalKind
 import com.michele.eurocoins.data.RegularCollectionItem
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -29,26 +31,42 @@ data class BackupFile(
      * collezione Regular locale (vedi [includesRegularIssues]).
      */
     val regularItems: List<RegularBackupItem> = emptyList(),
+    /**
+     * Gli obiettivi personali di Milestones (dalla versione 6; vedi [Goal]). Default vuoto: un file precedente non li porta, quindi
+     * ripristinarlo NON deve toccare quelli del telefono (vedi [includesGoals]).
+     */
+    val goals: List<BackupGoal> = emptyList(),
 ) {
     /** I backup della versione 1 non sanno nulla di Regular Issues: ripristinarli non deve azzerarla. */
     val includesRegularIssues: Boolean get() = schemaVersion >= 2
 
+    /** I backup precedenti alla versione 6 non sanno nulla di obiettivi: ripristinarli non deve cancellare quelli locali. */
+    val includesGoals: Boolean get() = schemaVersion >= 6
+
     companion object {
         /**
-         * 5 = le voci hanno una zecca (`mint`, vuota = non indicata: vedi `NO_MINT`); un'app più vecchia la
+         * 6 = ci sono gli obiettivi personali (`goals`); un'app più vecchia li perderebbe in silenzio al prossimo backup, quindi rifiuta il
+         * file come "più nuovo". 5 = le voci hanno una zecca (`mint`, vuota = non indicata: vedi `NO_MINT`); un'app più vecchia la
          * perderebbe in silenzio e confonderebbe due zecche della stessa moneta, quindi la rifiuta come "più
          * nuova". 4 = le voci Regular possono avere `anno` 0 ("anno non indicato", Quick add: vedi `NO_YEAR`).
          */
-        const val SCHEMA_VERSION = 5
+        const val SCHEMA_VERSION = 6
 
         /** L'ultima versione che non sa niente di zecche: la si scrive ancora quando nessuna voce ne ha una. */
         const val SCHEMA_VERSION_WITHOUT_MINTS = 4
 
+        /** La versione delle zecche, senza obiettivi. */
+        const val SCHEMA_VERSION_WITH_MINTS = 5
+
         /**
-         * La versione da scrivere: 5 solo se almeno una voce ha una zecca, altrimenti 4. Chi non usa le lettere
-         * non obbliga un secondo telefono ad aggiornare l'app per ripristinare il backup.
+         * La versione da scrivere: 6 solo se c'è almeno un obiettivo, 5 solo se almeno una voce ha una zecca, altrimenti 4. Chi non
+         * usa le lettere né gli obiettivi non obbliga un secondo telefono ad aggiornare l'app per ripristinare il backup.
          */
-        fun versionFor(hasMints: Boolean): Int = if (hasMints) SCHEMA_VERSION else SCHEMA_VERSION_WITHOUT_MINTS
+        fun versionFor(hasMints: Boolean, hasGoals: Boolean = false): Int = when {
+            hasGoals -> SCHEMA_VERSION
+            hasMints -> SCHEMA_VERSION_WITH_MINTS
+            else -> SCHEMA_VERSION_WITHOUT_MINTS
+        }
 
         private val json = Json {
             ignoreUnknownKeys = true
@@ -163,6 +181,21 @@ fun RegularBackupItem.toCollectionItem(): RegularCollectionItem? {
         paese = paese,
         addedAt = addedAt,
     )
+}
+
+/**
+ * Un obiettivo personale nel backup: la chiave NATURALE (paese stabile, anno, `RegularIssueSeries.stableKey`, numero di monete), mai un
+ * id. [kind] è il nome dell'enum `GoalKind` come stringa: un tipo che un'app futura aggiungesse non rompe la lettura, la voce si salta.
+ */
+@Serializable
+data class BackupGoal(val kind: String, val key: String, val doneAt: Long? = null)
+
+fun Goal.toBackupGoal() = BackupGoal(kind = kind.name, key = key, doneAt = doneAt)
+
+/** Null se il tipo non è più riconosciuto: la voce viene saltata. */
+fun BackupGoal.toGoal(): Goal? {
+    val parsed = GoalKind.entries.firstOrNull { it.name == kind } ?: return null
+    return Goal(parsed, key, doneAt)
 }
 
 class BackupException(message: String, cause: Throwable? = null) : Exception(message, cause)

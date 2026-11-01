@@ -48,7 +48,7 @@ class EuroCoinsApplication : Application() {
 
     val backupService: BackupService by lazy {
         val db = CoinDatabase.getInstance(this)
-        BackupService(db.collectionDao(), db.regularCollectionDao(), DriveBackupClient(), BackupSnapshotStore(this))
+        BackupService(db.collectionDao(), db.regularCollectionDao(), goalStore, DriveBackupClient(), BackupSnapshotStore(this))
     }
 
     /** Salvataggio automatico su Drive all'uscita dall'app (vedi [AutoBackup]); lo avvia `MainActivity.onStop`. */

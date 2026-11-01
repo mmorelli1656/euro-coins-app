@@ -1,6 +1,7 @@
 package com.michele.eurocoins.data.backup
 
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.Goal
 import com.michele.eurocoins.data.RegularCollectionItem
 
 /**
@@ -15,7 +16,7 @@ sealed interface BackupStatus {
     /** La collezione locale coincide con l'ultimo backup. */
     data object UpToDate : BackupStatus
 
-    /** [changes] voci aggiunte, tolte o modificate dall'ultimo backup (una voce = una finitura, o un anno+finitura nelle Regular). */
+    /** [changes] voci aggiunte, tolte o modificate dall'ultimo backup (una voce = una finitura, o un anno+finitura nelle Regular; un obiettivo aggiunto, tolto o raggiunto conta come una). */
     data class Pending(val changes: Int) : BackupStatus
 }
 
@@ -28,6 +29,7 @@ fun backupStatus(
     snapshot: BackupFile?,
     items: List<CollectionItem>,
     regularItems: List<RegularCollectionItem>,
+    goals: List<Goal> = emptyList(),
 ): BackupStatus {
     snapshot ?: return BackupStatus.Unknown
     val commemorative = countChanges(
@@ -46,7 +48,14 @@ fun backupStatus(
     } else {
         regularItems.size
     }
-    val total = commemorative + regular
+    // Gli obiettivi: aggiunti, tolti o raggiunti dall'ultimo backup. Un'istantanea precedente alla versione 6 non li portava, quindi quelli
+    // locali risultano "non salvati" (come le Regular per la versione 1): dire "aggiornato" sarebbe falso.
+    val goalChanges = if (snapshot.includesGoals) {
+        countChanges(old = snapshot.goals.mapNotNull { it.toGoal() }.associateBy { it.id }, new = goals.associateBy { it.id })
+    } else {
+        goals.size
+    }
+    val total = commemorative + regular + goalChanges
     return if (total == 0) BackupStatus.UpToDate else BackupStatus.Pending(total)
 }
 

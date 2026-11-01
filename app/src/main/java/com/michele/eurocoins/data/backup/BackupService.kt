@@ -2,6 +2,8 @@ package com.michele.eurocoins.data.backup
 
 import com.michele.eurocoins.data.CollectionDao
 import com.michele.eurocoins.data.CollectionItem
+import com.michele.eurocoins.data.Goal
+import com.michele.eurocoins.data.GoalStore
 import com.michele.eurocoins.data.NO_MINT
 import com.michele.eurocoins.data.RegularCollectionDao
 import com.michele.eurocoins.data.RegularCollectionItem
@@ -29,6 +31,7 @@ data class BackupInfo(val latest: String?)
 class BackupService(
     private val collectionDao: CollectionDao,
     private val regularCollectionDao: RegularCollectionDao,
+    private val goalStore: GoalStore,
     private val drive: DriveBackupClient,
     val snapshots: BackupSnapshotStore,
 ) {
@@ -38,17 +41,20 @@ class BackupService(
     suspend fun backup(token: String): Int = mutex.withLock {
         val items = collectionDao.getAll()
         val regularItems = regularCollectionDao.getAll()
+        val goals = goalStore.goals.value
         // Un backup vuoto non serve a niente e sovrascriverebbe quello buono: vale per il manuale come per l'automatico.
         if (items.isEmpty() && regularItems.isEmpty()) throw BackupException(EMPTY_COLLECTION_MESSAGE)
         val file = BackupFile(
-            // La versione 5 solo se una voce ha una zecca: chi non usa le lettere continua a scrivere la 4 e
-            // un altro telefono non ancora aggiornato può ripristinare lo stesso file.
+            // La versione 6 solo se c'è un obiettivo, la 5 solo se una voce ha una zecca: chi non usa né le lettere né gli obiettivi
+            // continua a scrivere la 4 e un altro telefono non ancora aggiornato può ripristinare lo stesso file.
             schemaVersion = BackupFile.versionFor(
                 hasMints = items.any { it.mint != NO_MINT } || regularItems.any { it.mint != NO_MINT },
+                hasGoals = goals.isNotEmpty(),
             ),
             exportedAt = System.currentTimeMillis(),
             items = items.map { it.toBackupItem() },
             regularItems = regularItems.map { it.toBackupItem() },
+            goals = goals.map { it.toBackupGoal() },
         )
         drive.upload(token, BackupFile.encode(file))
         snapshots.save(file)
@@ -76,6 +82,8 @@ class BackupService(
             regularCollectionDao.replaceAll(regularItems)
             restored += regularItems.size
         }
+        // Gli obiettivi si sostituiscono solo se il file li porta (versione 6): un backup più vecchio non deve cancellare quelli del telefono.
+        if (file.includesGoals) goalStore.replaceAll(file.goals.mapNotNull { it.toGoal() })
         if (usePrevious) snapshots.clear() else snapshots.save(file)
         restored
     }
@@ -99,13 +107,14 @@ class BackupService(
 
     /** Rapporto attuale tra collezione locale e ultimo backup, calcolato una volta. */
     suspend fun currentStatus(): BackupStatus =
-        backupStatus(snapshots.snapshot.value, collectionDao.getAll(), regularCollectionDao.getAll())
+        backupStatus(snapshots.snapshot.value, collectionDao.getAll(), regularCollectionDao.getAll(), goalStore.goals.value)
 
     /** Come [currentStatus] ma aggiornato a ogni modifica della collezione o del backup. */
     fun observeStatus(): Flow<BackupStatus> = combine(
         collectionDao.observeAll(),
         regularCollectionDao.observeAll(),
         snapshots.snapshot,
+        goalStore.goals,
         ::statusOf,
     )
 
@@ -113,7 +122,8 @@ class BackupService(
         items: List<CollectionItem>,
         regularItems: List<RegularCollectionItem>,
         snapshot: BackupFile?,
-    ) = backupStatus(snapshot, items, regularItems)
+        goals: List<Goal>,
+    ) = backupStatus(snapshot, items, regularItems, goals)
 
     /** Si dimentica l'ultimo backup noto (cambio di account): lo stato torna "non verificabile". */
     fun forgetSnapshot() = snapshots.clear()

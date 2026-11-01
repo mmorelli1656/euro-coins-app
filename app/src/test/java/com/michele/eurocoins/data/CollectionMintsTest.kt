@@ -222,9 +222,9 @@ class CollectionMintsTest {
     }
 
     @Test
-    fun aNewerVersionThanFiveIsRefused() {
+    fun aNewerVersionThanTheCurrentOneIsRefused() {
         try {
-            BackupFile.decode("""{"schemaVersion":6,"exportedAt":5,"items":[]}""")
+            BackupFile.decode("""{"schemaVersion":7,"exportedAt":5,"items":[]}""") // la versione attuale è la 6 (obiettivi): la 7 si rifiuta come "più nuova"
             fail("doveva rifiutarla")
         } catch (_: BackupException) {
         }
