@@ -85,6 +85,7 @@ internal fun StatisticsTab(
     stats: CollectionStats?,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onRegularSeries: (String, Int) -> Unit,
     onYear: (Int, Boolean) -> Unit,
     onValue: (String) -> Unit,
     onFinish: (CoinQuality) -> Unit,
@@ -92,7 +93,7 @@ internal fun StatisticsTab(
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue, onFinish, onSpentItem)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -101,6 +102,7 @@ private fun StatisticsCards(
     stats: CollectionStats,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onRegularSeries: (String, Int) -> Unit,
     onYear: (Int, Boolean) -> Unit,
     onValue: (String) -> Unit,
     onFinish: (CoinQuality) -> Unit,
@@ -109,7 +111,7 @@ private fun StatisticsCards(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats)
         ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
-        MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularCountry, onYear)
+        MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
         FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
         stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
@@ -170,6 +172,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     stats,
                     onCommemorativeCountry = {},
                     onRegularCountry = {},
+                    onRegularSeries = { _, _ -> },
                     onYear = { _, _ -> },
                     onValue = {},
                     onFinish = {},
@@ -453,14 +456,14 @@ private val VALUE_COIN_SIZE = 30.dp
 private fun MilestonesCard(
     m: Milestones,
     onCommemorativeCountry: (String) -> Unit,
-    onRegularCountry: (String) -> Unit,
+    onRegularSeries: (String, Int) -> Unit,
     onYear: (Int, Boolean) -> Unit,
 ) {
     val open: (MilestoneTarget) -> Unit = { target ->
         when (target) {
             is MilestoneTarget.CommemorativeCountry -> onCommemorativeCountry(target.paese)
             is MilestoneTarget.Year -> onYear(target.anno, target.joint)
-            is MilestoneTarget.RegularCountry -> onRegularCountry(target.paese)
+            is MilestoneTarget.RegularCountry -> onRegularSeries(target.paese, target.seriesNumber)
         }
     }
     StatCard("Milestones") {

@@ -44,7 +44,8 @@ data class MilestoneNext(val label: String, val remaining: Int, val target: Mile
 sealed interface MilestoneTarget {
     data class CommemorativeCountry(val paese: String) : MilestoneTarget
     data class Year(val anno: Int, val joint: Boolean) : MilestoneTarget
-    data class RegularCountry(val paese: String) : MilestoneTarget
+    /** [seriesNumber] = posizione 1-based della serie nel paese, come nei chip della schermata del paese. */
+    data class RegularCountry(val paese: String, val seriesNumber: Int) : MilestoneTarget
 }
 
 /**
@@ -157,7 +158,7 @@ fun collectionStats(
         val name = s.displayCountry()
         // Un paese con una sola serie si nomina senza "Series 1".
         val label = if ((seriesPerCountry[s.paese] ?: 1) > 1) "$name, ${seriesTitle(number)}" else name
-        MilestoneNext(label, missing, MilestoneTarget.RegularCountry(s.paese))
+        MilestoneNext(label, missing, MilestoneTarget.RegularCountry(s.paese, number))
     }
     val nextCountry = countries.filter { it.progress.owned < it.progress.total }
         .minWithOrNull(compareBy({ it.progress.total - it.progress.owned }, { it.name }))

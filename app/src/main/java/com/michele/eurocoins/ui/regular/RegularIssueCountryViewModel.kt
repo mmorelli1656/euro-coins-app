@@ -60,9 +60,11 @@ data class RegularIssueCountryUiState(
 class RegularIssueCountryViewModel(
     private val repository: RegularIssueRepository,
     private val paese: String,
+    /** Serie da mostrare all'apertura (0-based; da Insights, "Closest Spain, Series 3"). */
+    startIndex: Int = 0,
 ) : ViewModel() {
 
-    private val selectedIndex = MutableStateFlow(0)
+    private val selectedIndex = MutableStateFlow(startIndex)
 
     val uiState: StateFlow<RegularIssueCountryUiState> = combine(
         repository.series,

@@ -69,7 +69,8 @@ private const val ROUTE_SETTINGS_CATALOGS = "settings/catalogs"
 private const val ROUTE_COINS = "coins/{kind}/{value}?missing={missing}&quality={quality}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
-private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
+// `series` (facoltativo, 1-based): la schermata si apre già su quella serie.
+private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}?series={series}"
 private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
 // Un taglio in tutti i paesi (elenco), non il dettaglio di un taglio di una serie.
 private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}?missing={missing}"
@@ -78,6 +79,7 @@ private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
 private const val ARG_MISSING = "missing"
 private const val ARG_QUALITY = "quality"
+private const val ARG_SERIES = "series"
 private const val ARG_COIN_ID = "coinId"
 private const val ARG_PAESE = "paese"
 private const val ARG_ORDINE = "ordine"
@@ -206,6 +208,7 @@ fun EuroCoinsNavHost(
                     navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
                 },
                 onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                onRegularSeriesClick = { paese, number -> navController.navigate("regular-issues/${Uri.encode(paese)}?$ARG_SERIES=$number") },
                 // Un anno o un taglio di "Progress": la lista già su "Missing" (l'anno con emissione comune ha la sua, come in Years).
                 onYearClick = { year, joint ->
                     val kind = if (joint) KIND_YEAR_COMMON else KIND_YEAR
@@ -381,12 +384,18 @@ fun EuroCoinsNavHost(
         }
         composable(
             route = ROUTE_REGULAR_ISSUE_COUNTRY,
-            arguments = listOf(navArgument(ARG_PAESE) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(ARG_PAESE) { type = NavType.StringType },
+                navArgument(ARG_SERIES) { type = NavType.IntType; defaultValue = 1 },
+            ),
         ) { backStackEntry ->
             val paese = backStackEntry.arguments?.getString(ARG_PAESE) ?: return@composable
+            val seriesNumber = backStackEntry.arguments?.getInt(ARG_SERIES) ?: 1
             val viewModel: RegularIssueCountryViewModel = viewModel(
-                key = "regular-issue-country-$paese",
-                factory = viewModelFactory { initializer { RegularIssueCountryViewModel(regularIssueRepository, paese) } },
+                key = "regular-issue-country-$paese-$seriesNumber",
+                factory = viewModelFactory {
+                    initializer { RegularIssueCountryViewModel(regularIssueRepository, paese, startIndex = seriesNumber - 1) }
+                },
             )
             RegularIssueCountryScreen(
                 viewModel = viewModel,

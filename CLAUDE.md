@@ -653,11 +653,20 @@ monete (o righe) mancanti**, a parità il nome (l'anno più recente per gli anni
 nextJoint` (`MilestoneNext`, `MilestoneTarget`). Dove porta: paese commemorativo → lista su Missing; anno → lista su Missing,
 **quella dei singoli paesi se ha ancora monete mancanti, altrimenti quella dell'emissione comune** (l'anno si conta con tutte le
 sue monete, quindi "2012 · 5 to go" può aprire una lista con meno monete); emissione comune → la sua lista; serie Regular →
-schermata del paese (non la serie: il chip della serie è stato interno alla schermata e la rotta non lo porta). Un paese con più
+schermata del paese GIÀ SULLA SERIE giusta (prima si apriva sempre sulla Series 1 e bisognava toccare il chip: nuova rotta
+`regular-issues/{paese}?series=N`, 1-based, e `RegularIssueCountryViewModel(startIndex)`; `MilestoneTarget.RegularCountry`
+porta `seriesNumber`). Un paese con più
 serie si nomina "Spain, Series 2", uno con una serie sola solo "Germany". Costo: nessuna rotta nuova. **Idea in coda, concordata
 col proprietario**: medaglie ("badge") sbloccate da obiettivi, calcolate dalla collezione (nessun dato da salvare, backup
 invariato), in una seconda parte della card Milestones, con le bloccate in grigio e il progresso; il tocco apre un pannello
-con come si ottengono e porta a ciò che manca. Mockup ancora da fare. **Non verificato sul telefono** (bloccato).
+con come si ottengono e porta a ciò che manca. Mockup ancora da fare. **Verificato sul telefono (tema scuro)**: By finish (78 / 15 /
+0, "None yet" non toccabile, BU apre "All coins" con 15 monete e Owned + BU già attivi nel filtro), Milestones con le quattro righe
+"Closest", tocco su "2005 · 2 to go" (lista del 2005 su Missing, 2 monete) e su "Spain, Series 3" (schermata aperta sulla Series 3,
+2 euro mancante in cima). Non provati: tema chiaro, font ingrandito, "2007 · 7 to go" e la vista Free.
+
+**Idea valutata, non fatta (2026-11-01)**: dare al Pro la scelta di nascondere e riordinare le card di Statistics. Parere:
+nascondere sì (poco costo), riordinare no finché le card sono 5-6. Vedi la conversazione; se si fa, un tasto "Customize" in fondo
+alla scheda con un pannello a interruttori, preferenza di dispositivo (SharedPreferences `settings`, fuori dal backup).
 
 **By finish a righe toccabili (2026-11-01, mockup cliccabile approvato)**: non più tre numeri in colonna ma tre righe come in
 Progress (`FinishRow`): numero grande, nome della finitura, barra con la quota sulle commemorative possedute ("84% of your 93";

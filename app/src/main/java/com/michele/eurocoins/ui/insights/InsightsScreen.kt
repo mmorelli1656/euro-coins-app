@@ -59,6 +59,8 @@ fun InsightsScreen(
     onCommemorativeCountryClick: (String) -> Unit,
     /** Apre la schermata Regular Issues di un paese. */
     onRegularCountryClick: (String) -> Unit,
+    /** Apre la schermata di un paese Regular già sulla serie indicata (posizione 1-based). */
+    onRegularSeriesClick: (String, Int) -> Unit,
     /** Apre la lista commemorative di un anno già su "Missing"; [joint] = la lista delle sole emissioni comuni di quell'anno. */
     onYearClick: (year: Int, joint: Boolean) -> Unit,
     /** Apre l'elenco di un taglio Regular ("2 euro") in tutti i paesi, già su "Missing". */
@@ -126,6 +128,7 @@ fun InsightsScreen(
                                 stats = stats,
                                 onCommemorativeCountry = onCommemorativeCountryClick,
                                 onRegularCountry = onRegularCountryClick,
+                                onRegularSeries = onRegularSeriesClick,
                                 onYear = onYearClick,
                                 onValue = onValueClick,
                                 onFinish = onFinishClick,
