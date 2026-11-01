@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Reorder
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Flare
 import androidx.compose.material.icons.outlined.Inventory2
@@ -31,7 +31,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -93,9 +92,9 @@ private val RowHeight = 56.dp
 @Composable
 internal fun CustomizeSheet(layout: StatsLayout, onChange: (StatsLayout) -> Unit, onDismiss: () -> Unit) {
     // Il valore su cui si lavora subito: tra un gesto e la ricomposizione che arriva dalle preferenze passa qualche fotogramma, e
-    // uno spostamento calcolato su un ordine vecchio spostava due volte.
+    // uno spostamento calcolato su un ordine vecchio spostava due volte. Il pannello è l'UNICO a scrivere finché è aperto, quindi la
+    // copia parte dal layout salvato e non si riallinea più: una risincronizzazione asincrona poteva riportarla a un valore vecchio.
     var working by remember { mutableStateOf(layout) }
-    LaunchedEffect(layout) { working = layout }
     val apply: (StatsLayout) -> Unit = { next ->
         working = next
         onChange(next)
@@ -185,7 +184,7 @@ internal fun CustomizeSheet(layout: StatsLayout, onChange: (StatsLayout) -> Unit
                                         }
                                     },
                             ) {
-                                Icon(Icons.Filled.Reorder, contentDescription = "Reorder ${card.title}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Icon(Icons.Filled.Menu, contentDescription = "Reorder ${card.title}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Icon(card.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
                             Text(card.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
