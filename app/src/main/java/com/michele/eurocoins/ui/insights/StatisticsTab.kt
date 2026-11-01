@@ -110,10 +110,11 @@ internal fun StatisticsTab(
     onBadgeGo: (BadgeTarget) -> Unit,
     layout: StatsLayout,
     onCustomize: () -> Unit,
+    goals: GoalsUi,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout, onCustomize)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout, onCustomize, goals)
     // In FONDO alla pagina e non in alto (2026-11-01): i comandi si tengono a portata di pollice, e arrivati in fondo il pollice è già
     // lì. Con tutte le card spente c'è già il pulsante nel messaggio, quindi qui non serve un secondo.
     if (layout.visible.isNotEmpty()) {
@@ -142,6 +143,7 @@ private fun StatisticsCards(
     onBadgeGo: (BadgeTarget) -> Unit,
     layout: StatsLayout,
     onCustomize: () -> Unit,
+    goals: GoalsUi,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Tutte spente (si può): la pagina lo dice e offre il pannello, invece di restare bianca.
@@ -151,7 +153,7 @@ private fun StatisticsCards(
             when (card) {
                 StatsCard.COLLECTION -> YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
                 StatsCard.PROGRESS -> ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
-                StatsCard.MILESTONES -> MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
+                StatsCard.MILESTONES -> MilestonesCard(stats, goals, onBadgeGo)
                 StatsCard.BADGES -> BadgesCard(stats.badges, onBadgeGo)
                 StatsCard.SHINE -> FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
                 StatsCard.EXPENSES -> stats.spending?.let { SpendingCard(it, onSpentItem) }
@@ -251,6 +253,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onBadgeGo = {},
                     layout = StatsLayout(),
                     onCustomize = {},
+                    goals = GoalsUi.Empty,
                 )
             }
         }
@@ -540,104 +543,6 @@ private fun ValueCoin(taglio: String) {
 }
 
 private val VALUE_COIN_SIZE = 30.dp
-
-/**
- * Milestones (2026-11-01, mockup approvato): i quattro traguardi con la barra e, sotto ognuno, il PIÙ VICINO da completare
- * ("Closest Italy · 3 to go") come riga toccabile; a traguardo raggiunto "All done". Così la card dice anche cosa fare adesso
- * e non è fine a sé stessa. Il tocco porta alla lista già su Missing (paese, anno, emissione comune) o, per le serie Regular,
- * alla schermata del paese.
- */
-@Composable
-private fun MilestonesCard(
-    m: Milestones,
-    onCommemorativeCountry: (String) -> Unit,
-    onRegularSeries: (String, Int) -> Unit,
-    onYear: (Int, Boolean) -> Unit,
-) {
-    val open: (MilestoneTarget) -> Unit = { target ->
-        when (target) {
-            is MilestoneTarget.CommemorativeCountry -> onCommemorativeCountry(target.paese)
-            is MilestoneTarget.Year -> onYear(target.anno, target.joint)
-            is MilestoneTarget.RegularCountry -> onRegularSeries(target.paese, target.seriesNumber)
-        }
-    }
-    StatCard(StatsCard.MILESTONES.title, StatsCard.MILESTONES.icon) {
-        Column(modifier = Modifier.padding(top = 6.dp)) {
-            MilestoneRow("Countries", m.countries, m.nextCountry, open)
-            MilestoneRow("Years", m.years, m.nextYear, open)
-            MilestoneRow("Regular series", m.regularSeries, m.nextSeries, open)
-            MilestoneRow("Common issues", m.jointIssues, m.nextJoint, open)
-        }
-    }
-}
-
-/**
- * Una riga di Milestones (2026-11-01, variante A dopo mockup): un anello con il numero di set completi, il nome con "x / y" e
- * sotto il PIÙ VICINO da completare ("Closest Italy · 3 to go"), tutta toccabile; a traguardo raggiunto "All done" e nessun tocco.
- * Prima erano una barra con il conteggio e, sotto, una riga tinta: due blocchi per traguardo, alti, e barre quasi vuote
- * ("0 / 24") che sembravano fredde. L'anello dà il tono "gioco" delle medaglie.
- */
-@Composable
-private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?, onOpen: (MilestoneTarget) -> Unit) {
-    val done = progress.total > 0 && progress.owned == progress.total
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(enabled = next != null) { next?.let { onOpen(it.target) } }
-            .padding(horizontal = 4.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        ProgressRing(progress)
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(label, style = MaterialTheme.typography.bodyLarge)
-                Hint(" ${progress.owned} / ${progress.total}", Modifier.padding(start = 6.dp, bottom = 1.dp))
-            }
-            when {
-                next != null -> Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) { append("Closest ") }
-                        withStyle(SpanStyle(fontWeight = FontWeight.Medium)) { append(next.label) }
-                        append(" · ${next.remaining} to go")
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-                done -> Text(
-                    text = "All done",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
-        // La freccia c'è solo dove il tocco apre qualcosa; lo spazio resta, così le righe restano allineate.
-        Box(modifier = Modifier.size(24.dp)) {
-            if (next != null) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
-
-/** L'anello di avanzamento: traccia tenue, arco pieno dall'alto e al centro il numero di set completi. */
-@Composable
-private fun ProgressRing(progress: Progress) {
-    val track = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
-    val fill = MaterialTheme.colorScheme.primary
-    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val stroke = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-            val inset = stroke.width / 2
-            val arc = Size(size.width - stroke.width, size.height - stroke.width)
-            drawArc(track, 0f, 360f, useCenter = false, topLeft = Offset(inset, inset), size = arc, style = stroke)
-            if (progress.fraction > 0f) {
-                drawArc(fill, -90f, 360f * progress.fraction.coerceAtMost(1f), useCenter = false, topLeft = Offset(inset, inset), size = arc, style = stroke)
-            }
-        }
-        Text(progress.owned.toString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
-    }
-}
 
 /**
  * By finish (2026-11-01, mockup approvato): tre righe come in Progress, una per finitura, con il numero di commemorative

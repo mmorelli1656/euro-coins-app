@@ -3,6 +3,7 @@ package com.michele.eurocoins
 import android.app.Application
 import com.michele.eurocoins.data.CoinDatabase
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.GoalStore
 import com.michele.eurocoins.data.MintLetters
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.backup.AutoBackup
@@ -35,6 +36,9 @@ class EuroCoinsApplication : Application() {
     val themePreference: ThemePreference by lazy { ThemePreference(this) }
 
     val userSettings: UserSettings by lazy { UserSettings(this) }
+
+    /** Gli obiettivi personali di Statistics → Milestones: vedi [GoalStore]. */
+    val goalStore: GoalStore by lazy { GoalStore(this) }
 
     /** Suggerimento "la card si scorre" nel dettaglio: vedi [SwipeHint]. */
     val swipeHint: SwipeHint by lazy { SwipeHint(this) }

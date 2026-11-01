@@ -23,6 +23,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.GoalStore
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupService
@@ -115,6 +116,7 @@ fun EuroCoinsNavHost(
     autoBackup: AutoBackup,
     themePreference: ThemePreference,
     userSettings: UserSettings,
+    goalStore: GoalStore,
     monetization: Monetization,
 ) {
     // Elenco ordinato della lista da cui si apre un dettaglio (per scorrere tra le monete): vedi CoinPagerSession.
@@ -205,7 +207,7 @@ fun EuroCoinsNavHost(
         }
         composable(ROUTE_INSIGHTS) {
             val viewModel: InsightsViewModel = viewModel(
-                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository, userSettings) } },
+                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository, userSettings, goalStore) } },
             )
             // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
             val openCommemorativeCountry = { paese: String ->

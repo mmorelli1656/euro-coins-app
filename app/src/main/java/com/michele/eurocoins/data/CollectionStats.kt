@@ -2,6 +2,12 @@ package com.michele.eurocoins.data
 
 import java.time.LocalDate
 
+/**
+ * Il completamento di una serie Regular: [key] è `RegularIssueSeries.stableKey` (paese e ordine cronologico, stabile ai reseed),
+ * [number] la posizione 1-based nel paese (come i chip della schermata), [label] già nel nome mostrato ("Spain, Series 3").
+ */
+data class SeriesStat(val key: String, val paese: String, val number: Int, val label: String, val progress: Progress)
+
 /** Il completamento di un paese in un catalogo ([name] già nel nome mostrato in UI). */
 data class CountryStat(val paese: String, val name: String, val progress: Progress)
 
@@ -106,6 +112,8 @@ data class CollectionStats(
     val milestones: Milestones,
     val finishes: FinishCounts,
     val spending: SpendingStats?,
+    /** Una riga per serie Regular (un taglio vale se ha qualcosa), per gli obiettivi personali: vedi [goalRows]. */
+    val seriesStats: List<SeriesStat> = emptyList(),
     /** Le medaglie, derivate da tutto il resto (vedi [badgesOf]); vuote finché non sono calcolate. */
     val badges: List<Badge> = emptyList(),
 ) {
@@ -200,6 +208,9 @@ fun collectionStats(
         ),
         finishes = FinishCounts(finish(CoinQuality.STANDARD), finish(CoinQuality.BU), finish(CoinQuality.PROOF)),
         spending = spendingOf(items, regularItems, coins, series),
+        seriesStats = seriesMissing.map {
+            SeriesStat(it.series.stableKey, it.series.paese, it.number, seriesLabel(it.series, it.number), Progress(it.rows - it.missing, it.rows))
+        },
     )
     val seriesInfo = BadgeSeriesInfo(
         completed = seriesMissing.filter { it.missing == 0 }.map { seriesLabel(it.series, it.number) },

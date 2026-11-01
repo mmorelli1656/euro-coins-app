@@ -4,16 +4,21 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.michele.eurocoins.data.CoinRepository
 import com.michele.eurocoins.data.CollectionStats
+import com.michele.eurocoins.data.Goal
+import com.michele.eurocoins.data.GoalStore
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.StatsLayout
 import com.michele.eurocoins.data.collectionStats
+import com.michele.eurocoins.data.newlyDoneGoals
 import com.michele.eurocoins.ui.settings.UserSettings
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * I numeri della scheda Statistics (Pro). Si ricalcolano a ogni cambio di catalogo o collezione (una moneta aggiunta
@@ -25,12 +30,20 @@ class InsightsViewModel(
     private val repository: CoinRepository,
     private val regularIssueRepository: RegularIssueRepository,
     private val userSettings: UserSettings,
+    private val goalStore: GoalStore,
 ) : ViewModel() {
 
     /** Ordine e card nascoste di Statistics: una preferenza del telefono, vedi [StatsLayout]. */
     val layout: StateFlow<StatsLayout> = userSettings.statsLayout
 
     fun setLayout(layout: StatsLayout) = userSettings.setStatsLayout(layout)
+
+    /** Gli obiettivi personali di Milestones (vedi [Goal]). */
+    val goals: StateFlow<List<Goal>> = goalStore.goals
+
+    fun addGoal(goal: Goal) = goalStore.add(goal)
+
+    fun removeGoal(id: String) = goalStore.remove(id)
 
     val stats: StateFlow<CollectionStats?> = combine(
         repository.coins,
@@ -40,6 +53,19 @@ class InsightsViewModel(
     ) { coins, items, series, regular -> collectionStats(coins, items, series, regular) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initialState())
+
+    init {
+        // Un obiettivo raggiunto si segna UNA VOLTA con la data e resta raggiunto: se poi il catalogo cresce (una nuova
+        // commemorativa italiana) o si tolgono monete, non si "riapre". Si guarda mentre la pagina è osservata.
+        viewModelScope.launch {
+            combine(stats, goalStore.goals) { s, g -> s to g }.collect { (s, g) ->
+                if (s != null) {
+                    val done = newlyDoneGoals(g, s)
+                    if (done.isNotEmpty()) goalStore.markDone(done, LocalDate.now().toEpochDay())
+                }
+            }
+        }
+    }
 
     private fun initialState(): CollectionStats? {
         val coins = repository.coinsNow

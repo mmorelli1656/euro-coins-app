@@ -26,12 +26,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.BadgeTarget
+import com.michele.eurocoins.data.goalRows
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.components.LocalProAccess
@@ -82,6 +84,10 @@ fun InsightsScreen(
     val pro = LocalProAccess.current
     val stats by viewModel.stats.collectAsState()
     val layout by viewModel.layout.collectAsState()
+    val goals by viewModel.goals.collectAsState()
+    val goalsUi = remember(stats, goals) {
+        GoalsUi(stats?.let { goalRows(goals, it) }.orEmpty(), goals, viewModel::addGoal, viewModel::removeGoal)
+    }
     var tabIndex by rememberSaveable { mutableIntStateOf(0) }
     var customizing by rememberSaveable { mutableStateOf(false) }
     val tab = InsightsTab.entries[tabIndex]
@@ -149,6 +155,7 @@ fun InsightsScreen(
                                 onBadgeGo = onBadgeClick,
                                 layout = layout,
                                 onCustomize = { customizing = true },
+                                goals = goalsUi,
                             )
                         }
                     }
