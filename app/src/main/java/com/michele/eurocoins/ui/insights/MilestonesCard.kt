@@ -234,8 +234,8 @@ private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: ()
             Column(modifier = Modifier.height(440.dp).verticalScroll(rememberScrollState())) {
                 val options = goalOptions(kind, stats, ui.goals)
                 if (options.isEmpty()) Hint("Nothing left here to complete.", Modifier.padding(vertical = 16.dp))
-                options.forEach { option ->
-                    OptionRow(kind, option) {
+                options.forEachIndexed { index, option ->
+                    OptionRow(kind, option, pile = pileSize(index)) {
                         ui.onAdd(Goal(kind, option.key))
                         onDismiss()
                     }
@@ -248,11 +248,11 @@ private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: ()
 
 /**
  * Una scelta. Davanti al nome: la bandiera per paesi e serie (come in Progress), la pila di monete per i numeri (la stessa delle
- * medaglie "100 / 250 / 500 coins", che cresce con l'obiettivo); gli ANNI restano solo il numero, che è già il suo simbolo (e
+ * medaglie, ma che cresce di una moneta a ogni riga); gli ANNI restano solo il numero, che è già il suo simbolo (e
  * nemmeno le emissioni comuni hanno un segno: nell'elenco non c'è nessuna scritta, e il tocco su un anno le conta insieme).
  */
 @Composable
-private fun OptionRow(kind: GoalKind, option: GoalOption, onTap: () -> Unit) {
+private fun OptionRow(kind: GoalKind, option: GoalOption, pile: Int, onTap: () -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     val alpha = if (option.taken) 0.45f else 1f
     Row(
@@ -265,7 +265,7 @@ private fun OptionRow(kind: GoalKind, option: GoalOption, onTap: () -> Unit) {
             kind == GoalKind.COINS -> {
                 val tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
                 Box(modifier = Modifier.width(30.dp), contentAlignment = Alignment.Center) {
-                    Canvas(modifier = Modifier.size(26.dp)) { drawBadgeArt(coinStackFor(option.key.toIntOrNull() ?: 0), tint) }
+                    Canvas(modifier = Modifier.size(26.dp)) { drawCoinColumn(pile, tint) }
                 }
             }
         }
@@ -283,9 +283,8 @@ private fun OptionRow(kind: GoalKind, option: GoalOption, onTap: () -> Unit) {
     }
 }
 
-/** La pila di monete di un obiettivo: una colonna fino a 249, due fino a 499, tre da 500 (le stesse soglie delle medaglie). */
-internal fun coinStackFor(target: Int): BadgeArt = when {
-    target >= 500 -> BadgeArt.STACK_500
-    target >= 250 -> BadgeArt.STACK_250
-    else -> BadgeArt.STACK_100
-}
+/**
+ * Quante monete ha la pila della riga [index] (0-based) di "Coins": cresce di una a ogni riga, da una a [MAX_PILE]. Prima ogni riga aveva
+ * la pila della medaglia più vicina e le sei scelte (100..225) erano tutte uguali: il simbolo non diceva niente.
+ */
+internal fun pileSize(index: Int): Int = (index + 1).coerceIn(1, MAX_PILE)

@@ -68,3 +68,21 @@ internal fun DrawScope.drawBadgeArt(art: BadgeArt, color: Color) {
         }
     }
 }
+
+/** Una colonna di [count] monete (da 1 a [MAX_PILE]) con le stesse proporzioni delle pile delle medaglie, per le scelte di "Coins". */
+internal fun DrawScope.drawCoinColumn(count: Int, color: Color) {
+    val k = size.minDimension / GRID
+    val stroke = Stroke(width = 1.5f * k)
+    for (i in 0 until count.coerceIn(1, MAX_PILE)) {
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(8f * k, (BASE - (i + 1) * COIN_STEP + 1f) * k),
+            size = Size(18f * k, COIN_H * k),
+            cornerRadius = CornerRadius(1.6f * k),
+            style = stroke,
+        )
+    }
+}
+
+/** Quante monete al massimo in una colonna: oltre non entrano nella griglia da 34 unità. */
+internal const val MAX_PILE = 6

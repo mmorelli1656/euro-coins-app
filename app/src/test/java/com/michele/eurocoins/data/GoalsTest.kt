@@ -132,11 +132,10 @@ class GoalsTest {
     }
 
     @Test
-    fun theCoinPileGrowsWithTheTarget() {
-        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_100, com.michele.eurocoins.ui.insights.coinStackFor(100))
-        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_100, com.michele.eurocoins.ui.insights.coinStackFor(225))
-        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_250, com.michele.eurocoins.ui.insights.coinStackFor(250))
-        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_500, com.michele.eurocoins.ui.insights.coinStackFor(500))
+    fun theCoinPileGrowsByOneCoinPerRowUpToTheMaximum() {
+        assertEquals(listOf(1, 2, 3, 4, 5, 6), (0..5).map { com.michele.eurocoins.ui.insights.pileSize(it) })
+        assertEquals(com.michele.eurocoins.ui.insights.MAX_PILE, com.michele.eurocoins.ui.insights.pileSize(40))
+        assertEquals(1, com.michele.eurocoins.ui.insights.pileSize(-3))
     }
 
     @Test
