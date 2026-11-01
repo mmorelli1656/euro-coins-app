@@ -654,6 +654,24 @@ Scartata la B (riga "View owned" sotto ogni catalogo: +2 righe e un invito che l
 telefono (tema scuro)**: Commemorative apre "93 coins found" tutte con la matita, Regular la scheda All con tutte le righe
 possedute, e il FILTER ha il pallino; indietro riporta a Statistics. Non provati: tema chiaro, font ingrandito, vista Free.
 
+**Badges (2026-11-01, mockup cliccabile approvato, `data/Badges.kt` + `ui/insights/BadgesCard.kt`)**: card dopo Milestones.
+**Sedici medaglie DERIVATE dalla collezione ogni volta, mai salvate** (niente backup, niente migrazioni, non si perdono
+ripristinando; `badgesOf`, `BadgesTest`). Dodici "badge" tonde con progresso (First coin, 50/100/250 coins, First BU, First
+Proof, Common issue, First country, 5 countries, First series, 10 series, Five mints) e quattro "Just for fun" a QUADRATO MORBIDO
+sotto un filetto (il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
+moneta in Standard, BU e Proof), **Lucky find** (una moneta pagata al valore facciale o meno: €2.00 le commemorative, il taglio
+per le Regular, `faceValueCents`), **Letter spotter** (la 2002 greca con EFS). Scartata la **Shopping spree** (cinque monete con
+la stessa data) su giudizio del proprietario. Conquistata = cerchio pieno `primary`; da fare = bordo tratteggiato e il progresso
+sotto ("37 / 40": per le "prime" la barra segue il candidato più vicino, non un vuoto 0 / 1; per i soldi la percentuale). Il tocco
+apre SOTTO la griglia (non un pannello) il perché, e se non conquistata barra, progresso, riga "X is the closest: 3 to go" e un
+tasto verso ciò che manca (stesse destinazioni di Milestones e di "Most expensive", risolte in `EuroCoinsNavHost`; nessun tasto per
+BU, Proof, Big spender e Lucky find: non c'è niente da aprire). **Regola: le medaglie che dipendono da dati facoltativi compaiono
+solo se l'utente li ha già usati** (prezzi → Big spender e Lucky find; una lettera di zecca → Five mints), come la card Spending:
+niente traguardi bloccati per sempre; il contatore è "x of N" con N le visibili. Triple threat e Letter spotter sono sempre
+visibili. Da Free la card si sfoca come le altre. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
+fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
+nascondere sì, riordinare no, da fare con il numero di card definitivo).
+
 **Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
 Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest
 Italy · 3 to go"; "All done" se il traguardo è raggiunto, niente riga se non c'è nulla da proporre). Più vicino = **meno

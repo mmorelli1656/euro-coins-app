@@ -106,6 +106,8 @@ data class CollectionStats(
     val milestones: Milestones,
     val finishes: FinishCounts,
     val spending: SpendingStats?,
+    /** Le medaglie, derivate da tutto il resto (vedi [badgesOf]); vuote finché non sono calcolate. */
+    val badges: List<Badge> = emptyList(),
 ) {
     /** Le due barre insieme: 93 / 613 e 195 / 328 fanno 288 / 941. */
     val total: Progress get() = Progress(commemorative.owned + regular.owned, commemorative.total + regular.total)
@@ -143,23 +145,22 @@ fun collectionStats(
     }
     val byRow = regularItems.groupBy { it.seriesKey to it.taglio }
     // Per ogni serie le righe (tagli) ancora senza nulla: serve sia a contare le serie complete sia a trovare la più vicina.
-    val seriesMissing: List<Triple<RegularIssueSeries, Int, Int>> = series.groupBy { it.paese }.values.flatMap { country ->
+    val seriesMissing: List<SeriesGap> = series.groupBy { it.paese }.values.flatMap { country ->
         val ordered = country.sortedBy { it.ordineCronologico }
         ordered.mapIndexedNotNull { index, s ->
             val rows = denominationsOf(ordered, s)
-            if (rows.isEmpty()) null else Triple(s, index + 1, rows.count { it.rowItemsFrom(byRow).isEmpty() })
+            if (rows.isEmpty()) null else SeriesGap(s, index + 1, rows.count { it.rowItemsFrom(byRow).isEmpty() }, rows.size)
         }
     }
-    val seriesComplete = seriesMissing.map { it.third == 0 }
+    val seriesComplete = seriesMissing.map { it.missing == 0 }
     val seriesPerCountry = series.groupBy { it.paese }.mapValues { it.value.size }
-    val nextSeries = seriesMissing.filter { it.third > 0 }.minWithOrNull(
-        compareBy({ it.third }, { it.first.displayCountry() }, { it.second }),
-    )?.let { (s, number, missing) ->
-        val name = s.displayCountry()
-        // Un paese con una sola serie si nomina senza "Series 1".
-        val label = if ((seriesPerCountry[s.paese] ?: 1) > 1) "$name, ${seriesTitle(number)}" else name
-        MilestoneNext(label, missing, MilestoneTarget.RegularCountry(s.paese, number))
-    }
+    // Un paese con una sola serie si nomina senza "Series 1".
+    fun seriesLabel(s: RegularIssueSeries, number: Int) =
+        if ((seriesPerCountry[s.paese] ?: 1) > 1) "${s.displayCountry()}, ${seriesTitle(number)}" else s.displayCountry()
+    val closestSeries = seriesMissing.filter { it.missing > 0 }.minWithOrNull(
+        compareBy({ it.missing }, { it.series.displayCountry() }, { it.number }),
+    )
+    val nextSeries = closestSeries?.let { MilestoneNext(seriesLabel(it.series, it.number), it.missing, MilestoneTarget.RegularCountry(it.series.paese, it.number)) }
     val nextCountry = countries.filter { it.progress.owned < it.progress.total }
         .minWithOrNull(compareBy({ it.progress.total - it.progress.owned }, { it.name }))
         ?.let { MilestoneNext(it.name, it.progress.total - it.progress.owned, MilestoneTarget.CommemorativeCountry(it.paese)) }
@@ -179,7 +180,7 @@ fun collectionStats(
     val finishItems = items.filter { it.coinKey in visibleKeys }
     fun finish(quality: CoinQuality) = finishItems.filter { it.quality == quality }.map { it.coinKey }.toSet().size
 
-    return CollectionStats(
+    val base = CollectionStats(
         commemorative = coins.progress(owned),
         regular = series.regularProgress(regularItems),
         commemorativeCountries = countries,
@@ -200,7 +201,15 @@ fun collectionStats(
         finishes = FinishCounts(finish(CoinQuality.STANDARD), finish(CoinQuality.BU), finish(CoinQuality.PROOF)),
         spending = spendingOf(items, regularItems, coins, series),
     )
+    val seriesInfo = BadgeSeriesInfo(
+        completed = seriesMissing.filter { it.missing == 0 }.map { seriesLabel(it.series, it.number) },
+        closest = closestSeries?.let { Progress(it.rows - it.missing, it.rows) },
+    )
+    return base.copy(badges = badgesOf(base, coins, items, regularItems, series, seriesInfo))
 }
+
+/** Una serie con quante delle sue righe (tagli) sono ancora vuote e quante ne ha in tutto. */
+private class SeriesGap(val series: RegularIssueSeries, val number: Int, val missing: Int, val rows: Int)
 
 /** Quanti gruppi sono completi su quanti sono (un gruppo vuoto non conta come completo). */
 private fun completeOf(groups: List<Progress>): Progress =
@@ -238,7 +247,7 @@ internal fun spendingOf(
  * serie guardata che la contiene, altrimenti il dettaglio non la mostrerebbe nella card COLLECTION. Una voce senza anno
  * appartiene già alla serie guardata (è salvata con la sua chiave).
  */
-private fun viewedDenomination(
+internal fun viewedDenomination(
     allSeries: List<RegularIssueSeries>,
     owner: RegularIssueSeries,
     item: RegularCollectionItem,

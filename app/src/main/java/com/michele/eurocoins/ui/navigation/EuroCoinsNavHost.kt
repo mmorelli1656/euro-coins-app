@@ -36,6 +36,8 @@ import com.michele.eurocoins.ui.settings.UserSettings
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
+import com.michele.eurocoins.data.BadgeTarget
+import com.michele.eurocoins.data.MilestoneTarget
 import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
@@ -205,35 +207,53 @@ fun EuroCoinsNavHost(
             val viewModel: InsightsViewModel = viewModel(
                 factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository) } },
             )
+            // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
+            val openCommemorativeCountry = { paese: String ->
+                navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
+            }
+            val openRegularSeries = { paese: String, number: Int ->
+                navController.navigate("regular-issues/${Uri.encode(paese)}?$ARG_SERIES=$number")
+            }
+            // Un anno di "Progress": la lista già su "Missing" (l'anno con emissione comune ha la sua, come in Years).
+            val openYear = { year: Int, joint: Boolean ->
+                val kind = if (joint) KIND_YEAR_COMMON else KIND_YEAR
+                navController.navigate("coins/$kind/$year?$ARG_MISSING=true")
+            }
+            // Una voce di "Most expensive" (e certe medaglie): il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
+            val openSpent = { target: SpentTarget ->
+                when (target) {
+                    is SpentTarget.Commemorative -> {
+                        pagerSession.openSingle()
+                        navController.navigate("detail/${target.coinId}")
+                    }
+                    is SpentTarget.Denomination -> {
+                        regularPagerSession.open(listOf(RegularPageKey(target.paese, target.ordine, target.taglio)), onShown = {})
+                        navController.navigate("regular-issues/${Uri.encode(target.paese)}/${target.ordine}/${Uri.encode(target.taglio)}")
+                    }
+                }
+            }
             InsightsScreen(
                 viewModel = viewModel,
-                // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
-                onCommemorativeCountryClick = { paese ->
-                    navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
-                },
+                onCommemorativeCountryClick = openCommemorativeCountry,
                 onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
-                onRegularSeriesClick = { paese, number -> navController.navigate("regular-issues/${Uri.encode(paese)}?$ARG_SERIES=$number") },
-                // Un anno o un taglio di "Progress": la lista già su "Missing" (l'anno con emissione comune ha la sua, come in Years).
-                onYearClick = { year, joint ->
-                    val kind = if (joint) KIND_YEAR_COMMON else KIND_YEAR
-                    navController.navigate("coins/$kind/$year?$ARG_MISSING=true")
-                },
+                onRegularSeriesClick = openRegularSeries,
+                onYearClick = openYear,
                 onValueClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}?$ARG_MISSING=true") },
-                // Una finitura di "By finish": tutte le commemorative possedute in quella finitura.
                 // Una riga di "Your collection": ciò che si possiede in quel catalogo (le commemorative nella scheda All, le Regular nella sua).
                 onCommemorativeOwnedClick = { navController.navigate("coins/$KIND_ALL/all?$ARG_OWNED=true") },
                 onRegularOwnedClick = { navController.navigate("regular-issues?$ARG_OWNED=true") },
+                // Una finitura di "By finish": tutte le commemorative possedute in quella finitura.
                 onFinishClick = { quality -> navController.navigate("coins/$KIND_ALL/all?$ARG_QUALITY=${quality.name}") },
-                // Una voce di "Most expensive": il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
-                onSpentItemClick = { target ->
+                onSpentItemClick = openSpent,
+                // Il tasto di una medaglia non conquistata: le stesse destinazioni di Milestones e di "Most expensive".
+                onBadgeClick = { target ->
                     when (target) {
-                        is SpentTarget.Commemorative -> {
-                            pagerSession.openSingle()
-                            navController.navigate("detail/${target.coinId}")
-                        }
-                        is SpentTarget.Denomination -> {
-                            regularPagerSession.open(listOf(RegularPageKey(target.paese, target.ordine, target.taglio)), onShown = {})
-                            navController.navigate("regular-issues/${Uri.encode(target.paese)}/${target.ordine}/${Uri.encode(target.taglio)}")
+                        is BadgeTarget.Spent -> openSpent(target.target)
+                        BadgeTarget.AllMissing -> navController.navigate("coins/$KIND_ALL/all?$ARG_MISSING=true")
+                        is BadgeTarget.Milestone -> when (val t = target.target) {
+                            is MilestoneTarget.CommemorativeCountry -> openCommemorativeCountry(t.paese)
+                            is MilestoneTarget.Year -> openYear(t.anno, t.joint)
+                            is MilestoneTarget.RegularCountry -> openRegularSeries(t.paese, t.seriesNumber)
                         }
                     }
                 },

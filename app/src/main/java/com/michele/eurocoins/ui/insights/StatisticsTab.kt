@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.data.BadgeTarget
 import com.michele.eurocoins.data.CollectionStats
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.FinishCounts
@@ -92,10 +93,11 @@ internal fun StatisticsTab(
     onSpentItem: (SpentTarget) -> Unit,
     onCommemorativeOwned: () -> Unit,
     onRegularOwned: () -> Unit,
+    onBadgeGo: (BadgeTarget) -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -111,11 +113,13 @@ private fun StatisticsCards(
     onSpentItem: (SpentTarget) -> Unit,
     onCommemorativeOwned: () -> Unit,
     onRegularOwned: () -> Unit,
+    onBadgeGo: (BadgeTarget) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
         ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
         MilestonesCard(stats.milestones, onCommemorativeCountry, onRegularSeries, onYear)
+        BadgesCard(stats.badges, onBadgeGo)
         FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
         stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
@@ -150,7 +154,7 @@ internal fun CardBody(content: @Composable ColumnScope.() -> Unit) {
 
 /** Una card della scheda: titolo sempre nitido e corpo che da Free si sfoca ([CardBody]). */
 @Composable
-private fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     DetailCard {
         InsightsTitle(title)
         CardBody(content)
@@ -183,6 +187,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onSpentItem = {},
                     onCommemorativeOwned = {},
                     onRegularOwned = {},
+                    onBadgeGo = {},
                 )
             }
         }
@@ -215,7 +220,7 @@ private fun InviteCard(onGoPro: () -> Unit, modifier: Modifier = Modifier) {
 
 /** La barra sottile di avanzamento di una riga, la stessa tinta ovunque. */
 @Composable
-private fun StatBar(fraction: Float, modifier: Modifier = Modifier) {
+internal fun StatBar(fraction: Float, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -235,7 +240,7 @@ private fun StatBar(fraction: Float, modifier: Modifier = Modifier) {
 private fun percent(p: Progress): String = String.format(Locale.US, "%.1f%%", p.fraction * 100)
 
 @Composable
-private fun Hint(text: String, modifier: Modifier = Modifier) {
+internal fun Hint(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,

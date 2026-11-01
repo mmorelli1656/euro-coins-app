@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.BadgeTarget
 import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.components.LocalProAccess
@@ -73,6 +74,8 @@ fun InsightsScreen(
     onCommemorativeOwnedClick: () -> Unit,
     /** Apre ciò che si possiede nelle Regular Issues (scheda All su Owned). */
     onRegularOwnedClick: () -> Unit,
+    /** Il tasto di una medaglia non ancora conquistata: la destinazione la risolve la navigazione. */
+    onBadgeClick: (BadgeTarget) -> Unit,
     onBack: () -> Unit,
 ) {
     val pro = LocalProAccess.current
@@ -139,6 +142,7 @@ fun InsightsScreen(
                                 onSpentItem = onSpentItemClick,
                                 onCommemorativeOwned = onCommemorativeOwnedClick,
                                 onRegularOwned = onRegularOwnedClick,
+                                onBadgeGo = onBadgeClick,
                             )
                         }
                     }
