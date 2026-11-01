@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.CollectionStats
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.FinishCounts
 import com.michele.eurocoins.data.Milestones
 import com.michele.eurocoins.data.Progress
@@ -81,11 +82,12 @@ internal fun StatisticsTab(
     onRegularCountry: (String) -> Unit,
     onYear: (Int, Boolean) -> Unit,
     onValue: (String) -> Unit,
+    onFinish: (CoinQuality) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue, onSpentItem)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue, onFinish, onSpentItem)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -96,13 +98,14 @@ private fun StatisticsCards(
     onRegularCountry: (String) -> Unit,
     onYear: (Int, Boolean) -> Unit,
     onValue: (String) -> Unit,
+    onFinish: (CoinQuality) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats)
         ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
         MilestonesCard(stats.milestones)
-        FinishCard(stats.finishes)
+        FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
         stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
 }
@@ -164,6 +167,7 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                     onRegularCountry = {},
                     onYear = { _, _ -> },
                     onValue = {},
+                    onFinish = {},
                     onSpentItem = {},
                 )
             }
@@ -459,26 +463,55 @@ private fun MilestoneRow(label: String, progress: Progress) {
     }
 }
 
+/**
+ * By finish (2026-11-01, mockup approvato): tre righe come in Progress, una per finitura, con il numero di commemorative
+ * possedute in quella finitura, la quota sulle commemorative possedute ([ownedCoins]; una moneta può avere più finiture,
+ * quindi le quote non sommano 100%) e la freccia. Il tocco apre l'elenco già su Owned in quella finitura. Una finitura a
+ * zero non si tocca (non c'è niente da aprire) e dice "None yet".
+ */
 @Composable
-private fun FinishCard(f: FinishCounts) {
+private fun FinishCard(f: FinishCounts, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
     StatCard("By finish") {
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
-            FinishColumn("Standard", f.standard, Modifier.weight(1f))
-            FinishColumn("BU", f.bu, Modifier.weight(1f))
-            FinishColumn("Proof", f.proof, Modifier.weight(1f))
+        Hint("Your commemorative coins by finish. Tap one to see them.", Modifier.padding(top = 4.dp))
+        Column(modifier = Modifier.padding(top = 6.dp)) {
+            FinishRow(CoinQuality.STANDARD, f.standard, ownedCoins, onFinish)
+            FinishRow(CoinQuality.BU, f.bu, ownedCoins, onFinish)
+            FinishRow(CoinQuality.PROOF, f.proof, ownedCoins, onFinish)
         }
-        Hint(
-            "Commemorative coins. A coin can have more than one finish.",
-            Modifier.fillMaxWidth().padding(top = 8.dp),
-        )
+        Hint("A coin can have more than one finish.", Modifier.fillMaxWidth().padding(top = 4.dp))
     }
 }
 
 @Composable
-private fun FinishColumn(label: String, count: Int, modifier: Modifier) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(count.toString(), style = sansTitleMedium().copy(fontSize = 26.sp, fontWeight = FontWeight.Medium))
-        Hint(label)
+private fun FinishRow(quality: CoinQuality, count: Int, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
+    val enabled = count > 0
+    val share = if (ownedCoins > 0) count.toFloat() / ownedCoins else 0f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled) { onFinish(quality) }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = count.toString(),
+            style = sansTitleMedium().copy(fontSize = 26.sp, fontWeight = FontWeight.Medium),
+            modifier = Modifier.width(48.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(quality.label, style = MaterialTheme.typography.bodyMedium)
+                Hint(if (enabled) "${String.format(Locale.US, "%.0f", share * 100)}% of your $ownedCoins" else "None yet")
+            }
+            StatBar(share, Modifier.padding(top = 4.dp))
+        }
+        // La freccia c'è solo dove il tocco apre qualcosa; lo spazio resta, così le barre restano allineate.
+        Box(modifier = Modifier.size(24.dp)) {
+            if (enabled) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 

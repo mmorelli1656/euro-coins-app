@@ -642,6 +642,19 @@ Year con la pillola COMMON ISSUE, righe Value con le monete in scala, e i tre to
 monete; taglio 20 cent → elenco dei paesi su Missing; "2007 · Common issue" → 7 monete, come dice la riga). Non provati: tema chiaro,
 font ingrandito, la vista Free (la card si sfoca come le altre) e "Show all" in Year.
 
+**Regola per tutta la scheda Statistics (2026-11-01, richiesta del proprietario)**: **ogni card deve avere qualcosa di cliccabile,
+nessuna è fine a sé stessa**. Progress, Spending e By finish lo sono; restano da fare Your collection (la riga di un catalogo apre
+la sua lista su Owned) e Milestones (proposta in corso).
+
+**By finish a righe toccabili (2026-11-01, mockup cliccabile approvato)**: non più tre numeri in colonna ma tre righe come in
+Progress (`FinishRow`): numero grande, nome della finitura, barra con la quota sulle commemorative possedute ("84% of your 93";
+una moneta può avere più finiture, quindi le quote non sommano 100%) e la freccia. Il tocco apre l'elenco di TUTTE le commemorative
+già su Owned e su quella finitura: nuova rotta `coins/all/all?quality=BU` (`KIND_ALL`, `ARG_QUALITY`) e
+`CoinListViewModel(startQuality)`. Una finitura a zero (oggi Proof) non si tocca e dice "None yet". **Cambio di parere**: avevo
+proposto di piegare By finish dentro Your collection, con righe toccabili conviene tenerla a sé (le card restano cinque).
+**Non verificato sul telefono** (bloccato): da guardare layout, allineamento delle barre e che la lista si apra su Owned + BU/Standard
+con il filtro "Owned quality" già attivo.
+
 **Rifiniture di History e Coins (2026-10-26, richiesta del proprietario)**: (1) **animazione dei due contenuti a comparsa**
 di History ("1957–1998", i sei passi, e "Compare the old and the new map"): "non mi fa impazzire, più leggera e anche in
 chiusura". Era un `animateContentSize` con la molla di sistema dentro una `TimelineRow` che usava `height(IntrinsicSize.Min)`:

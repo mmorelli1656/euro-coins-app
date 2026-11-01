@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.components.LocalProAccess
 import com.michele.eurocoins.ui.theme.appBarColors
@@ -62,6 +63,8 @@ fun InsightsScreen(
     onYearClick: (year: Int, joint: Boolean) -> Unit,
     /** Apre l'elenco di un taglio Regular ("2 euro") in tutti i paesi, già su "Missing". */
     onValueClick: (String) -> Unit,
+    /** Apre le commemorative possedute in una finitura (già su Owned e sulla qualità). */
+    onFinishClick: (CoinQuality) -> Unit,
     /** Apre il dettaglio di una voce della classifica "Most expensive". */
     onSpentItemClick: (SpentTarget) -> Unit,
     onBack: () -> Unit,
@@ -125,6 +128,7 @@ fun InsightsScreen(
                                 onRegularCountry = onRegularCountryClick,
                                 onYear = onYearClick,
                                 onValue = onValueClick,
+                                onFinish = onFinishClick,
                                 onSpentItem = onSpentItemClick,
                             )
                         }
