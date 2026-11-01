@@ -678,7 +678,8 @@ Five mints senza dati apre le commemorative tedesche). **Il filetto "Just for fu
 chiudono l'ultima riga e la forma (quadrato morbido) basta a distinguerle. Da Free la card si sfoca come le altre. **Verificato
 sul telefono (tema scuro, dati veri)**: cerchi pieni e tratteggiati, quadrati morbidi, tocco su "First country" (barra 37 / 40,
 "Italy is the closest: 3 to go") e il tasto che apre le 3 monete italiane mancanti; dopo la correzione le sedici medaglie
-con Five mints ("0 / 5", "Show the German coins" apre "16 coins found" su Missing). Una riga tutta conquistata non riserva la
+con Five mints ("0 / 5", "Show the German coins" apre "16 coins found" su Missing). Con le soglie nuove: numeri "100", "250", "500" dentro i cerchi e "93 / 100" sotto, Pocket change con il portafoglio e il suo testo ("5 of 16 earned").
+Non provato il font ingrandito sui numeri nel cerchio da 52 dp. Una riga tutta conquistata non riserva la
 riga vuota del progresso (gli spazi si allargavano). Non provati: tema chiaro, font ingrandito, vista Free, il tasto delle altre
 medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
 fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
