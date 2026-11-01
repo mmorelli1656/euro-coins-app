@@ -3,6 +3,7 @@ package com.michele.eurocoins.ui.insights
 import android.os.Build
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +30,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -49,17 +54,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.michele.eurocoins.data.CollectionStats
-import com.michele.eurocoins.data.CountryStat
 import com.michele.eurocoins.data.FinishCounts
 import com.michele.eurocoins.data.Milestones
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.SpendingStats
 import com.michele.eurocoins.data.SpentTarget
-import com.michele.eurocoins.data.YearStat
 import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.ui.components.formatPrice
 import com.michele.eurocoins.ui.detail.DetailCard
 import com.michele.eurocoins.ui.detail.sansTitleMedium
+import com.michele.eurocoins.ui.regular.DenominationCoin
+import com.michele.eurocoins.ui.regular.coinScaleFor
 import java.util.Locale
 
 /**
@@ -74,11 +79,13 @@ internal fun StatisticsTab(
     stats: CollectionStats?,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
 ) {
     // Room non ha ancora risposto: niente da mostrare.
     if (stats == null) return
-    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onSpentItem)
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue, onSpentItem)
 }
 
 /** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
@@ -87,13 +94,14 @@ private fun StatisticsCards(
     stats: CollectionStats,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
     onSpentItem: (SpentTarget) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         YourCollectionCard(stats)
-        ByCountryCard(stats, onCommemorativeCountry, onRegularCountry)
+        ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
         MilestonesCard(stats.milestones)
-        ByYearCard(stats.years)
         FinishCard(stats.finishes)
         stats.spending?.let { SpendingCard(it, onSpentItem) }
     }
@@ -150,7 +158,14 @@ internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modif
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             CompositionLocalProvider(LocalLockedStats provides true) {
-                StatisticsCards(stats, onCommemorativeCountry = {}, onRegularCountry = {}, onSpentItem = {})
+                StatisticsCards(
+                    stats,
+                    onCommemorativeCountry = {},
+                    onRegularCountry = {},
+                    onYear = { _, _ -> },
+                    onValue = {},
+                    onSpentItem = {},
+                )
             }
         }
         InviteCard(onGoPro, Modifier.align(Alignment.Center).padding(horizontal = 32.dp))
@@ -246,46 +261,110 @@ private fun CatalogRow(name: String, progress: Progress) {
     StatBar(progress.fraction)
 }
 
-/** Paesi completi in fondo; gli altri dal più vicino al completamento (frazione più alta), a parità per nome. */
-private val closestFirst = compareBy<CountryStat>(
-    { it.progress.total > 0 && it.progress.owned == it.progress.total },
+/** Quante righe mostra Progress prima di "Show all". */
+private const val PROGRESS_SHOWN = 6
+
+/**
+ * Una riga della card Progress, qualunque sia la vista (paese, anno, valore): [lead] è ciò che sta a sinistra (bandiera o
+ * moneta, niente per gli anni), [joint] aggiunge la pillola "COMMON ISSUE", [tieBreak] ordina a pari avanzamento (l'anno).
+ */
+private class ProgressItem(
+    val title: String,
+    val progress: Progress,
+    val lead: @Composable (() -> Unit)? = null,
+    val joint: Boolean = false,
+    val tieBreak: Int = 0,
+    val onClick: () -> Unit,
+) {
+    val complete: Boolean get() = progress.total > 0 && progress.owned == progress.total
+}
+
+/** Dalle più vicine al completamento (frazione più alta); le complete in fondo; a pari avanzamento il più recente, poi il nome. */
+private val closestFirst = compareBy<ProgressItem>(
+    { it.complete },
     { -it.progress.fraction },
-    { it.name },
+    { -it.tieBreak },
+    { it.joint },
+    { it.title },
 )
 
-private const val COUNTRIES_SHOWN = 6
-
+/**
+ * La card Progress (2026-11-01, mockup approvato; fonde le vecchie By country e By year): i chip scelgono il catalogo e il
+ * selettore l'asse, Country oppure Year (commemorative) / Value (Regular Issues: una riga non ha un anno, ha un taglio).
+ * Sempre dalle più vicine al completamento, senza ordinamento da scegliere. Il tocco apre la lista già su "Missing".
+ */
 @Composable
-private fun ByCountryCard(
+private fun ProgressCard(
     stats: CollectionStats,
     onCommemorativeCountry: (String) -> Unit,
     onRegularCountry: (String) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
 ) {
     var regular by rememberSaveable { mutableStateOf(false) }
-    var byName by rememberSaveable { mutableStateOf(false) }
+    var byOther by rememberSaveable { mutableStateOf(false) }
     var showAll by rememberSaveable { mutableStateOf(false) }
-    val source = if (regular) stats.regularCountries else stats.commemorativeCountries
-    val sorted = if (byName) source.sortedBy { it.name } else source.sortedWith(closestFirst)
-    val shown = if (showAll) sorted else sorted.take(COUNTRIES_SHOWN)
 
-    StatCard("By country") {
-        Hint("How complete each country is. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
-        Row(modifier = Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !regular, onClick = { regular = false; showAll = false }, label = { Text("Commemorative") })
-            FilterChip(selected = regular, onClick = { regular = true; showAll = false }, label = { Text("Regular Issues") })
+    val items: List<ProgressItem> = when {
+        !regular && !byOther -> stats.commemorativeCountries.map { c ->
+            ProgressItem(c.name, c.progress, lead = { Text(flagEmojiForCountry(c.paese), fontSize = 22.sp) }) { onCommemorativeCountry(c.paese) }
         }
-        Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !byName, onClick = { byName = false }, label = { Text("Closest to complete") })
-            FilterChip(selected = byName, onClick = { byName = true }, label = { Text("A to Z") })
+        !regular -> stats.yearRows.map { y ->
+            ProgressItem(y.anno.toString(), y.progress, joint = y.joint, tieBreak = y.anno) { onYear(y.anno, y.joint) }
+        }
+        !byOther -> stats.regularCountries.map { c ->
+            ProgressItem(c.name, c.progress, lead = { Text(flagEmojiForCountry(c.paese), fontSize = 22.sp) }) { onRegularCountry(c.paese) }
+        }
+        else -> stats.values.map { v ->
+            ProgressItem(v.taglio, v.progress, lead = { ValueCoin(v.taglio) }) { onValue(v.taglio) }
+        }
+    }
+    val sorted = items.sortedWith(closestFirst)
+    // I tagli sono 8 e stanno tutti: "Show all" serve solo alle liste lunghe (paesi e anni).
+    val isValues = regular && byOther
+    val shown = if (showAll || isValues) sorted else sorted.take(PROGRESS_SHOWN)
+
+    StatCard("Progress") {
+        Hint("The closest to complete first. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
+        // Chip e selettore hanno la stessa larghezza (due metà uguali), così i bordi sono allineati.
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = !regular,
+                onClick = { regular = false; showAll = false },
+                label = { Text("Commemorative", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                modifier = Modifier.weight(1f),
+            )
+            FilterChip(
+                selected = regular,
+                onClick = { regular = true; showAll = false },
+                label = { Text("Regular Issues", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            SegmentedButton(
+                selected = !byOther,
+                onClick = { byOther = false; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                // Nessuna spunta: sposterebbe l'etichetta (come negli altri selettori dell'app).
+                icon = {},
+                label = { Text("Country", maxLines = 1) },
+            )
+            SegmentedButton(
+                selected = byOther,
+                onClick = { byOther = true; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                icon = {},
+                label = { Text(if (regular) "Value" else "Year", maxLines = 1) },
+            )
         }
         Column(modifier = Modifier.animateContentSize().padding(top = 6.dp)) {
-            shown.forEach { country ->
-                CountryRow(country, onClick = { if (regular) onRegularCountry(country.paese) else onCommemorativeCountry(country.paese) })
-            }
+            shown.forEach { ProgressRow(it) }
         }
-        if (sorted.size > COUNTRIES_SHOWN) {
+        if (!isValues && sorted.size > PROGRESS_SHOWN) {
+            val unit = if (byOther) "years" else "countries"
             Text(
-                text = if (showAll) "Show fewer" else "Show all ${sorted.size} countries",
+                text = if (showAll) "Show fewer" else "Show all ${sorted.size} $unit",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.primary,
@@ -293,7 +372,7 @@ private fun ByCountryCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .clickable { showAll = !showAll }
+                    .clickable(enabled = !LocalLockedStats.current) { showAll = !showAll }
                     .padding(vertical = 12.dp),
             )
         }
@@ -301,30 +380,59 @@ private fun ByCountryCard(
 }
 
 @Composable
-private fun CountryRow(country: CountryStat, onClick: () -> Unit) {
-    val p = country.progress
-    val complete = p.total > 0 && p.owned == p.total
+private fun ProgressRow(item: ProgressItem) {
+    val p = item.progress
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = item.onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(flagEmojiForCountry(country.paese), fontSize = 22.sp)
+        item.lead?.invoke()
         Column(modifier = Modifier.weight(1f)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(country.name, style = MaterialTheme.typography.bodyMedium)
-                Hint(if (complete) "${p.owned} / ${p.total} · complete" else "${p.owned} / ${p.total} · ${p.total - p.owned} missing")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(item.title, style = MaterialTheme.typography.bodyMedium)
+                    if (item.joint) CommonIssuePill()
+                }
+                Hint(if (item.complete) "${p.owned} / ${p.total} · complete" else "${p.owned} / ${p.total} · ${p.total - p.owned} missing")
             }
             StatBar(p.fraction, Modifier.padding(top = 4.dp))
         }
         Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/** Come la pillola di Browse > Years: l'anno con emissione comune ha una riga sua, e questa la distingue. */
+@Composable
+private fun CommonIssuePill() {
+    Text(
+        text = "COMMON ISSUE",
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .padding(horizontal = 7.dp, vertical = 1.dp),
+    )
+}
+
+/** La moneta disegnata in scala reale (la stessa della scheda Values del catalogo Regular) nel suo riquadro. */
+@Composable
+private fun ValueCoin(taglio: String) {
+    Box(modifier = Modifier.size(VALUE_COIN_SIZE), contentAlignment = Alignment.Center) {
+        DenominationCoin(
+            taglio = taglio,
+            maxSize = VALUE_COIN_SIZE,
+            modifier = Modifier.width(VALUE_COIN_SIZE * (coinScaleFor(taglio) ?: 1f)),
+        )
+    }
+}
+
+private val VALUE_COIN_SIZE = 30.dp
 
 @Composable
 private fun MilestonesCard(m: Milestones) {
@@ -348,40 +456,6 @@ private fun MilestoneRow(label: String, progress: Progress) {
             }
         }
         StatBar(progress.fraction, Modifier.padding(top = 6.dp))
-    }
-}
-
-@Composable
-private fun ByYearCard(years: List<YearStat>) {
-    if (years.isEmpty()) return
-    StatCard("By year") {
-        Hint("Commemorative coins you own, year by year. The empty part is what's missing.", Modifier.padding(top = 4.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().height(96.dp).padding(top = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            years.forEach { y ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.BottomCenter,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(y.progress.fraction.coerceIn(0f, 1f))
-                            .background(MaterialTheme.colorScheme.primary),
-                    )
-                }
-            }
-        }
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            val labels = listOf(years.first().anno, years[years.size / 2].anno, years.last().anno).distinct()
-            labels.forEach { Hint(it.toString()) }
-        }
     }
 }
 

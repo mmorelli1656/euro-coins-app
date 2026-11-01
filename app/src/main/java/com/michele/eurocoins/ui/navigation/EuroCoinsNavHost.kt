@@ -70,7 +70,7 @@ private const val ROUTE_REGULAR_ISSUES = "regular-issues"
 private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
 private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
 // Un taglio in tutti i paesi (elenco), non il dettaglio di un taglio di una serie.
-private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}"
+private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}?missing={missing}"
 private const val ARG_TOUR = "tour"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
@@ -202,6 +202,12 @@ fun EuroCoinsNavHost(
                     navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
                 },
                 onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                // Un anno o un taglio di "Progress": la lista già su "Missing" (l'anno con emissione comune ha la sua, come in Years).
+                onYearClick = { year, joint ->
+                    val kind = if (joint) KIND_YEAR_COMMON else KIND_YEAR
+                    navController.navigate("coins/$kind/$year?$ARG_MISSING=true")
+                },
+                onValueClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}?$ARG_MISSING=true") },
                 // Una voce di "Most expensive": il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
                 onSpentItemClick = { target ->
                     when (target) {
@@ -332,12 +338,18 @@ fun EuroCoinsNavHost(
         }
         composable(
             route = ROUTE_REGULAR_DENOMINATION_LIST,
-            arguments = listOf(navArgument(ARG_TAGLIO) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(ARG_TAGLIO) { type = NavType.StringType },
+                navArgument(ARG_MISSING) { type = NavType.BoolType; defaultValue = false },
+            ),
         ) { backStackEntry ->
             val taglio = backStackEntry.arguments?.getString(ARG_TAGLIO) ?: return@composable
+            val missing = backStackEntry.arguments?.getBoolean(ARG_MISSING) ?: false
             val viewModel: RegularDenominationListViewModel = viewModel(
-                key = "regular-denomination-list-$taglio",
-                factory = viewModelFactory { initializer { RegularDenominationListViewModel(regularIssueRepository, taglio) } },
+                key = "regular-denomination-list-$taglio-$missing",
+                factory = viewModelFactory {
+                    initializer { RegularDenominationListViewModel(regularIssueRepository, taglio, startMissing = missing) }
+                },
             )
             RegularDenominationListScreen(
                 taglio = taglio,

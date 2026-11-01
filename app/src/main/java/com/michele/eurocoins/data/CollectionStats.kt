@@ -5,8 +5,15 @@ import java.time.LocalDate
 /** Il completamento di un paese in un catalogo ([name] già nel nome mostrato in UI). */
 data class CountryStat(val paese: String, val name: String, val progress: Progress)
 
-/** Il completamento di un anno delle commemorative. */
-data class YearStat(val anno: Int, val progress: Progress)
+/**
+ * Il completamento di un anno delle commemorative. [joint] = la riga delle sole emissioni comuni di quell'anno (2007, 2009,
+ * 2012, 2015, 2022), separata da quella delle monete dei singoli paesi come nella griglia Years della navigazione: così
+ * il numero di una riga coincide con la lista che si apre toccandola.
+ */
+data class YearStat(val anno: Int, val progress: Progress, val joint: Boolean = false)
+
+/** Il completamento di un taglio delle Regular Issues in tutti i paesi e le serie (una riga per serie: 41 per taglio). */
+data class ValueStat(val taglio: String, val progress: Progress)
 
 /** Quante monete commemorative hanno almeno una voce in ciascuna finitura (una moneta può averne più d'una). */
 data class FinishCounts(val standard: Int, val bu: Int, val proof: Int)
@@ -73,6 +80,10 @@ data class CollectionStats(
     val commemorativeCountries: List<CountryStat>,
     val regularCountries: List<CountryStat>,
     val years: List<YearStat>,
+    /** Gli anni come righe della card Progress: una per anno, più una per le emissioni comuni dove ci sono. */
+    val yearRows: List<YearStat>,
+    /** I tagli Regular come righe della card Progress. */
+    val values: List<ValueStat>,
     val milestones: Milestones,
     val finishes: FinishCounts,
     val spending: SpendingStats?,
@@ -101,6 +112,11 @@ fun collectionStats(
         CountryStat(paese, list.first().displayCountry(), list.progress(owned))
     }
     val years = coins.groupBy { it.anno }.toSortedMap().map { (anno, list) -> YearStat(anno, list.progress(owned)) }
+    val yearRows = coins.groupBy { it.anno to it.emissioneComune }.map { (key, list) ->
+        YearStat(key.first, list.progress(owned), joint = key.second)
+    }
+    val denominationRows = denominationRows(series, regularItems)
+    val values = REGULAR_DENOMINATIONS.map { taglio -> ValueStat(taglio, denominationRows[taglio].orEmpty().denominationProgress()) }
     val joint = coins.filter { it.emissioneComune }.groupBy { it.anno }.values.map { it.progress(owned) }
 
     val regularCountries = series.groupBy { it.paese }.map { (paese, list) ->
@@ -123,6 +139,8 @@ fun collectionStats(
         commemorativeCountries = countries,
         regularCountries = regularCountries,
         years = years,
+        yearRows = yearRows,
+        values = values,
         milestones = Milestones(
             countries = completeOf(countries.map { it.progress }),
             years = completeOf(years.map { it.progress }),

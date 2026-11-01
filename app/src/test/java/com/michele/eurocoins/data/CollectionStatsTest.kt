@@ -237,4 +237,45 @@ class CollectionStatsTest {
         // Senza anno la voce appartiene già alla serie guardata (è salvata con la sua chiave).
         assertEquals(france[0].ordineCronologico, target(NO_YEAR).ordine)
     }
+
+    @Test
+    fun yearRowsSplitTheJointIssuesLikeTheYearsGrid() {
+        val s = stats()
+        // Una riga per anno e, dove c'è un'emissione comune, una seconda: la stessa divisione di Browse > Years.
+        val jointYears = coins.filter { it.emissioneComune }.map { it.anno }.toSet()
+        assertEquals(5, jointYears.size)
+        assertEquals(s.years.size + jointYears.size, s.yearRows.size)
+        assertEquals(jointYears, s.yearRows.filter { it.joint }.map { it.anno }.toSet())
+        // Le righe coprono tutte le monete, senza doppioni, e quelle comuni sono una per paese.
+        assertEquals(coins.size, s.yearRows.sumOf { it.progress.total })
+        assertEquals(coins.count { it.emissioneComune }, s.yearRows.filter { it.joint }.sumOf { it.progress.total })
+    }
+
+    @Test
+    fun yearRowsCountTheJointCoinsApartFromTheOthers() {
+        val joint = coins.first { it.emissioneComune }
+        val single = coins.first { !it.emissioneComune && it.anno == joint.anno }
+        val s = stats(items = listOf(item(joint), item(single)))
+        val jointRow = s.yearRows.first { it.anno == joint.anno && it.joint }
+        val singleRow = s.yearRows.first { it.anno == joint.anno && !it.joint }
+        assertEquals(1, jointRow.progress.owned)
+        assertEquals(1, singleRow.progress.owned)
+        // L'anno intero (usato dai traguardi) ne conta due.
+        assertEquals(2, s.years.first { it.anno == joint.anno }.progress.owned)
+    }
+
+    @Test
+    fun valueRowsAreTheEightDenominationsAcrossEverySeries() {
+        // Un anno dentro la finestra della PRIMA serie del Belgio, altrimenti la riga non risulta posseduta.
+        val belgium = series.filter { it.paese == "Belgio" }.minBy { it.ordineCronologico }
+        val year = belgium.immagini.first { it.taglio == "2 euro" }.annoInizio ?: 2005
+        val s = stats(regular = listOf(regularItem(belgium, "2 euro", year), regularItem(belgium, "1 cent", year)))
+        assertEquals(8, s.values.size)
+        // Una riga per serie: 41 per taglio, 328 in tutto, gli stessi totali della Home.
+        assertTrue(s.values.all { it.progress.total == 41 })
+        assertEquals(s.regular.total, s.values.sumOf { it.progress.total })
+        assertEquals(s.regular.owned, s.values.sumOf { it.progress.owned })
+        assertEquals(1, s.values.first { it.taglio == "2 euro" }.progress.owned)
+        assertEquals(0, s.values.first { it.taglio == "5 cent" }.progress.owned)
+    }
 }

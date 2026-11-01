@@ -58,6 +58,10 @@ fun InsightsScreen(
     onCommemorativeCountryClick: (String) -> Unit,
     /** Apre la schermata Regular Issues di un paese. */
     onRegularCountryClick: (String) -> Unit,
+    /** Apre la lista commemorative di un anno già su "Missing"; [joint] = la lista delle sole emissioni comuni di quell'anno. */
+    onYearClick: (year: Int, joint: Boolean) -> Unit,
+    /** Apre l'elenco di un taglio Regular ("2 euro") in tutti i paesi, già su "Missing". */
+    onValueClick: (String) -> Unit,
     /** Apre il dettaglio di una voce della classifica "Most expensive". */
     onSpentItemClick: (SpentTarget) -> Unit,
     onBack: () -> Unit,
@@ -119,6 +123,8 @@ fun InsightsScreen(
                                 stats = stats,
                                 onCommemorativeCountry = onCommemorativeCountryClick,
                                 onRegularCountry = onRegularCountryClick,
+                                onYear = onYearClick,
+                                onValue = onValueClick,
                                 onSpentItem = onSpentItemClick,
                             )
                         }

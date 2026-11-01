@@ -621,6 +621,25 @@ tema scuro, tutte le sei card, tocco su una riga che non fa nulla, da Pro la sch
 ingrandito (la card dell'invito potrebbe coprire molto), Android sotto 12 (nessun dispositivo) e le prestazioni su telefoni lenti
 (blur su sei card).
 
+**Card "Progress" al posto di By country e By year (2026-11-01, mockup cliccabile approvato)**: una sola card con titolo
+"Progress" e riga "The closest to complete first. Tap one to see what's missing.", due chip per il catalogo (Commemorative /
+Regular Issues) e un selettore dell'asse **Country | Year** per le commemorative e **Country | Value** per le Regular Issues
+(il secondo segmento cambia nome con il catalogo; chip e selettore hanno la stessa larghezza, due metà uguali, bordi allineati:
+prima i chip erano più stretti e "non centrati"). **Sempre dalle più vicine al completamento** (frazione più alta, complete in
+fondo, a pari avanzamento l'anno più recente, poi il nome): niente chip di ordinamento (scelta del proprietario), 6 righe e "Show all N
+countries/years" per le liste lunghe; i tagli sono 8 e stanno tutti. Righe: bandiera per i paesi, niente per gli anni, la moneta
+disegnata in scala per i tagli (`DenominationCoin`). **Perché Value e non Year per le Regular**: una riga è un taglio di una
+serie e una serie copre anni diversi, quindi un anno non esiste (come nel catalogo Regular, dove al posto di Years c'è Values);
+Year forzato avrebbe richiesto un anno di inizio serie e il tocco non avrebbe aperto una lista coerente. **Anni con emissione
+comune**: due righe, quella dei singoli paesi e quella con la pillola COMMON ISSUE, come la griglia Years di Browse
+(`YearStat.joint`, `CollectionStats.yearRows`; `years` aggregato resta per i traguardi). `CollectionStats.values`
+(`ValueStat`) = `denominationRows()` per taglio, 41 righe ciascuno, gli stessi totali della Home. **Tocco**: paese commemorativo →
+lista del paese su Missing (come prima); paese Regular → schermata del paese; anno → `coins/year/<anno>?missing=true` (o
+`year-common`); taglio → `regular-denominations/<taglio>?missing=true` (`RegularDenominationListViewModel(startMissing)`,
+nuovo). La card "By year" a grafico è tolta (le righe la sostituiscono). **Non fatto**: By finish dentro Your collection e
+la revisione di Milestones (restano card a sé). **Non verificato sul telefono** (era bloccato): da guardare layout, allineamento
+di chip e selettore, righe Year con la pillola, righe Value con le monete e i tre tocchi nuovi.
+
 **Rifiniture di History e Coins (2026-10-26, richiesta del proprietario)**: (1) **animazione dei due contenuti a comparsa**
 di History ("1957–1998", i sei passi, e "Compare the old and the new map"): "non mi fa impazzire, più leggera e anche in
 chiusura". Era un `animateContentSize` con la molla di sistema dentro una `TimelineRow` che usava `height(IntrinsicSize.Min)`:
