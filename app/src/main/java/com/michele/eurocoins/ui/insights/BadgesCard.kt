@@ -94,7 +94,8 @@ private fun BadgeId.copy(): BadgeCopy = when (this) {
 
 /**
  * La card Badges (2026-11-01, mockup approvato): dodici medaglie con un progresso e quattro "just for fun" a quadrato morbido
- * (il cerchio dice "soglia", il quadrato "battuta": non si confondono). Le conquistate sono piene, le altre spente con il
+ * (il cerchio dice "soglia", il quadrato "battuta"), in UNA griglia sola: il filetto "Just for fun" è stato tolto su richiesta
+ * del proprietario, la forma basta a distinguerle e le quattro chiudono l'ultima riga. Le conquistate sono piene, le altre spente con il
  * progresso sotto; il tocco apre sotto la griglia il perché e, se non conquistata, la barra e un tasto verso ciò che manca.
  * Derivata dalla collezione, mai salvata. Da Free si sfoca con le altre card ([StatCard]).
  */
@@ -103,24 +104,9 @@ internal fun BadgesCard(badges: List<Badge>, onGo: (BadgeTarget) -> Unit) {
     if (badges.isEmpty()) return
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = badges.firstOrNull { it.id.name == selectedName }
-    val serious = badges.filter { !it.id.isFun }
-    val fun_ = badges.filter { it.id.isFun }
     StatCard("Badges") {
         Hint("${badges.count { it.earned }} of ${badges.size} earned. Tap one to see how.", Modifier.padding(top = 2.dp))
-        BadgeGrid(serious, selected?.id, Modifier.padding(top = 14.dp)) { selectedName = if (selected?.id == it.id) null else it.id.name }
-        if (fun_.isNotEmpty()) {
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                Text(
-                    "Just for fun",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-            }
-            BadgeGrid(fun_, selected?.id) { selectedName = if (selected?.id == it.id) null else it.id.name }
-        }
+        BadgeGrid(badges, selected?.id, Modifier.padding(top = 14.dp)) { selectedName = if (selected?.id == it.id) null else it.id.name }
         Column(modifier = Modifier.animateContentSize()) {
             if (selected != null) BadgeDetail(selected, onGo)
         }

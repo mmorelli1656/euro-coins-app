@@ -658,18 +658,22 @@ possedute, e il FILTER ha il pallino; indietro riporta a Statistics. Non provati
 **Sedici medaglie DERIVATE dalla collezione ogni volta, mai salvate** (niente backup, niente migrazioni, non si perdono
 ripristinando; `badgesOf`, `BadgesTest`). Dodici "badge" tonde con progresso (First coin, 50/100/250 coins, First BU, First
 Proof, Common issue, First country, 5 countries, First series, 10 series, Five mints) e quattro "Just for fun" a QUADRATO MORBIDO
-sotto un filetto (il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
+(il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
 moneta in Standard, BU e Proof), **Lucky find** (una moneta pagata al valore facciale o meno: €2.00 le commemorative, il taglio
 per le Regular, `faceValueCents`), **Letter spotter** (la 2002 greca con EFS). Scartata la **Shopping spree** (cinque monete con
 la stessa data) su giudizio del proprietario. Conquistata = cerchio pieno `primary`; da fare = bordo tratteggiato e il progresso
 sotto ("37 / 40": per le "prime" la barra segue il candidato più vicino, non un vuoto 0 / 1; per i soldi la percentuale). Il tocco
 apre SOTTO la griglia (non un pannello) il perché, e se non conquistata barra, progresso, riga "X is the closest: 3 to go" e un
 tasto verso ciò che manca (stesse destinazioni di Milestones e di "Most expensive", risolte in `EuroCoinsNavHost`; nessun tasto per
-BU, Proof, Big spender e Lucky find: non c'è niente da aprire). **Regola: le medaglie che dipendono da dati facoltativi compaiono
-solo se l'utente li ha già usati** (prezzi → Big spender e Lucky find; una lettera di zecca → Five mints), come la card Spending:
-niente traguardi bloccati per sempre; il contatore è "x of N" con N le visibili. Triple threat e Letter spotter sono sempre
-visibili. Da Free la card si sfoca come le altre. **Verificato sul telefono (tema scuro, dati veri)**: "8 of 15 earned", cerchi
-pieni e tratteggiati, quadrati morbidi sotto "Just for fun", tocco su "First country" (barra 37 / 40, "Italy is the closest: 3 to
+BU, Proof, Big spender e Lucky find: non c'è niente da aprire). **Sempre tutte e sedici** (2026-11-01, correzione del proprietario):
+la prima versione nascondeva le medaglie che dipendono da dati facoltativi (prezzi → Big spender e Lucky find; una lettera di
+zecca → Five mints) finché non erano usati, per non mostrare un traguardo bloccato per sempre; sul telefono il contatore diceva
+"15" e il proprietario ne ha contate 15 su 16: nasconderle toglieva anche la scoperta della funzione. Ora restano visibili con una
+nota che dice come arrivarci ("Add prices to your coins to get started.", "Record the mint of your German coins to get started.";
+Five mints senza dati apre le commemorative tedesche). **Il filetto "Just for fun" è tolto**: una griglia sola, le quattro
+chiudono l'ultima riga e la forma (quadrato morbido) basta a distinguerle. Da Free la card si sfoca come le altre. **Verificato
+sul telefono (tema scuro, dati veri) prima di questa correzione**: "8 of 15 earned", cerchi
+pieni e tratteggiati, quadrati morbidi, tocco su "First country" (barra 37 / 40, "Italy is the closest: 3 to
 go") e il tasto che apre le 3 monete italiane mancanti. Una riga tutta conquistata non riserva la riga vuota del progresso (gli
 spazi si allargavano). Non provati: tema chiaro, font ingrandito, vista Free, il tasto delle altre medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
 fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:

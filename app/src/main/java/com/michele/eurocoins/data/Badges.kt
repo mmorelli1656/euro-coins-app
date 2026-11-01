@@ -59,9 +59,10 @@ private fun nameList(names: List<String>, shown: Int = 3): String {
 }
 
 /**
- * Le sedici medaglie, nell'ordine in cui si mostrano (prima le dodici, poi le quattro "just for fun"). Le medaglie che
- * dipendono da dati facoltativi compaiono solo se l'utente li ha già usati almeno una volta (prezzi per Big spender e Lucky find,
- * lettere di zecca per Five mints): chi non li registra non vede un traguardo bloccato per sempre, come la card Spending.
+ * Le sedici medaglie, nell'ordine in cui si mostrano (prima le dodici, poi le quattro "just for fun"), SEMPRE tutte: anche quelle
+ * che dipendono da dati facoltativi (prezzi, lettere di zecca) restano visibili, con una nota che dice come arrivarci. Prima
+ * comparivano solo dopo il primo uso (2026-11-01), ma il proprietario ne contava 15 invece di 16 e nasconderle toglieva anche
+ * la scoperta della funzione.
  */
 internal fun badgesOf(
     stats: CollectionStats,
@@ -143,26 +144,30 @@ internal fun badgesOf(
         )
     }
 
-    // Cinque zecche: solo se si è già registrata almeno una lettera (altrimenti "0 / 5" sembra irraggiungibile).
-    if (items.any { it.mint != NO_MINT } || regularItems.any { it.mint != NO_MINT }) out += fiveMints(coins, items, regularItems, series)
+    out += fiveMints(coins, items, regularItems, series)
 
     // Just for fun.
-    stats.spending?.let { s ->
-        val earned = s.totalCents >= BIG_SPENDER_CENTS
-        out += Badge(
-            BadgeId.BIG_SPENDER, earned, s.totalCents.coerceAtMost(BIG_SPENDER_CENTS.toLong()).toInt(), BIG_SPENDER_CENTS,
-            note = if (earned) "You have spent ${euro(s.totalCents)}. Worth every cent." else "${euro(s.totalCents)} of ${euro(BIG_SPENDER_CENTS.toLong())} so far.",
-        )
-    }
+    val spent = stats.spending?.totalCents ?: 0L
+    val bigSpender = spent >= BIG_SPENDER_CENTS
+    out += Badge(
+        BadgeId.BIG_SPENDER, bigSpender, spent.coerceAtMost(BIG_SPENDER_CENTS.toLong()).toInt(), BIG_SPENDER_CENTS,
+        note = when {
+            bigSpender -> "You have spent ${euro(spent)}. Worth every cent."
+            stats.spending == null -> "Add prices to your coins to get started."
+            else -> "${euro(spent)} of ${euro(BIG_SPENDER_CENTS.toLong())} so far."
+        },
+    )
     out += tripleThreat(coins, items)
-    if (stats.spending != null) {
-        val lucky = items.count { (it.priceCents ?: 0) in 1..COMMEMORATIVE_FACE_CENTS } +
+    val lucky = items.count { (it.priceCents ?: 0) in 1..COMMEMORATIVE_FACE_CENTS } +
             regularItems.count { r -> (r.priceCents ?: 0).let { it > 0 && it <= faceValueCents(r.taglio) } }
-        out += Badge(
-            BadgeId.LUCKY_FIND, lucky > 0, if (lucky > 0) 1 else 0, 1,
-            note = if (lucky > 0) "$lucky ${if (lucky == 1) "coin" else "coins"} at or under face value." else null,
-        )
-    }
+    out += Badge(
+        BadgeId.LUCKY_FIND, lucky > 0, if (lucky > 0) 1 else 0, 1,
+        note = when {
+            lucky > 0 -> "$lucky ${if (lucky == 1) "coin" else "coins"} at or under face value."
+            stats.spending == null -> "Add prices to your coins to get started."
+            else -> null
+        },
+    )
     val spotted = regularItems.any { it.variety == VARIETY_EFS }
     out += Badge(
         BadgeId.LETTER_SPOTTER, spotted, if (spotted) 1 else 0, 1,
@@ -219,9 +224,21 @@ private fun fiveMints(
     }
     return Badge(
         BadgeId.FIVE_MINTS, earned, count.coerceAtMost(5), 5,
-        note = if (earned) "One coin from A, D, F, G and J." else "Best so far: $count of 5 mints.",
-        go = if (earned || target == null) null else BadgeTarget.Spent(target),
-        goLabel = if (earned || target == null) null else "Show that coin",
+        note = when {
+            earned -> "One coin from A, D, F, G and J."
+            count == 0 -> "Record the mint of your German coins to get started."
+            else -> "Best so far: $count of 5 mints."
+        },
+        go = when {
+            earned -> null
+            target != null -> BadgeTarget.Spent(target)
+            else -> BadgeTarget.Milestone(MilestoneTarget.CommemorativeCountry("Germania"))
+        },
+        goLabel = when {
+            earned -> null
+            target != null -> "Show that coin"
+            else -> "Show the German coins"
+        },
     )
 }
 

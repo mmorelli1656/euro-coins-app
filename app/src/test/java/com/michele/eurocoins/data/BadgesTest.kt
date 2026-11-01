@@ -37,17 +37,11 @@ class BadgesTest {
     )
 
     @Test
-    fun anEmptyCollectionShowsTheTwelveBadgesAndTheTwoAlwaysVisibleFunOnesAllLocked() {
+    fun anEmptyCollectionShowsAllSixteenBadgesLocked() {
         val b = badges()
-        // Senza prezzi né lettere: niente Big spender, Lucky find e Five mints.
-        assertEquals(
-            setOf(
-                BadgeId.FIRST_COIN, BadgeId.COINS_50, BadgeId.COINS_100, BadgeId.COINS_250, BadgeId.FIRST_BU, BadgeId.FIRST_PROOF,
-                BadgeId.JOINT_ISSUE, BadgeId.FIRST_COUNTRY, BadgeId.FIVE_COUNTRIES, BadgeId.FIRST_SERIES, BadgeId.TEN_SERIES,
-                BadgeId.TRIPLE_THREAT, BadgeId.LETTER_SPOTTER,
-            ),
-            b.keys,
-        )
+        // Sempre tutte e sedici, anche senza prezzi né lettere di zecca (nascoste, ne mancava una e si perdeva la scoperta).
+        assertEquals(BadgeId.entries.toSet(), b.keys)
+        assertEquals(16, b.size)
         assertTrue(b.values.none { it.earned })
     }
 
@@ -109,8 +103,12 @@ class BadgesTest {
     }
 
     @Test
-    fun bigSpenderAppearsWithTheFirstPriceAndIsEarnedAtOneHundredEuro() {
+    fun bigSpenderIsAlwaysThereAndEarnedAtOneHundredEuro() {
         val coin = coins.first()
+        val none = badges().getValue(BadgeId.BIG_SPENDER)
+        assertFalse(none.earned)
+        assertEquals(0, none.progress)
+        assertTrue(none.note!!.contains("prices"))
         val few = badges(listOf(item(coin, priceCents = 6_400))).getValue(BadgeId.BIG_SPENDER)
         assertFalse(few.earned)
         assertEquals(6_400, few.progress)
@@ -166,9 +164,11 @@ class BadgesTest {
     }
 
     @Test
-    fun fiveMintsAppearsWithTheFirstLetterAndNeedsAllFiveOnOneCoin() {
+    fun fiveMintsIsAlwaysThereAndNeedsAllFiveOnOneCoin() {
         val germany = coins.first { it.paese == "Germania" }
-        assertNull(badges(listOf(item(germany))).get(BadgeId.FIVE_MINTS))
+        val none = badges(listOf(item(germany))).getValue(BadgeId.FIVE_MINTS)
+        assertEquals(0, none.progress)
+        assertEquals(BadgeTarget.Milestone(MilestoneTarget.CommemorativeCountry("Germania")), none.go)
         val three = badges(listOf("A", "D", "F").map { item(germany, mint = it) }).getValue(BadgeId.FIVE_MINTS)
         assertFalse(three.earned)
         assertEquals(3, three.progress)
