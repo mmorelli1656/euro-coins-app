@@ -636,7 +636,15 @@ versione la metteva accanto e andava a capo solo dove non ci stava, e il proprie
 non ci starebbe per "Copper-covered steel" né per "Centre slightly magnetic"). Icona calamita, barrata se non è magnetica
 (`MagnetIcons`, tratto Tabler "magnet" più diagonale); tre tinte (neutra, verde del primario al 40%, lilla per il solo
 centro del 1 e 2 euro) e il significato non sta nel solo colore. `CoinMaterial.magnetism`
-è ora un enum (`Magnetism`) e la riga "Magnet" è tolta.
+è ora un enum (`Magnetism`) e la riga "Magnet" è tolta. Valutata e scartata dal proprietario (2026-10-26): evidenziare con un
+anello le monete della stessa famiglia e una riga "Same metal: 2 cent, 5 cent" nel pannello (la scheda resta con una card che
+cambia, una moneta per volta; **non riproporre**). (3) **Inviti a toccare** (2026-11-01, mockup approvato, `TapHint` in
+`EuroTab.kt`): bandiere e monete sembravano testo fisso e "Tap" in una frase grigia non si notava. Ora l'invito sta su una RIGA
+SUA, con l'icona del dito (`Icons.Outlined.TouchApp`), "Tap" in grassetto nel colore primario e il resto in grigio: in History il
+sottotesto di "The story of the Euro" è su due righe ("From the Treaty of Rome to 21 countries." e "Tap a country for its dates
+and rate."), in Coins "Tap a coin.". Bandiere e monete restano senza riquadro (21 bordi sarebbero troppo). Passo successivo, solo
+se ancora poco evidente: un bordo leggero sul primo elemento. **Non verificato sul telefono** (era bloccato): da guardare il
+layout e l'allineamento dell'icona.
 
 **"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
 fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).

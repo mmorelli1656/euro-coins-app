@@ -29,10 +29,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,7 +52,10 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
@@ -113,11 +118,12 @@ private fun JoiningCard() {
     DetailCard {
         InsightsTitle("The story of the Euro")
         Text(
-            text = "From the Treaty of Rome to 21 countries. Tap a country for its dates and rate.",
+            text = "From the Treaty of Rome to 21 countries.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 14.dp),
+            modifier = Modifier.padding(top = 4.dp),
         )
+        TapHint("a country for its dates and rate.", Modifier.padding(top = 2.dp, bottom = 14.dp))
 
         TimelineRow(isLast = false) {
             Row(
@@ -329,6 +335,32 @@ private fun CommonSideCompare() {
 }
 
 /**
+ * L'invito a toccare sotto il titolo di History e di Coins (2026-11-01, mockup approvato): bandiere e monete sembrano testo
+ * fisso, e "Tap" in una frase grigia non si notava. Su una riga sua, con l'icona del dito e "Tap" in grassetto nel colore
+ * primario, il resto in grigio come il sottotesto. Le bandiere e le monete restano senza riquadro (21 bordi sarebbero troppo).
+ */
+@Composable
+private fun TapHint(rest: String, modifier: Modifier = Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(
+            imageVector = Icons.Outlined.TouchApp,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp),
+        )
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) { append("Tap") }
+                append(" ")
+                append(rest)
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
  * Apertura e chiusura leggere dei contenuti a comparsa di History (2026-10-26): si apre e si chiude con la stessa curva,
  * un breve scorrimento in altezza con dissolvenza (220 ms in apertura, 180 in chiusura, la chiusura un poco più svelta).
  * Prima era un `animateContentSize` con una molla: in apertura il riquadro si riempiva a scatto, in chiusura il contenuto
@@ -423,12 +455,7 @@ private fun MaterialsCard() {
 
     DetailCard {
         InsightsTitle("What's in a coin?")
-        Text(
-            text = "Tap a coin.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        TapHint("a coin.", Modifier.padding(top = 4.dp))
         COIN_MATERIALS.chunked(4).forEach { coins ->
             Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 coins.forEach { coin ->
