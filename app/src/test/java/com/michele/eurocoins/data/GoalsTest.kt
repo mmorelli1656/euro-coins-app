@@ -123,6 +123,23 @@ class GoalsTest {
     }
 
     @Test
+    fun onlyCountriesAndSeriesCarryAFlagAndYearsAndNumbersDoNot() {
+        val s = stats()
+        assertTrue(goalOptions(GoalKind.COUNTRY, s, emptyList()).all { it.paese == it.key })
+        assertTrue(goalOptions(GoalKind.SERIES, s, emptyList()).all { it.paese != null })
+        assertTrue(goalOptions(GoalKind.YEAR, s, emptyList()).all { it.paese == null })
+        assertTrue(goalOptions(GoalKind.COINS, s, emptyList()).all { it.paese == null })
+    }
+
+    @Test
+    fun theCoinPileGrowsWithTheTarget() {
+        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_100, com.michele.eurocoins.ui.insights.coinStackFor(100))
+        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_100, com.michele.eurocoins.ui.insights.coinStackFor(225))
+        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_250, com.michele.eurocoins.ui.insights.coinStackFor(250))
+        assertEquals(com.michele.eurocoins.ui.insights.BadgeArt.STACK_500, com.michele.eurocoins.ui.insights.coinStackFor(500))
+    }
+
+    @Test
     fun theListHasNoDuplicatesAndAtMostFiveGoals() {
         var goals = emptyList<Goal>()
         goals = goals.added(Goal(GoalKind.YEAR, "2005")).added(Goal(GoalKind.YEAR, "2005"))

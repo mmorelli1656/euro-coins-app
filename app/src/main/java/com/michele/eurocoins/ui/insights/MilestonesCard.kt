@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -19,10 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,6 +27,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -44,10 +44,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.BadgeTarget
 import com.michele.eurocoins.data.CollectionStats
@@ -59,6 +59,7 @@ import com.michele.eurocoins.data.MAX_GOALS
 import com.michele.eurocoins.data.Progress
 import com.michele.eurocoins.data.StatsCard
 import com.michele.eurocoins.data.goalOptions
+import com.michele.eurocoins.data.flagEmojiForCountry
 import com.michele.eurocoins.data.suggestedGoal
 
 /** Gli obiettivi personali visti dalla card: le righe di oggi e cosa fare quando si aggiunge o si toglie (vuoti da Free). */
@@ -188,61 +189,54 @@ internal fun ProgressRing(progress: Progress, done: Boolean = false) {
 private fun GoalKind.title(): String = when (this) {
     GoalKind.COUNTRY -> "Country"
     GoalKind.YEAR -> "Year"
-    GoalKind.SERIES -> "Regular series"
-    GoalKind.COINS -> "Number of coins"
-}
-
-private fun GoalKind.icon(): ImageVector = when (this) {
-    GoalKind.COUNTRY -> Icons.Outlined.Flag
-    GoalKind.YEAR -> Icons.Outlined.CalendarMonth
-    GoalKind.SERIES -> Icons.Outlined.Extension
-    GoalKind.COINS -> Icons.Outlined.Savings
+    GoalKind.SERIES -> "Series"
+    GoalKind.COINS -> "Coins"
 }
 
 /**
- * "New milestone": due passi dentro un pannello dal basso, il tipo e poi la scelta. Niente testo da scrivere: ogni elenco contiene solo
- * ciò che si può ancora completare, dal più vicino, con l'avanzamento accanto; quello che c'è già è spento ("Already added").
+ * "New milestone" (2026-11-01, mockup approvato in due giri): UN solo pannello dal basso. In cima lo stesso selettore a segmenti di
+ * Progress (Country, Year, Series, Coins), sotto l'elenco di quel tipo: niente secondo passo e quindi niente "Back" (c'era, in alto
+ * a sinistra, il punto più lontano dal pollice, e il gesto indietro di sistema chiudeva tutto). Niente testo da scrivere: ogni elenco
+ * contiene solo ciò che si può ancora completare, dal più vicino, con l'avanzamento accanto; quello che c'è già è spento.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: () -> Unit) {
-    var kindName by rememberSaveable { mutableStateOf<String?>(null) }
-    val kind = kindName?.let { name -> GoalKind.entries.firstOrNull { it.name == name } }
+    var kindName by rememberSaveable { mutableStateOf(GoalKind.COUNTRY.name) }
+    val kind = GoalKind.entries.firstOrNull { it.name == kindName } ?: GoalKind.COUNTRY
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.background,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp).navigationBarsPadding().heightIn(max = 560.dp)) {
-            if (kind != null) {
-                Text(
-                    text = "Back",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { kindName = null }.padding(vertical = 8.dp, horizontal = 4.dp),
-                )
-            }
+        Column(modifier = Modifier.padding(horizontal = 20.dp).navigationBarsPadding()) {
             Text(
-                text = kind?.title() ?: "New milestone",
+                text = "New milestone",
                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Default),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Hint(
-                if (kind == null) "What do you want to reach?" else "Only what you can still complete.",
-                Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 8.dp),
-            )
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                if (kind == null) {
-                    GoalKind.entries.forEach { k -> KindRow(k) { kindName = k.name } }
-                } else {
-                    val options = goalOptions(kind, stats, ui.goals)
-                    if (options.isEmpty()) Hint("Nothing left here to complete.", Modifier.padding(vertical = 16.dp))
-                    options.forEach { option ->
-                        OptionRow(option) {
-                            ui.onAdd(Goal(kind, option.key))
-                            onDismiss()
-                        }
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                GoalKind.entries.forEachIndexed { index, k ->
+                    SegmentedButton(
+                        selected = k == kind,
+                        onClick = { kindName = k.name },
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = GoalKind.entries.size),
+                        // Nessuna spunta: sposterebbe l'etichetta (come negli altri selettori dell'app).
+                        icon = {},
+                        label = { Text(k.title(), maxLines = 1) },
+                    )
+                }
+            }
+            Hint("Only what you can still complete.", Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp))
+            // Altezza minima: cambiando tipo il pannello non deve ridimensionarsi (gli elenchi hanno lunghezze diverse).
+            Column(modifier = Modifier.heightIn(min = 320.dp, max = 460.dp).verticalScroll(rememberScrollState())) {
+                val options = goalOptions(kind, stats, ui.goals)
+                if (options.isEmpty()) Hint("Nothing left here to complete.", Modifier.padding(vertical = 16.dp))
+                options.forEach { option ->
+                    OptionRow(kind, option) {
+                        ui.onAdd(Goal(kind, option.key))
+                        onDismiss()
                     }
                 }
                 Box(modifier = Modifier.padding(bottom = 16.dp))
@@ -251,29 +245,29 @@ private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: ()
     }
 }
 
+/**
+ * Una scelta. Davanti al nome: la bandiera per paesi e serie (come in Progress), la pila di monete per i numeri (la stessa delle
+ * medaglie "100 / 250 / 500 coins", che cresce con l'obiettivo); gli ANNI restano solo il numero, che è già il suo simbolo (e
+ * nemmeno le emissioni comuni hanno un segno: nell'elenco non c'è nessuna scritta, e il tocco su un anno le conta insieme).
+ */
 @Composable
-private fun KindRow(kind: GoalKind, onTap: () -> Unit) {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onTap).padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(kind.icon(), contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-        Text(kind.title(), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun OptionRow(option: GoalOption, onTap: () -> Unit) {
+private fun OptionRow(kind: GoalKind, option: GoalOption, onTap: () -> Unit) {
     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
     val alpha = if (option.taken) 0.45f else 1f
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = !option.taken, onClick = onTap).padding(vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().clickable(enabled = !option.taken, onClick = onTap).padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        when {
+            option.paese != null -> Text(flagEmojiForCountry(option.paese), fontSize = 22.sp, modifier = Modifier.width(30.dp), textAlign = TextAlign.Center)
+            kind == GoalKind.COINS -> {
+                val tint = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
+                Box(modifier = Modifier.width(30.dp), contentAlignment = Alignment.Center) {
+                    Canvas(modifier = Modifier.size(26.dp)) { drawBadgeArt(coinStackFor(option.key.toIntOrNull() ?: 0), tint) }
+                }
+            }
+        }
         Text(
             option.label,
             style = MaterialTheme.typography.bodyLarge,
@@ -286,4 +280,11 @@ private fun OptionRow(option: GoalOption, onTap: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
         )
     }
+}
+
+/** La pila di monete di un obiettivo: una colonna fino a 249, due fino a 499, tre da 500 (le stesse soglie delle medaglie). */
+internal fun coinStackFor(target: Int): BadgeArt = when {
+    target >= 500 -> BadgeArt.STACK_500
+    target >= 250 -> BadgeArt.STACK_250
+    else -> BadgeArt.STACK_100
 }

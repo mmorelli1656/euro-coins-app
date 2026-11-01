@@ -31,7 +31,14 @@ const val MAX_GOALS = 5
 data class GoalRow(val goal: Goal, val label: String, val progress: Progress, val done: Boolean, val go: BadgeTarget?)
 
 /** Una scelta del pannello "New milestone": [taken] = c'è già (si mostra spenta). */
-data class GoalOption(val key: String, val label: String, val progress: Progress, val taken: Boolean)
+data class GoalOption(
+    val key: String,
+    val label: String,
+    val progress: Progress,
+    val taken: Boolean,
+    /** Il paese stabile, per la bandiera davanti al nome (paesi e serie); `null` per anni e numeri di monete. */
+    val paese: String? = null,
+)
 
 /** Aggiunge [goal] se non c'è già e se non si è al massimo; altrimenti restituisce la stessa lista. */
 fun List<Goal>.added(goal: Goal): List<Goal> =
@@ -91,17 +98,17 @@ private fun jointOnly(stats: CollectionStats, year: Int): Boolean {
  */
 fun goalOptions(kind: GoalKind, stats: CollectionStats, existing: List<Goal>): List<GoalOption> {
     val taken = existing.filter { it.kind == kind }.map { it.key }.toSet()
-    fun option(key: String, label: String, progress: Progress) = GoalOption(key, label, progress, key in taken)
+    fun option(key: String, label: String, progress: Progress, paese: String? = null) = GoalOption(key, label, progress, key in taken, paese)
     return when (kind) {
         GoalKind.COUNTRY -> stats.commemorativeCountries.filter { !it.progress.isComplete() }
             .sortedWith(compareBy({ -it.progress.fraction }, { it.name }))
-            .map { option(it.paese, it.name, it.progress) }
+            .map { option(it.paese, it.name, it.progress, paese = it.paese) }
         GoalKind.YEAR -> stats.years.filter { !it.progress.isComplete() }
             .sortedWith(compareBy({ -it.progress.fraction }, { -it.anno }))
             .map { option(it.anno.toString(), it.anno.toString(), it.progress) }
         GoalKind.SERIES -> stats.seriesStats.filter { !it.progress.isComplete() }
             .sortedWith(compareBy({ -it.progress.fraction }, { it.label }))
-            .map { option(it.key, it.label, it.progress) }
+            .map { option(it.key, it.label, it.progress, paese = it.paese) }
         GoalKind.COINS -> {
             val owned = stats.commemorative.owned
             val total = stats.commemorative.total
