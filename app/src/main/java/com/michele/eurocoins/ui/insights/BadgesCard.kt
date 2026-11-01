@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.MilitaryTech
 import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -112,7 +113,7 @@ internal fun BadgesCard(badges: List<Badge>, onGo: (BadgeTarget) -> Unit) {
     var selectedName by rememberSaveable { mutableStateOf<String?>(null) }
     var open by rememberSaveable { mutableStateOf(false) }
     val selected = badges.firstOrNull { it.id.name == selectedName }
-    StatCard("Badges") {
+    StatCard("Badges", Icons.Outlined.MilitaryTech) {
         Hint("${badges.count { it.earned }} of ${badges.size} earned. Tap one to see how.", Modifier.padding(top = 2.dp))
         BadgeGrid(
             badges = badges,

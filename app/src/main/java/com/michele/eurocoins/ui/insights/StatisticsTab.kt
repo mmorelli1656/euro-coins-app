@@ -25,7 +25,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Flare
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -49,6 +54,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -152,11 +158,25 @@ internal fun CardBody(content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = modifier.clearAndSetSemantics {}, content = content)
 }
 
-/** Una card della scheda: titolo sempre nitido e corpo che da Free si sfoca ([CardBody]). */
+/**
+ * Una card della scheda: titolo sempre nitido e corpo che da Free si sfoca ([CardBody]). Davanti al titolo un simbolo a tratto
+ * sottile in verdigris (2026-11-01, variante A dopo mockup; scartata la B, icona in un quadrato tinto: sei elementi colorati in più
+ * sulla pagina): serve a riconoscere le card scorrendo e dà il tono "gioco". Resta nitido anche da Free, come il titolo.
+ */
 @Composable
-internal fun StatCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun StatCard(title: String, icon: ImageVector? = null, content: @Composable ColumnScope.() -> Unit) {
     DetailCard {
-        InsightsTitle(title)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 10.dp).size(24.dp),
+                )
+            }
+            InsightsTitle(title)
+        }
         CardBody(content)
     }
 }
@@ -251,7 +271,7 @@ internal fun Hint(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 private fun YourCollectionCard(stats: CollectionStats, onCommemorativeOwned: () -> Unit, onRegularOwned: () -> Unit) {
-    StatCard("Your collection") {
+    StatCard("Your collection", Icons.Outlined.Inventory2) {
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text(
                 text = stats.total.owned.toString(),
@@ -365,21 +385,24 @@ private fun ProgressCard(
     val isValues = regular && byOther
     val shown = if (showAll || isValues) sorted else sorted.take(PROGRESS_SHOWN)
 
-    StatCard("Progress") {
+    StatCard("Progress", Icons.Outlined.TrendingUp) {
         Hint("The closest to complete first. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
-        // Chip e selettore hanno la stessa larghezza (due metà uguali), così i bordi sono allineati.
-        Row(modifier = Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
+        // Due selettori IDENTICI (2026-11-01, il proprietario non voleva chip da una parte e segmenti dall'altra): stesso componente,
+        // stessa forma, stessa larghezza. Il primo sceglie il catalogo, il secondo l'asse.
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+            SegmentedButton(
                 selected = !regular,
                 onClick = { regular = false; showAll = false },
-                label = { Text("Commemorative", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                modifier = Modifier.weight(1f),
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                icon = {},
+                label = { Text("Commemorative", maxLines = 1) },
             )
-            FilterChip(
+            SegmentedButton(
                 selected = regular,
                 onClick = { regular = true; showAll = false },
-                label = { Text("Regular Issues", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) },
-                modifier = Modifier.weight(1f),
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                icon = {},
+                label = { Text("Regular Issues", maxLines = 1) },
             )
         }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
@@ -495,7 +518,7 @@ private fun MilestonesCard(
             is MilestoneTarget.RegularCountry -> onRegularSeries(target.paese, target.seriesNumber)
         }
     }
-    StatCard("Milestones") {
+    StatCard("Milestones", Icons.Outlined.Flag) {
         Hint("Complete sets, and the next one within reach.", Modifier.padding(top = 4.dp, bottom = 4.dp))
         MilestoneRow("Commemorative countries complete", m.countries, m.nextCountry, open)
         MilestoneRow("Commemorative years complete", m.years, m.nextYear, open)
@@ -556,7 +579,7 @@ private fun MilestoneRow(label: String, progress: Progress, next: MilestoneNext?
  */
 @Composable
 private fun FinishCard(f: FinishCounts, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
-    StatCard("Shine") {
+    StatCard("Shine", Icons.Outlined.Flare) {
         Hint("Your commemorative coins by finish. Tap one to see them.", Modifier.padding(top = 4.dp))
         Column(modifier = Modifier.padding(top = 6.dp)) {
             FinishRow(CoinQuality.STANDARD, f.standard, ownedCoins, onFinish)
@@ -604,7 +627,7 @@ internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, 
 
 @Composable
 private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
-    StatCard("Money") {
+    StatCard("Expenses", Icons.Outlined.Receipt) {
         Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
             Hint(
