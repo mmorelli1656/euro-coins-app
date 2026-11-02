@@ -84,6 +84,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImagePainter
@@ -620,6 +623,10 @@ private fun MintLetterMatrix(
             )
         }
     }
+    // La griglia resta a font NORMALE (2026-11-02): ha colonne a larghezza fissa e con il font al 130% "2002" andava a capo ("200" / "2") e
+    // i numeri si tagliavano ("367.9 N"). Il selettore sopra e la legenda sotto continuano a seguire il font.
+    val gridDensity = LocalDensity.current.let { Density(it.density, fontScale = 1f) }
+    CompositionLocalProvider(LocalDensity provides gridDensity) {
     MatrixLine(
         modifier = Modifier.padding(bottom = 2.dp),
         verticalPadding = 4.dp,
@@ -647,6 +654,7 @@ private fun MintLetterMatrix(
             )
             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
         }
+    }
     }
     // Legenda: la lettera è sulla moneta, la città no.
     Text(
