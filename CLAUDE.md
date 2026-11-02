@@ -549,6 +549,271 @@ della sezione Collection), con 220 dp di spazio in fondo per la scheda del passo
   chiaro, font ingrandito, utente non collegato (la card account mostra l'invito invece dell'email), Skip e il tasto
   indietro a metà percorso.
 
+### Insights (ramo `insights-euro`, 2026-10-25, NON unito a `main`)
+
+Pagina raggiunta dall'icona grafico accanto all'ingranaggio della Home (`ROUTE_INSIGHTS`, `ui/insights/`), con **tre
+schede a segmenti** (stessa grammatica di Years / Countries / All): **History** (si apre per prima: la storia, gli stati
+per accordo, la mappa del 2007), **Coins** (di che metalli sono fatte le monete) e **Statistics** (Pro, lucchetto
+sull'etichetta da Free). Divisione scelta con il proprietario il 2026-10-25: la pagina era arrivata a più di quattro
+schermate con due argomenti scollegati, la storia (da leggere) e i materiali (da toccare); il selettore sta fermo in alto
+mentre si scorre, ogni scheda ha le sue fonti e riparte dall'alto. **Statistics** (Pro, `StatisticsTab.kt`, conti
+puri in `data/CollectionStats.kt` con `CollectionStatsTest`, `InsightsViewModel`): una sola scheda e non Collection e
+Spending separate, per non avere quattro segmenti. Pagina unica con segmenti e non una voce a parte (con lo scorrimento
+unico il lucchetto sarebbe finito a metà pagina). Non ancora fatto: aprire da Pro sull'ultima scheda vista (ora si apre
+sempre su History). Il nome "Insights" è provvisorio (questione di secondo ordine).
+
+**Contenuto di Statistics** (deciso con il proprietario il 2026-10-25 dopo due giri di mockup), in quest'ordine: **Your
+collection** (totale e le due barre: 93 / 613 e 195 / 328 = 288 / 941, gli stessi conti della Home), **By country** (un
+elenco, non la mappa a tessere, "non mi fa impazzire": bandiera, nome, barra, "x / y · n missing"; chip
+Commemorative / Regular Issues; ordine "Closest to complete" (completi in fondo) o A to Z; 6 paesi e "Show all"; il tocco
+apre la lista del paese già su Missing, o la schermata Regular del paese), **Milestones** (paesi, anni, serie Regular e
+emissioni comuni completi), **By year** (completamento commemorative 2004-2026), **By finish** (Standard / BU / Proof, una
+moneta con più finiture conta in ciascuna) e **Spending** (solo se almeno una voce ha un prezzo; "Based on N of M items with a
+price"; spesa per anno solo con prezzo e data). **Free o Pro: tutta la scheda è Pro**, con un'anteprima sfocata di "Your
+collection" e l'invito (il blur c'è da Android 12; sotto resta attenuata). Scartate: **Added over time** (le monete si
+registrano a gruppi, grafico a scalini), la mappa a tessere, il valore di mercato (nessuna fonte, sfiora il consiglio
+finanziario) e la classifica di rarità dalle tirature (7 paesi hanno un contingente, non una tiratura). La spesa conta anche
+le voci di monete nascoste (microstati): i soldi sono spesi comunque; i progressi no. `CoinListViewModel(startMissing)` e la
+rotta `coins/{kind}/{value}?missing=true` servono al tocco su un paese. **Provata sul telefono (2026-10-25)**: numeri uguali
+alla Home, il tocco su Italia apre la lista su Missing (3 monete), il chip Regular e il tocco su Spagna aprono la serie.
+**Rifiniture del 2026-10-25** (mockup approvato): (1) nelle due righe di Your collection **conteggio e percentuale pesano
+uguale**, "93 / 613 · 15.2%" con il puntino come nel totale (prima solo il conteggio, in piccolo); (2) **Spending ha
+"Most expensive"** (`SpendingPodium.kt`, `SpendingStats.ranking`, `SpentItem`): con **almeno tre voci con prezzo** un podio a
+tre gradini 2° · 1° · 3° con la foto del lato nazionale di ciascuna (miniature degli elenchi: stessa nitidezza, anello e
+segnaposto), prezzo sul gradino; sotto "See all N" apre un pannello di sola lettura con **TUTTE** le voci con prezzo, dalla
+più cara (rango, foto, "Paese · anno" o "Paese · taglio · anno", finitura e data, prezzo). Con una o due voci solo le righe,
+niente podio né pulsante. **Si classificano le voci** (finitura, annata, zecca), non le monete: la stessa moneta in BU a 35 € e
+Standard a 5 € sono due righe. Altezze dei gradini fisse (non proporzionali al prezzo: con 35 € e 10 € il terzo si
+schiaccerebbe), tinte del primario (1° pieno, gli altri più trasparenti) e niente oro/argento/bronzo (il bronzo vale
+"attenzione"). I microstati nascosti restano in classifica ma senza foto. Podio e pannello **provati sul telefono con una
+build temporanea che duplicava le 2 voci reali** (la collezione vera ha solo 2 prezzi su 298); non verificati tema chiaro (il
+testo bianco sui gradini più trasparenti potrebbe avere poco contrasto) e font ingrandito. Il tocco su una riga del pannello
+NON apre la moneta (proposto, non chiesto). Da rivedere con lo stesso metodo le altre card, una per volta.
+**Tocco sulle voci e prove (2026-10-25, richiesta del proprietario)**: ogni gradino del podio e ogni riga del pannello apre il
+dettaglio della moneta, **a pagina sola** (`CoinPagerSession.openSingle()`, `RegularPagerSession.open(una riga)`: niente
+contatore, nessuna lista di provenienza da cui scorrere). `SpentItem.target` (`SpentTarget`): commemorativa = `Coin.id`; Regular =
+la serie GUARDATA che contiene l'anno (`viewedDenomination`), non quella di origine, perché un taglio invariato compare in più
+serie e ogni annata cade nella finestra di una sola (5 cent francese 2023: salvato con la serie 1, si apre la serie 2; senza
+anno resta la serie della voce). Senza destinazione (microstato nascosto) la riga non è cliccabile. Il pannello **non si chiude**
+al tocco: al ritorno dal dettaglio si ritrova aperto sulla stessa lista (lo stato `sheetOpen` è `rememberSaveable`). Provato
+sul telefono con una build temporanea che aggiungeva voci finte (anche una Regular): Belgio 2006 e "France · Series 2" si aprono
+giusti. **Provati anche**: font di sistema a 130% (corretti: il numero del terzo gradino si tagliava, ora i gradini crescono con
+`fontScale`; i due riquadri Total/Average hanno la stessa altezza con `IntrinsicSize.Min`), tema chiaro (terzo gradino più scuro,
+alpha .8, e alto 46 dp: il testo bianco aveva poco contrasto), "Show all 24 countries" (ok), tocco su Italia/Spagna (ok).
+**Anteprima da Free corretta (2026-10-25, variante A dopo mockup)**: l'invito ("Statistics is part of Pro", `LockedPreview`)
+era sovrapposto alla card sfocata di "Your collection" e, più alto di lei, la copriva quasi tutta: restavano solo i bordi
+sfumati. Ora la card sfocata (blur 4 dp, alpha .6) sta intera in alto e l'invito è un blocco SEPARATO sotto, centrato, con
+la frase completa e "Go Pro". Scartata la B (invito compatto sulla metà bassa): copriva proprio le due barre per catalogo e col
+font grande sarebbe tornato a coprire tutto. Verificato sul telefono, tema scuro e chiaro (spegnendo "Simulate Pro"); non con il
+font ingrandito.
+**Da Free: la pagina VERA, sfocata, con l'invito fermo al centro (2026-10-25, su idea del proprietario; sostituisce la pila di
+tre card sotto l'invito, "sembra vuoto", e prima ancora la sola prima card)**: `StatisticsLocked` mostra le stesse sei card del Pro
+(`StatisticsCards`, un solo elenco per i due casi) dentro una colonna che scorre, e sopra di essa `InviteCard` compatta
+("Statistics is part of Pro" / "Progress, milestones and spending. No ads." / "Go Pro") centrata nell'area della scheda e ferma
+mentre la pagina scorre sotto; i titoli passano dietro la card, come in ogni paywall. **Titolo nitido e corpo sfocato**: ogni
+card è uno `StatCard(titolo) { corpo }`, il corpo è un `CardBody` che da Free (`LocalLockedStats`) si sfoca a **12 dp**
+(`LockedBlur`) con alpha .85 e `clearAndSetSemantics`; il titolo sta fuori e resta leggibile. **La sfocatura è un requisito,
+"davvero importante, non si deve leggere nulla"**: a 4 dp il "288" e le percentuali si intuivano ancora; sfocare l'intera card
+nascondeva anche i titoli, per questo il blur sta sul corpo e non sulla card. **Tocchi spenti**: callback vuote e "See all"
+disattivato (`MostExpensive` legge `LocalLockedStats`), altrimenti si aprirebbe la classifica leggibile. **Sotto Android 12** il blur
+non esiste: il corpo non si disegna e resta un riquadro spento (i numeri veri non si leggono mai). Verificato sul telefono in
+tema scuro, tutte le sei card, tocco su una riga che non fa nulla, da Pro la scheda è invariata; NON verificati tema chiaro, font
+ingrandito (la card dell'invito potrebbe coprire molto), Android sotto 12 (nessun dispositivo) e le prestazioni su telefoni lenti
+(blur su sei card).
+
+**Card "Progress" al posto di By country e By year (2026-11-01, mockup cliccabile approvato)**: una sola card con titolo
+"Progress" e riga "The closest to complete first. Tap one to see what's missing.", due chip per il catalogo (Commemorative /
+Regular Issues) e un selettore dell'asse **Country | Year** per le commemorative e **Country | Value** per le Regular Issues
+(il secondo segmento cambia nome con il catalogo; chip e selettore hanno la stessa larghezza, due metà uguali, bordi allineati:
+prima i chip erano più stretti e "non centrati"). **Sempre dalle più vicine al completamento** (frazione più alta, complete in
+fondo, a pari avanzamento l'anno più recente, poi il nome): niente chip di ordinamento (scelta del proprietario), 6 righe e "Show all N
+countries/years" per le liste lunghe; i tagli sono 8 e stanno tutti. Righe: bandiera per i paesi, niente per gli anni, la moneta
+disegnata in scala per i tagli (`DenominationCoin`). **Perché Value e non Year per le Regular**: una riga è un taglio di una
+serie e una serie copre anni diversi, quindi un anno non esiste (come nel catalogo Regular, dove al posto di Years c'è Values);
+Year forzato avrebbe richiesto un anno di inizio serie e il tocco non avrebbe aperto una lista coerente. **Anni con emissione
+comune**: due righe, quella dei singoli paesi e quella con la pillola COMMON ISSUE, come la griglia Years di Browse
+(`YearStat.joint`, `CollectionStats.yearRows`; `years` aggregato resta per i traguardi). `CollectionStats.values`
+(`ValueStat`) = `denominationRows()` per taglio, 41 righe ciascuno, gli stessi totali della Home. **Tocco**: paese commemorativo →
+lista del paese su Missing (come prima); paese Regular → schermata del paese; anno → `coins/year/<anno>?missing=true` (o
+`year-common`); taglio → `regular-denominations/<taglio>?missing=true` (`RegularDenominationListViewModel(startMissing)`,
+nuovo). La card "By year" a grafico è tolta (le righe la sostituiscono). **Non fatto**: By finish dentro Your collection e
+la revisione di Milestones (restano card a sé). **Verificato sul telefono (tema scuro)**: chip e selettore allineati, righe
+Year con la pillola COMMON ISSUE, righe Value con le monete in scala, e i tre tocchi nuovi (anno 2005 → lista su Missing con 2
+monete; taglio 20 cent → elenco dei paesi su Missing; "2007 · Common issue" → 7 monete, come dice la riga). Non provati: tema chiaro,
+font ingrandito, la vista Free (la card si sfoca come le altre) e "Show all" in Year.
+
+**Regola per tutta la scheda Statistics (2026-11-01, richiesta del proprietario)**: **ogni card deve avere qualcosa di cliccabile,
+nessuna è fine a sé stessa**. Progress, Spending, By finish, Milestones e Your collection lo sono.
+
+**Your collection cliccabile (2026-11-01, variante A dopo mockup)**: la riga di ogni catalogo (`CatalogRow`) ha un chevron dopo
+la percentuale e apre ciò che si possiede, già su Owned: le commemorative nella scheda All (`coins/all/all?owned=true`,
+`CoinListViewModel.startOwned`), le Regular nella scheda All di Regular Issues (`regular-issues?owned=true`,
+`RegularIssuesViewModel.startOwned`: scheda ALL e `allOwnership` OWNED). Con niente di posseduto la riga non si tocca e la
+freccia manca (lo spazio resta, i numeri non si spostano). Progress apre su Missing, questa su Owned: le due card si completano.
+Scartata la B (riga "View owned" sotto ogni catalogo: +2 righe e un invito che le altre card non hanno). **Verificato sul
+telefono (tema scuro)**: Commemorative apre "93 coins found" tutte con la matita, Regular la scheda All con tutte le righe
+possedute, e il FILTER ha il pallino; indietro riporta a Statistics. Non provati: tema chiaro, font ingrandito, vista Free.
+
+**Badges (2026-11-01, mockup cliccabile approvato, `data/Badges.kt` + `ui/insights/BadgesCard.kt`)**: card dopo Milestones.
+**Sedici medaglie DERIVATE dalla collezione ogni volta, mai salvate** (niente backup, niente migrazioni, non si perdono
+ripristinando; `badgesOf`, `BadgesTest`). Dodici "badge" tonde con progresso (First coin, 100/250/500 coins, First BU, First
+Proof, Common issue, First country, 5 countries, First series, 10 series, Five mints) e quattro "Just for fun" a QUADRATO MORBIDO
+(il cerchio dice "soglia", il quadrato "battuta"): **Big spender** (€100 spesi), **Triple threat** (la stessa
+moneta in Standard, BU e Proof), **Pocket change** (una moneta registrata al valore facciale o meno, come una 2 euro trovata nel resto: €2.00 le
+commemorative, il taglio per le Regular, `faceValueCents`; ex "Lucky find", rinominata perché nome, icona a coriandoli e "face
+value" non dicevano cosa fare: ora portafoglio e "Price it at €2.00 or less"), **Letter hunter** (tutta la serie EFS: gli otto tagli della Grecia 2002 con la lettera nella stella, progresso x / 8 con "Still to find: 1 cent, 1 euro."; ex "Letter spotter" che bastava una moneta sola; simbolo la scritta "EFS" nel quadrato, come i numeri delle soglie). **Soglie delle monete (2026-11-01, mockup approvato "molto meglio")**: First coin conta ogni moneta, ma 100 / 250 / 500 contano
+SOLO le commemorative (613 oggi; 50 era troppo basso per chi ne ha già 93) e mostrano il NUMERO dentro la medaglia al posto di tre
+icone scollegate (salvadanaio, livelli, medaglia): una scala sola. Le Regular restano fuori dalle soglie (un equivalente, per
+esempio 100 e 250 righe su 328, sarebbe 18 medaglie: non chiesto). Scartata la Scartata la **Shopping spree** (cinque monete con
+la stessa data) su giudizio del proprietario. Conquistata = cerchio pieno `primary`; da fare = bordo tratteggiato e il progresso
+sotto ("37 / 40": per le "prime" la barra segue il candidato più vicino, non un vuoto 0 / 1; per i soldi la percentuale). Il tocco
+apre SOTTO la griglia (non un pannello) il perché, e se non conquistata barra, progresso, riga "X is the closest: 3 to go" e un
+tasto verso ciò che manca (stesse destinazioni di Milestones e di "Most expensive", risolte in `EuroCoinsNavHost`; nessun tasto per
+BU, Proof, Big spender e Pocket change: non c'è niente da aprire). **Sempre tutte e sedici** (2026-11-01, correzione del proprietario):
+la prima versione nascondeva le medaglie che dipendono da dati facoltativi (prezzi → Big spender e Pocket change; una lettera di
+zecca → Five mints) finché non erano usati, per non mostrare un traguardo bloccato per sempre; sul telefono il contatore diceva
+"15" e il proprietario ne ha contate 15 su 16: nasconderle toglieva anche la scoperta della funzione. Ora restano visibili con una
+nota che dice come arrivarci ("Add prices to your coins to get started.", "Record the mint of your German coins to get started.";
+Five mints senza dati apre le commemorative tedesche). **Il filetto "Just for fun" è tolto**: una griglia sola, le quattro
+chiudono l'ultima riga e la forma (quadrato morbido) basta a distinguerle. Da Free la card si sfoca come le altre. **Verificato
+sul telefono (tema scuro, dati veri)**: cerchi pieni e tratteggiati, quadrati morbidi, tocco su "First country" (barra 37 / 40,
+"Italy is the closest: 3 to go") e il tasto che apre le 3 monete italiane mancanti; dopo la correzione le sedici medaglie
+con Five mints ("0 / 5", "Show the German coins" apre "16 coins found" su Missing). Con le soglie nuove: numeri "100", "250", "500" dentro i cerchi e "93 / 100" sotto, Pocket change con il portafoglio e il suo testo ("5 of 16 earned").
+Non provato il font ingrandito sui numeri nel cerchio da 52 dp. Una riga tutta conquistata non riserva la
+riga vuota del progresso (gli spazi si allargavano). Non provati: tema chiaro, font ingrandito, vista Free, il tasto delle altre
+medaglie. **Non fatto**: medaglie nascoste/segrete, notifiche al conseguimento, un posto
+fuori da Statistics dove mostrarle (idea: nella Home accanto al contatore), "Customize" per nascondere le card (parere dato:
+nascondere sì, riordinare no, da fare con il numero di card definitivo).
+
+**Testo della card Pro (2026-11-01)**: da "No ads · German mints" a **"No ads · Statistics · Mints"** (il Pro ora sblocca anche la scheda Statistics di Insights, e la card non lo diceva): è il testo accanto alla pillola del prezzo, quindi corto e su UNA riga. **La prima versione "Statistics · German mints · No ads" (33 caratteri) si TRONCAVA sul telefono e perdeva proprio "No ads", la promessa principale**: ora 27 caratteri, "German mints" accorciato in "Mints" (il resto dell'app lo nomina ancora "German mints"), visibile per intero a 375 dp con il font normale. **Non provato con il font ingrandito**: lì potrebbe troncarsi; se capita, accorciare ancora (per esempio "No ads · Statistics"). Prima di un nuovo .aab restano un `versionCode` più alto di 2 e niente `-PallowTestAds`.
+
+**Titoli delle card (2026-11-01)**: "By finish" → **Shine** (scelta del proprietario tra Shine, Finishes e Polish: BU e Proof sono le finiture lucide) e "Spending" → **Money**. "Splurge" era la proposta ma il proprietario ha notato che è slang poco comprensibile a chi sa poco inglese: **per i testi usare parole semplici**, niente slang né giochi di parole che richiedano un buon inglese. I nomi interni nel codice (FinishCard, SpendingCard) non sono cambiati.
+
+**Milestones con anelli e sottotesti accorciati (2026-11-01, variante A dopo mockup)**: ogni traguardo è UNA riga toccabile, un anello di avanzamento con il numero di set completi a sinistra, il nome con "x / y" e sotto "Closest Italy · 3 to go" (o "All done", senza tocco), freccia a destra; prima erano una barra più una riga tinta (due blocchi per traguardo, barre quasi vuote che sembravano fredde). I nomi sono Countries, Years, Regular series, Common issues. **Sottotesti sotto i titoli accorciati su richiesta** ("Closest first. Tap one to see what's missing.", "Commemorative coins by finish. Tap to see them.", "Based on 2 of 298 items with a price.", "Your collection in numbers. No ads." nell'invito al Pro) e quello di Milestones tolto: le righe si spiegano da sole.
+
+**Milestones = OBIETTIVI PERSONALI scelti dall'utente (2026-11-01, mockup cliccabile dopo tre giri; `data/Goals.kt`, `GoalStore`, `MilestonesCard.kt`, `GoalsTest`)**: i quattro traguardi fissi ("0 / 24 paesi", a zero per quasi tutti, nessun dopo, doppioni di Progress e delle medaglie) sono TOLTI (i `Milestones` di `CollectionStats` restano perché le medaglie li usano). Ora la card ha una riga per obiettivo (anello, nome, "x / y · N to go" o "Done · well played", freccia verso ciò che manca, X per toglierlo), la pillola "New milestone" in fondo e, a card vuota, un invito con il suggerimento più vicino. **Quattro tipi**: paese, anno, serie Regular, numero di monete (solo commemorative). **L'utente non scrive mai niente** (il proprietario temeva "cose stupide e potenzialmente dannose"): si sceglie da elenchi chiusi generati dal catalogo che offrono SOLO ciò che si può ancora completare, dal più vicino (come Progress), con "Already added" sul già presente; i numeri di monete partono sopra quelli posseduti (scala di 25 in 25, al massimo sei valori) e si fermano al catalogo. **Niente soldi né scadenze**, di proposito (spingerebbero a spendere o metterebbero fretta). Al massimo 5 attivi ("Up to 5 at a time"). **Un obiettivo raggiunto resta raggiunto per sempre** (`Goal.doneAt` = giorno, segnato dal `InsightsViewModel` una volta sola): se il catalogo cresce o si tolgono monete non si riapre; un bersaglio che non c'è più nel catalogo mostrato (paese nascosto) non si disegna ma resta salvato. Chiave NATURALE (paese stabile, anno, `RegularIssueSeries.stableKey`, numero), mai un id. Salvati in SharedPreferences `goals`. **Backup su Drive, formato v6 (2026-11-01)**: gli obiettivi viaggiano nel backup (`BackupFile.goals`, `BackupGoal`: tipo come stringa e chiave naturale, un tipo sconosciuto si salta). **La versione 6 si scrive SOLO se c'è almeno un obiettivo** (`versionFor(hasMints, hasGoals)`: 6 con obiettivi, 5 con sole zecche, 4 altrimenti), come le zecche: chi non li usa non obbliga un secondo telefono ad aggiornare; un'app più vecchia rifiuta il v6 come "più nuovo". **Il ripristino sostituisce gli obiettivi SOLO se il file è v6** (`includesGoals`): un backup più vecchio non cancella quelli del telefono (come il v1 con le Regular). Gli obiettivi contano per lo stato "N changes not backed up" (aggiunto, tolto o raggiunto = una modifica; un'istantanea v5 o più vecchia li fa risultare "non salvati", mai "aggiornato" per dati che su Drive non ci sono), quindi il salvataggio automatico parte anche solo per loro. Un backup NON parte mai con la sola presenza di obiettivi (la collezione vuota resta vietata). Il dialog di ripristino NON elenca gli obiettivi (scelta: tenerlo com'è; il ripristino li sostituisce con quelli del file). Il Reset della collezione NON li tocca. `BackupGoalsTest`. **Non verificato con Drive vero** (serve l'account). **Pannello a schermata unica con bandiere e pile (2026-11-01, mockup approvato)**: il pannello "New milestone" non ha più due passi (tipo, poi scelta) né il testo "Back" (in alto a sinistra, il punto più lontano dal pollice, e il gesto indietro di sistema chiudeva tutto): in cima lo STESSO selettore a segmenti di Progress (Country, Year, Series, Coins), sotto l'elenco di quel tipo, con altezza minima fissa così cambiando tipo il pannello non si ridimensiona. Davanti al nome: la BANDIERA per paesi e serie (`GoalOption.paese`), la PILA DI MONETE per i numeri (le stesse delle medaglie, `coinStackFor`: una colonna fino a 249, due fino a 499, tre da 500), NIENTE per gli anni (il numero è già il suo simbolo; il cerchio di stelle per le emissioni comuni scartato dal proprietario, "c'è già la scritta"; e nell'elenco non c'è nessuna scritta "common issue", nel mockup l'avevo aggiunta io). Nelle righe della card nessuna icona: l'anello è già il simbolo. **Verificato sul telefono (tema scuro)**: quattro segmenti, bandiere allineate al nome in Country e Series, anni solo numero, pile in Coins; il pannello ha altezza FISSA (440 dp per l'elenco): con un minimo e basta il tipo Coins, di sei righe, restava più basso e il pannello saltava cambiando tipo. **Le pile di Coins crescono di una moneta a ogni riga** (da una a sei, `pileSize`, `drawCoinColumn`; verificato sul telefono): prima ogni riga prendeva la pila della medaglia più vicina e le sei scelte (100..225, sotto la soglia di 250) erano tutte uguali, il simbolo non diceva niente. **Verificato sul telefono (tema scuro, dati veri)**: card vuota con l'invito e il suggerimento "Complete Italy" (toccandolo diventa l'obiettivo e il suggerimento sparisce), il pannello a due passi con i quattro tipi, le liste dal più vicino (Germany 19 / 35, 2005 con 6 / 8, Spain Series 3 con 7 / 8), "Already added" sull'Italy, la scala 100, 125, 150… per le monete, il limite a cinque con la pillola spenta e "Up to 5 at a time. Remove one to add another.", il tocco su una riga (apre la Spagna sulla Series 3) e la X. Non provati: un obiettivo che si chiude davanti ai tuoi occhi, il tema chiaro, il font ingrandito, la vista Free.
+
+**Customize: mostrare, nascondere e RIORDINARE le card di Statistics (2026-11-01, mockup approvato, `StatsLayout`, `CustomizeSheet`)**: un'icona regolazioni (`Tune`) nella barra in alto a destra, solo sulla scheda Statistics e solo da Pro (da Free la pagina sfocata mostra sempre tutto, con l'ordine di fabbrica); nella barra e non accanto al selettore perché lì comparirebbe e sparirebbe cambiando la larghezza dei segmenti. Apre un pannello dal basso con una riga per card: maniglia a TRE LINEE (`Reorder`, scelta del proprietario al posto dei sei puntini) che si trascina, simbolo, nome, interruttore; "Reset" in alto a destra (parola del "Filter & sort", si spegne se non si è cambiato niente; "Show all" scartato perché col riordino non basta), "N hidden. Your data stays as it is." sotto. **Il riordino lo ha voluto il proprietario** ("abbastanza gratis" nel pannello): il mio parere era "nascondere sì, riordinare no" perché pensavo al trascinamento nella pagina; dentro un pannello con sei righe fisse costa poco. Your collection non si spegne mai. Salvato in SharedPreferences `settings` (`stats_layout`, `UserSettings.statsLayout`) come testo tollerante ("collection,progress,...;shine": nomi sconosciuti ignorati, card nuove accodate in fondo), NON nel backup. Il trascinamento passa solo dalla maniglia (il pannello si chiude dal bordo in alto) e ogni riga ha "Move up/Move down" per TalkBack. `StatsCard.title/icon` sono la fonte unica dei titoli delle card. `StatsLayoutTest`. **Dove sta il comando (2026-11-01, domanda del proprietario "abbiamo sempre cercato di mettere questo tipo di pulsanti a portata di dito")**: PRIMA un'icona `Tune` nella barra in alto a destra, il punto più lontano dal pollice; ORA una pillola a contorno "Customize" in FONDO alla pagina Statistics, centrata dopo l'ultima card (arrivati in fondo il pollice è già lì), e la barra in alto non ha più l'icona. Costo accettato: si scopre scorrendo, per un'impostazione che si fa una volta. Con tutte le card spente il pulsante è nel messaggio "No cards to show", quindi non se ne mostra un secondo. Verificato sul telefono. **Aggiornamento (2026-11-01, scelta del proprietario)**: ogni card si può spegnere, anche Your collection (il blocco era una difesa contro la pagina vuota ma l'icona nella barra resta sempre e Reset rimette tutto), e la scritta "N hidden. Your data stays as it is." è TOLTA (inutile: nessuno pensa che spegnere una card cancelli dati). Se si spengono tutte e sei la pagina mostra "No cards to show" con il pulsante "Customize" che riapre il pannello (l'ultimo interruttore NON si blocca: uno che non risponde confonde più di una pagina vuota). **Verificato sul telefono (tema scuro)**: l'icona in barra, il pannello con Your collection bloccata, il trascinamento dalla maniglia (anche verso l'alto, sul pannello aperto senza chiuderlo), Reset che rimette ordine e card, "1 hidden. Your data stays as it is.", la pagina che segue subito. Le maniglie sono le TRE BARRE di `Icons.Filled.Menu` (`Reorder` si leggeva come cinque righe fitte). Una volta l'ordine salvato è uscito mescolato dopo una sequenza trascinamento, Reset e interruttore, **non riproducibile**: sospetto la copia di lavoro del pannello, che si riallineava in modo asincrono al layout salvato con `LaunchedEffect` e con gesti rapidi poteva tornare a un valore vecchio; ora parte dal layout salvato e non si riallinea più (il pannello è l'unico a scrivere mentre è aperto). Se capita ancora, guardare `stats_layout` con `run-as`. Non provati: font ingrandito, tema chiaro, TalkBack e il riavvio dell'app con un layout personalizzato.
+
+**Titoli di card con simbolo (2026-11-01, variante A dopo mockup)**: davanti al titolo di ogni card di Statistics un'icona Material a tratto sottile in verdigris (24 dp, `StatCard(title, icon)`): Your collection `Inventory2`, Progress `TrendingUp`, Milestones `Flag`, Badges `MilitaryTech`, Shine `Flare`, Expenses `Receipt`. Scartata la B (icona in un quadrato tinto: sei elementi colorati in più). Solo Statistics, non History e Coins. "Money" → **Expenses** (il proprietario voleva "una roba tipo Expense"; plurale perché è la card delle spese). **Progress**: i due selettori (catalogo e asse) sono ora lo STESSO componente a segmenti, prima chip da una parte e segmenti dall'altra. Verificato sul telefono (tema scuro): icone davanti ai titoli, selettori di Progress identici, Shine ed Expenses. Non provati: font ingrandito, tema chiaro, vista Free.
+
+**Badges: dettaglio sotto la riga (2026-11-01)**: il dettaglio di una medaglia non sta più sotto tutta la griglia (quattro righe più in basso, spesso fuori schermo, con l'`animateContentSize` che il proprietario non amava) ma SUBITO SOTTO la riga toccata, con la stessa apertura dall'alto con dissolvenza della History (`Reveal`). Riga e dettaglio sono un solo elemento della colonna: con lo spazio tra gli elementi un dettaglio chiuso lascerebbe 10 dp in più.
+
+**Prova da Play, versione 3 (2026-11-02)**: il pacchetto `euro-coins-1.0-vc3.aab` (firmato con la chiave di upload, ID AdMob veri, senza `-PallowTestAds`) caricato nel TEST INTERNO e installato dal link; verificato sul telefono con la build di Play (installer `com.android.vending`): accesso Google, ripristino da Drive (collezione e obiettivi tornano, formato v6), acquisto del Pro con la carta di prova (Statistics si sblocca, la card diventa "Euro Coins Pro"). **Lezione**: l'account che testa gli acquisti va aggiunto in Play Console → Gestisci account → Test licenza (spuntare la lista "Io"), altrimenti la finestra di acquisto addebita sul saldo Google Play: la lista dei tester del test interno è una cosa diversa. Annunci: nessun annuncio sul telefono ("Ad failed to load : 3", no fill) finché l'app non è collegata allo store in AdMob; dopo la pubblicazione registrare il telefono come dispositivo di test. Non provati: TalkBack (attivato per errore dall'utente e disattivato da adb, i servizi BtAuto e Bitwarden non toccati), Restore Pro su un'installazione nuova, il rimborso. Il merge su `main` NON è stato fatto. **Giro di controllo finale (2026-11-01)**: 371 test verdi, release R8 compilata (mapping: enum e classi serializzabili nuove intatte), nessun residuo di debug. Sul telefono verificati in tema scuro e chiaro: Home, Browse, All, dettaglio con il "mazzo", Regular (Values, paese, dettaglio), Impostazioni, Insights (History, Coins, Statistics intera). **Trovato e corretto un difetto con il font al 130%**: "5 countries" si spezzava a metà parola nelle medaglie; ora il testo delle etichette cresce al massimo del 115% (`MAX_LABEL_FONT_SCALE`). **Completato il giorno dopo**: a font 130% Customize regge; in "New milestone" il segmento "Country" si tagliava in "Countr" (corretto: etichette dei quattro segmenti al massimo 115%); la vista Free di Statistics regge (pagina sfocata con l'invito); la card Pro a 130% mostra "No ads · Statistics" (la parola "Mints" non entra: accettato, perde il pezzo meno importante); nell'invito Free "Your collection in numbers. No ads." va a capo lasciando "ads." da sola (cosmetico, non corretto). **Secondo giro a font 130% e tema chiaro (2026-11-02)**: verificati Browse (Countries, All), dettaglio commemorativa, pannello di collezione con finiture attive, Regular Issues (Values, Countries, schermata del paese con chip delle serie, pannello con la striscia degli anni e "Remove", dettaglio con tirature), "View by year", FILTER, Customize e "New milestone". **Trovato e corretto**: la tabella a zecche affiancate (Germania) a 130% andava a capo sull'anno ("200" / "2") e tagliava i numeri ("367.9 N"): la sola griglia (intestazione e righe) ora resta a font normale, selettore e legenda seguono il font. **Rifiniture dello stesso giorno**: l'email nelle Impostazioni resta a corpo normale (a font 130% diventava "jacko1656@gmai…", anche al 115% "jacko1656@gmail.c…"; il resto della riga segue il font), "No ads." dell'invito Free non si separa più (spazio non separabile) e i due importi di Expenses stanno sulla stessa linea in basso. Troncature ACCETTATE e già documentate: segnaposto delle barre di ricerca ("Filter by countr…") e titoli lunghi negli elenchi (card da 80 dp fisse). Non provati a font grande: i dialog di conferma, il percorso guidato del primo avvio, la sottopagina Catalogs. **Non verificati**: il backup con Drive vero, l'acquisto, TalkBack, le animazioni in movimento (solo un fotogramma del "mazzo").
+
+**Badges: ordine e simboli (2026-11-01, tre giri di mockup con il proprietario: "devono essere catchy", gamification)**: la griglia è
+in QUATTRO RIGHE PER TEMA, l'ordine lo decide `BadgeId` (non il calcolo; `BadgesTest.theBadgesComeInFourThemedRowsOfFour`):
+(1) monete commemorative: First coin, 100, 250, 500; (2) set commemorativi: First country, 5 countries, Common issue, Five mints;
+(3) Regular: First series, 10 series, ΕΥΡΩ hunter, Pocket change (le monete trovate nel resto sono le circolanti); (4) finiture e
+soldi: First BU, First Proof, Triple threat, Big spender. **Niente scritte nei simboli** (tolti "100", "250", "EFS"): le monete si
+IMPILANO e crescono di forma (una moneta, una colonna da 4, due colonne, tre colonne: provato 1/3/5/7 monete in una colonna e tra
+250 e 500 c'era "poca differenza"), disegnate in `ui/insights/BadgeArt.kt` su una griglia di 34 unità a tratto sottile; Common
+issue = il cerchio delle dodici stelle europee (non il mondo); First series = il tassello di puzzle di Material (`Extension`: "chiudi
+il set"). **Scartati per First series**, in ordine: l'icona `Collections`, una fila di monete di taglio crescente, la griglia 4 × 2 di
+otto monete in scala reale (troppo piccola a 52 dp, anche in tre file) e quattro tagli, un francobollo con moneta, tre pannelli,
+un album, l'ottagono con moneta e un tassello disegnato a mano: **qualunque simbolo fatto di monete piccole non funziona a 52 dp**.
+Letter spotter → **ΕΥΡΩ hunter** (la serie EFS greca intera, otto tagli, "ΕΥΡΩ" in lettere greche: proposta del proprietario) con il
+tempio (`AccountBalance`: la Grecia), Five mints con la fabbrica (`Factory`) perché la banca va alla Grecia, Triple threat con
+tre strati (`Layers`, non più il "3"). Le etichette hanno `widthIn(max = 68.dp)`: "Big spender" e "Triple threat" riempivano la
+cella e si toccavano, ora vanno a capo. **Verificato sul telefono (tema scuro)**: quattro righe, colonne di monete che crescono, tassello, tempio, "EYPΩ hunter" a capo su due righe ("ΕΥΡΩ" in maiuscole greche si legge come E Y P Ω), "Big spender" e "Triple threat" non si toccano più. First coin è una MONETA DI FRONTE (cerchio e anello), non di taglio: la barretta sola sembrava un segno "meno"; il cerchio delle stelle è stato ingrandito (raggio 13, punti da 2). Non provati: font ingrandito, tema chiaro, vista Free.
+
+**Milestones come "prossimi traguardi" (2026-11-01, mockup cliccabile approvato)**: i quattro traguardi (paesi, anni, serie
+Regular, emissioni comuni) hanno ognuno la barra come prima e SOTTO una riga toccabile col PIÙ VICINO da completare ("Closest
+Italy · 3 to go"; "All done" se il traguardo è raggiunto, niente riga se non c'è nulla da proporre). Più vicino = **meno
+monete (o righe) mancanti**, a parità il nome (l'anno più recente per gli anni). `Milestones.nextCountry/nextYear/nextSeries/
+nextJoint` (`MilestoneNext`, `MilestoneTarget`). Dove porta: paese commemorativo → lista su Missing; anno → lista su Missing,
+**quella dei singoli paesi se ha ancora monete mancanti, altrimenti quella dell'emissione comune** (l'anno si conta con tutte le
+sue monete, quindi "2012 · 5 to go" può aprire una lista con meno monete); emissione comune → la sua lista; serie Regular →
+schermata del paese GIÀ SULLA SERIE giusta (prima si apriva sempre sulla Series 1 e bisognava toccare il chip: nuova rotta
+`regular-issues/{paese}?series=N`, 1-based, e `RegularIssueCountryViewModel(startIndex)`; `MilestoneTarget.RegularCountry`
+porta `seriesNumber`). Un paese con più
+serie si nomina "Spain, Series 2", uno con una serie sola solo "Germany". Costo: nessuna rotta nuova. **Idea in coda, concordata
+col proprietario**: medaglie ("badge") sbloccate da obiettivi, calcolate dalla collezione (nessun dato da salvare, backup
+invariato), in una seconda parte della card Milestones, con le bloccate in grigio e il progresso; il tocco apre un pannello
+con come si ottengono e porta a ciò che manca. Mockup ancora da fare. **Verificato sul telefono (tema scuro)**: By finish (78 / 15 /
+0, "None yet" non toccabile, BU apre "All coins" con 15 monete e Owned + BU già attivi nel filtro), Milestones con le quattro righe
+"Closest", tocco su "2005 · 2 to go" (lista del 2005 su Missing, 2 monete) e su "Spain, Series 3" (schermata aperta sulla Series 3,
+2 euro mancante in cima). Non provati: tema chiaro, font ingrandito, "2007 · 7 to go" e la vista Free.
+
+**Idea valutata, non fatta (2026-11-01)**: dare al Pro la scelta di nascondere e riordinare le card di Statistics. Parere:
+nascondere sì (poco costo), riordinare no finché le card sono 5-6. Vedi la conversazione; se si fa, un tasto "Customize" in fondo
+alla scheda con un pannello a interruttori, preferenza di dispositivo (SharedPreferences `settings`, fuori dal backup).
+
+**By finish a righe toccabili (2026-11-01, mockup cliccabile approvato)**: non più tre numeri in colonna ma tre righe come in
+Progress (`FinishRow`): numero grande, nome della finitura, barra con la quota sulle commemorative possedute ("84% of your 93";
+una moneta può avere più finiture, quindi le quote non sommano 100%) e la freccia. Il tocco apre l'elenco di TUTTE le commemorative
+già su Owned e su quella finitura: nuova rotta `coins/all/all?quality=BU` (`KIND_ALL`, `ARG_QUALITY`) e
+`CoinListViewModel(startQuality)`. Una finitura a zero (oggi Proof) non si tocca e dice "None yet". **Cambio di parere**: avevo
+proposto di piegare By finish dentro Your collection, con righe toccabili conviene tenerla a sé (le card restano cinque).
+**Non verificato sul telefono** (bloccato): da guardare layout, allineamento delle barre e che la lista si apra su Owned + BU/Standard
+con il filtro "Owned quality" già attivo.
+
+**Rifiniture di History e Coins (2026-10-26, richiesta del proprietario)**: (1) **animazione dei due contenuti a comparsa**
+di History ("1957–1998", i sei passi, e "Compare the old and the new map"): "non mi fa impazzire, più leggera e anche in
+chiusura". Era un `animateContentSize` con la molla di sistema dentro una `TimelineRow` che usava `height(IntrinsicSize.Min)`:
+le dimensioni intrinseche vedono il contenuto già aperto, quindi la riga saltava subito all'altezza finale e il contenuto si
+animava dentro un riquadro già grande (in chiusura spariva subito e restava il vuoto). Ora `Reveal` (`AnimatedVisibility`,
+220 ms in apertura e 180 in chiusura, `expandFrom`/`shrinkTowards` ANCORATI IN ALTO, dissolvenza con `LinearOutSlowIn` che sale
+con l'altezza, freccia che gira in 200 ms) e `TimelineRow` disegna linea e pallino sulla riga stessa (nessuna dimensione
+intrinseca): l'altezza segue l'animazione e la chiusura è la stessa cosa al contrario. Provata sul telefono con fotogrammi presi
+a ridosso del tocco (apertura e chiusura dei sei passi); la mappa usa lo stesso componente, non provata a parte. Se serve ancora
+più leggera: `tween` in `Reveal`. (2) **Pillola magnetica rimessa** nella scheda Coins (`MagnetPill.kt`): era nei mockup e
+nella prima versione, poi era diventata una riga "Magnet" della tabella. Sta SEMPRE SOTTO il titolo del materiale: la prima
+versione la metteva accanto e andava a capo solo dove non ci stava, e il proprietario voleva la stessa posizione ovunque (accanto
+non ci starebbe per "Copper-covered steel" né per "Centre slightly magnetic"). Icona calamita, barrata se non è magnetica
+(`MagnetIcons`, tratto Tabler "magnet" più diagonale); tre tinte (neutra, verde del primario al 40%, lilla per il solo
+centro del 1 e 2 euro) e il significato non sta nel solo colore. `CoinMaterial.magnetism`
+è ora un enum (`Magnetism`) e la riga "Magnet" è tolta. Valutata e scartata dal proprietario (2026-10-26): evidenziare con un
+anello le monete della stessa famiglia e una riga "Same metal: 2 cent, 5 cent" nel pannello (la scheda resta con una card che
+cambia, una moneta per volta; **non riproporre**). (3) **Inviti a toccare** (2026-11-01, mockup approvato, `TapHint` in
+`EuroTab.kt`): bandiere e monete sembravano testo fisso e "Tap" in una frase grigia non si notava. Ora l'invito sta su una RIGA
+SUA, con l'icona del dito (`Icons.Outlined.TouchApp`), "Tap" in grassetto nel colore primario e il resto in grigio: in History il
+sottotesto di "The story of the Euro" è su due righe ("From the Treaty of Rome to 21 countries." e "Tap a country for its dates
+and rate."), in Coins "Tap a coin.". Bandiere e monete restano senza riquadro (21 bordi sarebbero troppo). Passo successivo, solo
+se ancora poco evidente: un bordo leggero sul primo elemento. Verificato sul telefono (tema scuro): le due righe, l'icona e il
+"Tap" in History e in Coins escono come nel mockup; non provato in chiaro né con il font ingrandito.
+
+**"The euro"** (`EuroTab.kt`, dati fissi in `EuroFacts.kt`, `EuroFactsTest`): non viene dalla pipeline né da Numista, sono
+fatti pubblici verificati sulle pagine BCE, Commissione e Bundesbank (URL in `HISTORY_SOURCES` e `COIN_SOURCES`, una lista per scheda, mostrati come `SourceCredits`).
+Due card più le fonti: (1) **"The story of the Euro"** (con la E maiuscola nel titolo, su richiesta): timeline con una sola tinta. **Ogni voce è un anno con un
+sottotesto, SEMPRE, e la stessa forma (anno, sottotesto, paesi); niente titoli** (scelta del 2026-10-25: con titoli solo su
+alcune voci sembrava disomogenea; poi anche le voci con solo anno e bandiere "stonavano" accanto a quelle con il
+sottotesto, e il layout compatto con l'anno a sinistra è stato tolto: `EuroFactsTest` controlla che nessuna voce sia senza
+testo). Per gli ingressi il sottotesto è il numero d'ordine ("The 16th country joins."), che non ripete i nomi dei
+paesi e dice quanti sono; un titolo li ripeterebbe. "1957–1998 · 6 steps to the single currency" è chiusa di default (le 6
+tappe si aprono con un tocco), poi 1999 ("The euro starts, as money in accounts and payments. Coins and notes come later."
+: senza questo "1999" faceva pensare che l'euro circolasse da allora), 2001 Grecia, **2002 "Coins and notes begin, in the
+12 countries"** (una tappa senza paesi: è qui che l'euro arriva in tasca) e gli ingressi dal 2007, con bandiera e nome
+per intero (due per riga). **Il confronto della mappa del
+lato comune sta nella voce del 2007** (la Slovenia è la prima a usare il disegno nuovo, il 1° gennaio 2007): una riga lilla
+"Compare the old and the new map" la apre, chiusa di default, e le due foto si scaricano solo allora. **I titoli delle card
+sono 20 sp Bold nel colore del testo** (`InsightsTitle`, come le Impostazioni; l'etichetta piccola in verde non bastava). **Il tocco su un paese apre il riquadro con date, vecchia valuta e tasso** (Joined the
+euro, Coins and notes, Replaced, Rate: **quattro righe uguali per tutti**; c'era una quinta, "Only euro from", l'ultimo
+giorno di doppia circolazione, solo dal 2007 perché per i primi 12 la data non era verificata: tolta il 2026-10-25 perché
+disomogenea e poco chiara, e anche dai dati), come nel mockup: la versione con una frase sola era stata una
+semplificazione di troppo e al proprietario piaceva il riquadro; **gli stati per accordo stanno in una card a parte, "Also using the euro", NON in fondo alla timeline** (scelta del
+2026-10-25: come ultima voce, dopo il 2026, sembrava un fatto avvenuto dopo; non ha una data, Monaco, San Marino e il
+Vaticano usano l'euro dal 1999, Andorra dal 2002): per Andorra, Monaco, San Marino e Vaticano ha un riquadro con **le stesse righe degli altri** (Uses the euro since, Coins and notes, Replaced, Rate: scelta
+del 2026-10-25, "nella scheda non compaiono le stesse info degli altri stati") più le due solo loro (Own euro coins from,
+Agreement). Monaco sostituì il franco francese (6,55957), San Marino e Vaticano la lira (1.936,27); Andorra non aveva una
+moneta sua e usava franco e peseta senza corso legale, quindi mostra entrambe le monete con la sigla e i due tassi, ciascuno su una riga (un valore lungo andava
+a capo a metà frase), e "2002" come anno d'uso (l'accordo è del 2011, applicato dal 1° aprile 2012). **Semplificata su richiesta**
+("troppo pesante e prolissa, con troppi indicatori"): scartati cerchi con il conteggio, legenda a quattro fasi colorate,
+barra di avanzamento e 11 tappe prima del 1999. (2) **materiali**: otto monete in scala (`DenominationCoin`) in due
+righe e, sotto, UNA CARD che spiega il materiale della moneta toccata (nome, spiegazione con cupronichel e ottone al nichel
+dentro la frase, diametro, peso, spessore, bordo, magnete): è la versione del primo mockup, che al proprietario piaceva più
+delle tre famiglie con il glossario a parte ("buttato a caso"); la BCE e la Bundesbank non danno le percentuali delle leghe
+e non si inventano. **Lato comune** (dentro la voce del 2007): le foto BCE del 50 cent prima e dopo il 2007 in hotlink,
+ritagliate sull'area della mappa (`MapPhoto`: la foto è disegnata più grande e spostata; `requiredSize` la CENTRA, lo
+spostamento parte dalla metà dell'eccedenza), con una frase (prima: 15 paesi come pezzi separati; dopo: un'Europa continua;
+perché: l'allargamento del 1° maggio 2004). Il copyright del lato comune è dell'UE: la Commissione ammette riproduzioni piatte
+"non pregiudizievoli per l'immagine dell'euro" e non parla di app né di uso commerciale; stesso rischio accettato per le
+altre foto BCE. **Da verificare**: l'anno delle prime monete di San Marino (2002) non è confermato dalla pagina BCE; il
+"serpente" del 1972 è stato tolto dall'elenco (fonte debole). Dettaglio dei tassi: Germania e Bulgaria hanno lo stesso,
+1,95583. Provato sul telefono (2026-10-25, tema scuro): icona d'ingresso, timeline con titoli, riquadro di un paese, card dei
+materiali, ritaglio della mappa (corretto: `requiredSize` centra la foto). Non provati: tema chiaro, font ingrandito,
+senza rete (le due foto BCE mancherebbero).
+
 ### Impostazioni
 
 Schermata principale (`SettingsScreen`), sezioni: Account and backup (con la card Go Pro

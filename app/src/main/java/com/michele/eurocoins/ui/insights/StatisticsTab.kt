@@ -1,0 +1,664 @@
+package com.michele.eurocoins.ui.insights
+
+import android.os.Build
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Flare
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material.icons.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.michele.eurocoins.data.BadgeTarget
+import com.michele.eurocoins.data.CollectionStats
+import com.michele.eurocoins.data.CoinQuality
+import com.michele.eurocoins.data.FinishCounts
+import com.michele.eurocoins.data.MilestoneNext
+import com.michele.eurocoins.data.MilestoneTarget
+import com.michele.eurocoins.data.Milestones
+import com.michele.eurocoins.data.Progress
+import com.michele.eurocoins.data.SpendingStats
+import com.michele.eurocoins.data.SpentTarget
+import com.michele.eurocoins.data.StatsCard
+import com.michele.eurocoins.data.StatsLayout
+import com.michele.eurocoins.data.flagEmojiForCountry
+import com.michele.eurocoins.ui.components.formatPrice
+import com.michele.eurocoins.ui.detail.DetailCard
+import com.michele.eurocoins.ui.detail.sansTitleMedium
+import com.michele.eurocoins.ui.regular.DenominationCoin
+import com.michele.eurocoins.ui.regular.coinScaleFor
+import java.util.Locale
+
+/**
+ * Scheda "Statistics" di Insights (Pro). Mockup approvato il 2026-10-25 (la mappa a tessere dei paesi è stata scartata
+ * per un elenco, "Added over time" tolta perché le monete si registrano a gruppi e il grafico sarebbe a scalini):
+ * Your collection, By country (con i due cataloghi), Milestones, By year, By finish e, solo se almeno una voce ha un
+ * prezzo, Spending. Da Free si vede un'anteprima sfocata di "Your collection" con l'invito al Pro. Niente valore di
+ * mercato né classifica di rarità (nessuna fonte affidabile: vedi CLAUDE.md § Insights).
+ */
+@Composable
+internal fun StatisticsTab(
+    stats: CollectionStats?,
+    onCommemorativeCountry: (String) -> Unit,
+    onRegularCountry: (String) -> Unit,
+    onRegularSeries: (String, Int) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
+    onFinish: (CoinQuality) -> Unit,
+    onSpentItem: (SpentTarget) -> Unit,
+    onCommemorativeOwned: () -> Unit,
+    onRegularOwned: () -> Unit,
+    onBadgeGo: (BadgeTarget) -> Unit,
+    layout: StatsLayout,
+    onCustomize: () -> Unit,
+    goals: GoalsUi,
+) {
+    // Room non ha ancora risposto: niente da mostrare.
+    if (stats == null) return
+    StatisticsCards(stats, onCommemorativeCountry, onRegularCountry, onRegularSeries, onYear, onValue, onFinish, onSpentItem, onCommemorativeOwned, onRegularOwned, onBadgeGo, layout, onCustomize, goals)
+    // In FONDO alla pagina e non in alto (2026-11-01): i comandi si tengono a portata di pollice, e arrivati in fondo il pollice è già
+    // lì. Con tutte le card spente c'è già il pulsante nel messaggio, quindi qui non serve un secondo.
+    if (layout.visible.isNotEmpty()) {
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
+            androidx.compose.material3.OutlinedButton(onClick = onCustomize, shape = RoundedCornerShape(50)) {
+                Icon(Icons.Outlined.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text("Customize", modifier = Modifier.padding(start = 8.dp))
+            }
+        }
+    }
+}
+
+/** Le card della scheda, le stesse per il Pro e (sfocate) per chi non lo è. */
+@Composable
+private fun StatisticsCards(
+    stats: CollectionStats,
+    onCommemorativeCountry: (String) -> Unit,
+    onRegularCountry: (String) -> Unit,
+    onRegularSeries: (String, Int) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
+    onFinish: (CoinQuality) -> Unit,
+    onSpentItem: (SpentTarget) -> Unit,
+    onCommemorativeOwned: () -> Unit,
+    onRegularOwned: () -> Unit,
+    onBadgeGo: (BadgeTarget) -> Unit,
+    layout: StatsLayout,
+    onCustomize: () -> Unit,
+    goals: GoalsUi,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Tutte spente (si può): la pagina lo dice e offre il pannello, invece di restare bianca.
+        if (layout.visible.isEmpty()) NoCardsShown(onCustomize)
+        // Nell'ordine scelto dall'utente (Pro), senza le card nascoste; Expenses esce comunque se non c'è nessun prezzo.
+        layout.visible.forEach { card ->
+            when (card) {
+                StatsCard.COLLECTION -> YourCollectionCard(stats, onCommemorativeOwned, onRegularOwned)
+                StatsCard.PROGRESS -> ProgressCard(stats, onCommemorativeCountry, onRegularCountry, onYear, onValue)
+                StatsCard.MILESTONES -> MilestonesCard(stats, goals, onBadgeGo)
+                StatsCard.BADGES -> BadgesCard(stats.badges, onBadgeGo)
+                StatsCard.SHINE -> FinishCard(stats.finishes, stats.commemorative.owned, onFinish)
+                StatsCard.EXPENSES -> stats.spending?.let { SpendingCard(it, onSpentItem) }
+            }
+        }
+    }
+}
+
+/** Tutte le card sono spente: un messaggio e il modo di riaprire Customize, al posto di una pagina bianca. */
+@Composable
+private fun NoCardsShown(onCustomize: () -> Unit) {
+    DetailCard {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("No cards to show", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+            Hint("Turn some back on whenever you like.", Modifier.padding(top = 4.dp, bottom = 12.dp))
+            androidx.compose.material3.OutlinedButton(onClick = onCustomize, shape = RoundedCornerShape(50)) { Text("Customize") }
+        }
+    }
+}
+
+/** Sfocatura del corpo delle card da Free: abbastanza forte da non far leggere nessun numero (richiesta del proprietario). */
+private val LockedBlur = 12.dp
+
+/** `true` mentre si disegna la pagina da Free: il corpo di ogni card ([CardBody]) è sfocato e i tocchi sono spenti. */
+internal val LocalLockedStats = compositionLocalOf { false }
+
+/**
+ * Il corpo di una card (tutto tranne il titolo). Per il Pro è un semplice contenitore; da Free è sfocato a [LockedBlur] e
+ * senza descrizione per TalkBack, mentre il titolo, fuori da qui, resta nitido: si legge cosa c'è dietro il lucchetto ma
+ * nessun dato. Sotto Android 12 il blur non c'è: lì il corpo non si disegna, resta un riquadro spento (i numeri veri non
+ * devono mai leggersi).
+ */
+@Composable
+internal fun CardBody(content: @Composable ColumnScope.() -> Unit) {
+    if (!LocalLockedStats.current) {
+        Column(content = content)
+        return
+    }
+    val tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+    val modifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Modifier.blur(LockedBlur).alpha(0.85f)
+    } else {
+        Modifier.drawWithContent { drawRoundRect(tint, cornerRadius = CornerRadius(12.dp.toPx())) }
+    }
+    Column(modifier = modifier.clearAndSetSemantics {}, content = content)
+}
+
+/**
+ * Una card della scheda: titolo sempre nitido e corpo che da Free si sfoca ([CardBody]). Davanti al titolo un simbolo a tratto
+ * sottile in verdigris (2026-11-01, variante A dopo mockup; scartata la B, icona in un quadrato tinto: sei elementi colorati in più
+ * sulla pagina): serve a riconoscere le card scorrendo e dà il tono "gioco". Resta nitido anche da Free, come il titolo.
+ */
+@Composable
+internal fun StatCard(title: String, icon: ImageVector? = null, content: @Composable ColumnScope.() -> Unit) {
+    DetailCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 10.dp).size(24.dp),
+                )
+            }
+            InsightsTitle(title)
+        }
+        CardBody(content)
+    }
+}
+
+/**
+ * Da Free (mockup del 2026-10-25): la pagina VERA del Pro, con i titoli nitidi e il corpo di ogni card sfocato, che scorre
+ * sotto la card dell'invito, ferma al centro dello schermo. Tocchi spenti (callback vuote, "See all" disattivato). Prima
+ * c'erano la sola prima card sfocata, poi una pila di tre card sotto l'invito: più vuota e meno onesta su cosa si sblocca.
+ */
+@Composable
+internal fun StatisticsLocked(stats: CollectionStats, onGoPro: () -> Unit, modifier: Modifier = Modifier) {
+    Box(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            CompositionLocalProvider(LocalLockedStats provides true) {
+                StatisticsCards(
+                    stats,
+                    onCommemorativeCountry = {},
+                    onRegularCountry = {},
+                    onRegularSeries = { _, _ -> },
+                    onYear = { _, _ -> },
+                    onValue = {},
+                    onFinish = {},
+                    onSpentItem = {},
+                    onCommemorativeOwned = {},
+                    onRegularOwned = {},
+                    onBadgeGo = {},
+                    layout = StatsLayout(),
+                    onCustomize = {},
+                    goals = GoalsUi.Empty,
+                )
+            }
+        }
+        InviteCard(onGoPro, Modifier.align(Alignment.Center).padding(horizontal = 32.dp))
+    }
+}
+
+@Composable
+private fun InviteCard(onGoPro: () -> Unit, modifier: Modifier = Modifier) {
+    // Compatta (la card sta ferma sopra la pagina: con il font ingrandito una più alta coprirebbe troppo).
+    DetailCard(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Filled.Lock, contentDescription = null)
+            Text(
+                text = "Statistics is part of Pro",
+                style = sansTitleMedium(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Text(
+                // Spazio non separabile tra "No" e "ads.": a font grande "ads." restava da sola sulla seconda riga.
+                text = "Your collection in numbers. No ads.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+            )
+            Button(onClick = onGoPro, shape = RoundedCornerShape(50)) { Text("Go Pro") }
+        }
+    }
+}
+
+/** La barra sottile di avanzamento di una riga, la stessa tinta ovunque. */
+@Composable
+internal fun StatBar(fraction: Float, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(8.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .background(MaterialTheme.colorScheme.primary),
+        )
+    }
+}
+
+private fun percent(p: Progress): String = String.format(Locale.US, "%.1f%%", p.fraction * 100)
+
+@Composable
+internal fun Hint(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun YourCollectionCard(stats: CollectionStats, onCommemorativeOwned: () -> Unit, onRegularOwned: () -> Unit) {
+    StatCard(StatsCard.COLLECTION.title, StatsCard.COLLECTION.icon) {
+        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
+            Text(
+                text = stats.total.owned.toString(),
+                style = sansTitleMedium().copy(fontSize = 34.sp, fontWeight = FontWeight.Medium),
+            )
+            Text(
+                text = " of ${stats.total.total} coins · ${percent(stats.total)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 5.dp),
+            )
+        }
+        StatBar(stats.total.fraction, Modifier.padding(top = 6.dp))
+        CatalogRow("Commemorative", stats.commemorative, onCommemorativeOwned)
+        CatalogRow("Regular Issues", stats.regular, onRegularOwned)
+    }
+}
+
+/**
+ * Una riga di catalogo di Your collection (2026-11-01, variante A dopo mockup): il tocco apre l'elenco di ciò che si possiede
+ * in quel catalogo, già su Owned. Con niente di posseduto non c'è nulla da aprire: la riga non è cliccabile e la freccia
+ * manca, ma il suo spazio resta, così i numeri non si spostano.
+ */
+@Composable
+private fun CatalogRow(name: String, progress: Progress, onOpen: () -> Unit) {
+    val enabled = progress.owned > 0
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled, onClick = onOpen)
+            .padding(top = 8.dp, bottom = 6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            // Conteggio e percentuale pesano uguale, separati dal puntino come nel totale qui sopra (scelta del proprietario).
+            Text(
+                text = "${progress.owned} / ${progress.total} · ${percent(progress)}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Box(modifier = Modifier.size(24.dp)) {
+                if (enabled) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        StatBar(progress.fraction, Modifier.padding(top = 4.dp))
+    }
+}
+
+/** Quante righe mostra Progress prima di "Show all". */
+private const val PROGRESS_SHOWN = 6
+
+/**
+ * Una riga della card Progress, qualunque sia la vista (paese, anno, valore): [lead] è ciò che sta a sinistra (bandiera o
+ * moneta, niente per gli anni), [joint] aggiunge la pillola "COMMON ISSUE", [tieBreak] ordina a pari avanzamento (l'anno).
+ */
+private class ProgressItem(
+    val title: String,
+    val progress: Progress,
+    val lead: @Composable (() -> Unit)? = null,
+    val joint: Boolean = false,
+    val tieBreak: Int = 0,
+    val onClick: () -> Unit,
+) {
+    val complete: Boolean get() = progress.total > 0 && progress.owned == progress.total
+}
+
+/** Dalle più vicine al completamento (frazione più alta); le complete in fondo; a pari avanzamento il più recente, poi il nome. */
+private val closestFirst = compareBy<ProgressItem>(
+    { it.complete },
+    { -it.progress.fraction },
+    { -it.tieBreak },
+    { it.joint },
+    { it.title },
+)
+
+/**
+ * La card Progress (2026-11-01, mockup approvato; fonde le vecchie By country e By year): i chip scelgono il catalogo e il
+ * selettore l'asse, Country oppure Year (commemorative) / Value (Regular Issues: una riga non ha un anno, ha un taglio).
+ * Sempre dalle più vicine al completamento, senza ordinamento da scegliere. Il tocco apre la lista già su "Missing".
+ */
+@Composable
+private fun ProgressCard(
+    stats: CollectionStats,
+    onCommemorativeCountry: (String) -> Unit,
+    onRegularCountry: (String) -> Unit,
+    onYear: (Int, Boolean) -> Unit,
+    onValue: (String) -> Unit,
+) {
+    var regular by rememberSaveable { mutableStateOf(false) }
+    var byOther by rememberSaveable { mutableStateOf(false) }
+    var showAll by rememberSaveable { mutableStateOf(false) }
+
+    val items: List<ProgressItem> = when {
+        !regular && !byOther -> stats.commemorativeCountries.map { c ->
+            ProgressItem(c.name, c.progress, lead = { Text(flagEmojiForCountry(c.paese), fontSize = 22.sp) }) { onCommemorativeCountry(c.paese) }
+        }
+        !regular -> stats.yearRows.map { y ->
+            ProgressItem(y.anno.toString(), y.progress, joint = y.joint, tieBreak = y.anno) { onYear(y.anno, y.joint) }
+        }
+        !byOther -> stats.regularCountries.map { c ->
+            ProgressItem(c.name, c.progress, lead = { Text(flagEmojiForCountry(c.paese), fontSize = 22.sp) }) { onRegularCountry(c.paese) }
+        }
+        else -> stats.values.map { v ->
+            ProgressItem(v.taglio, v.progress, lead = { ValueCoin(v.taglio) }) { onValue(v.taglio) }
+        }
+    }
+    val sorted = items.sortedWith(closestFirst)
+    // I tagli sono 8 e stanno tutti: "Show all" serve solo alle liste lunghe (paesi e anni).
+    val isValues = regular && byOther
+    val shown = if (showAll || isValues) sorted else sorted.take(PROGRESS_SHOWN)
+
+    StatCard(StatsCard.PROGRESS.title, StatsCard.PROGRESS.icon) {
+        Hint("Closest first. Tap one to see what's missing.", Modifier.padding(top = 4.dp))
+        // Due selettori IDENTICI (2026-11-01, il proprietario non voleva chip da una parte e segmenti dall'altra): stesso componente,
+        // stessa forma, stessa larghezza. Il primo sceglie il catalogo, il secondo l'asse.
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+            SegmentedButton(
+                selected = !regular,
+                onClick = { regular = false; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                icon = {},
+                label = { Text("Commemorative", maxLines = 1) },
+            )
+            SegmentedButton(
+                selected = regular,
+                onClick = { regular = true; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                icon = {},
+                label = { Text("Regular Issues", maxLines = 1) },
+            )
+        }
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            SegmentedButton(
+                selected = !byOther,
+                onClick = { byOther = false; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                // Nessuna spunta: sposterebbe l'etichetta (come negli altri selettori dell'app).
+                icon = {},
+                label = { Text("Country", maxLines = 1) },
+            )
+            SegmentedButton(
+                selected = byOther,
+                onClick = { byOther = true; showAll = false },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                icon = {},
+                label = { Text(if (regular) "Value" else "Year", maxLines = 1) },
+            )
+        }
+        Column(modifier = Modifier.animateContentSize().padding(top = 6.dp)) {
+            shown.forEach { ProgressRow(it) }
+        }
+        if (!isValues && sorted.size > PROGRESS_SHOWN) {
+            val unit = if (byOther) "years" else "countries"
+            Text(
+                text = if (showAll) "Show fewer" else "Show all ${sorted.size} $unit",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable(enabled = !LocalLockedStats.current) { showAll = !showAll }
+                    .padding(vertical = 12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressRow(item: ProgressItem) {
+    val p = item.progress
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 52.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = item.onClick)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item.lead?.invoke()
+        Column(modifier = Modifier.weight(1f)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(item.title, style = MaterialTheme.typography.bodyMedium)
+                    if (item.joint) CommonIssuePill()
+                }
+                Hint(if (item.complete) "${p.owned} / ${p.total} · complete" else "${p.owned} / ${p.total} · ${p.total - p.owned} missing")
+            }
+            StatBar(p.fraction, Modifier.padding(top = 4.dp))
+        }
+        Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** Come la pillola di Browse > Years: l'anno con emissione comune ha una riga sua, e questa la distingue. */
+@Composable
+private fun CommonIssuePill() {
+    Text(
+        text = "COMMON ISSUE",
+        style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            .padding(horizontal = 7.dp, vertical = 1.dp),
+    )
+}
+
+/** La moneta disegnata in scala reale (la stessa della scheda Values del catalogo Regular) nel suo riquadro. */
+@Composable
+private fun ValueCoin(taglio: String) {
+    Box(modifier = Modifier.size(VALUE_COIN_SIZE), contentAlignment = Alignment.Center) {
+        DenominationCoin(
+            taglio = taglio,
+            maxSize = VALUE_COIN_SIZE,
+            modifier = Modifier.width(VALUE_COIN_SIZE * (coinScaleFor(taglio) ?: 1f)),
+        )
+    }
+}
+
+private val VALUE_COIN_SIZE = 30.dp
+
+/**
+ * By finish (2026-11-01, mockup approvato): tre righe come in Progress, una per finitura, con il numero di commemorative
+ * possedute in quella finitura, la quota sulle commemorative possedute ([ownedCoins]; una moneta può avere più finiture,
+ * quindi le quote non sommano 100%) e la freccia. Il tocco apre l'elenco già su Owned in quella finitura. Una finitura a
+ * zero non si tocca (non c'è niente da aprire) e dice "None yet".
+ */
+@Composable
+private fun FinishCard(f: FinishCounts, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
+    StatCard(StatsCard.SHINE.title, StatsCard.SHINE.icon) {
+        Hint("Commemorative coins by finish. Tap to see them.", Modifier.padding(top = 4.dp))
+        Column(modifier = Modifier.padding(top = 6.dp)) {
+            FinishRow(CoinQuality.STANDARD, f.standard, ownedCoins, onFinish)
+            FinishRow(CoinQuality.BU, f.bu, ownedCoins, onFinish)
+            FinishRow(CoinQuality.PROOF, f.proof, ownedCoins, onFinish)
+        }
+        Hint("A coin can have more than one finish.", Modifier.fillMaxWidth().padding(top = 4.dp))
+    }
+}
+
+@Composable
+private fun FinishRow(quality: CoinQuality, count: Int, ownedCoins: Int, onFinish: (CoinQuality) -> Unit) {
+    val enabled = count > 0
+    val share = if (ownedCoins > 0) count.toFloat() / ownedCoins else 0f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(enabled = enabled) { onFinish(quality) }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = count.toString(),
+            style = sansTitleMedium().copy(fontSize = 26.sp, fontWeight = FontWeight.Medium),
+            modifier = Modifier.width(48.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(quality.label, style = MaterialTheme.typography.bodyMedium)
+                Hint(if (enabled) "${String.format(Locale.US, "%.0f", share * 100)}% of your $ownedCoins" else "None yet")
+            }
+            StatBar(share, Modifier.padding(top = 4.dp))
+        }
+        // La freccia c'è solo dove il tocco apre qualcosa; lo spazio resta, così le barre restano allineate.
+        Box(modifier = Modifier.size(24.dp)) {
+            if (enabled) Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+internal fun euro(cents: Long): String = "€" + formatPrice(cents.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+
+@Composable
+private fun SpendingCard(s: SpendingStats, onSpentItem: (SpentTarget) -> Unit) {
+    StatCard(StatsCard.EXPENSES.title, StatsCard.EXPENSES.icon) {
+        Row(modifier = Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.primary)
+            Hint(
+                if (s.itemsWithPrice < s.totalItems) {
+                    "Based on ${s.itemsWithPrice} of ${s.totalItems} items with a price."
+                } else {
+                    "Based on all ${s.totalItems} items."
+                },
+            )
+        }
+        // IntrinsicSize.Min: con il font ingrandito "Average per item" va a capo e i due riquadri restano alti uguali.
+        Row(
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SpendTile("Total spent", euro(s.totalCents), Modifier.weight(1f).fillMaxHeight())
+            SpendTile("Average per item", euro(s.averageCents), Modifier.weight(1f).fillMaxHeight())
+        }
+        MostExpensive(s.ranking, onSpentItem)
+        if (s.byYear.size >= 2) {
+            Hint("Per year, from ${s.itemsInYears} items with a price and a date.", Modifier.padding(top = 14.dp))
+            val max = s.byYear.maxOf { it.second }.coerceAtLeast(1L)
+            Row(
+                modifier = Modifier.fillMaxWidth().height(120.dp).padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                s.byYear.forEach { (year, cents) ->
+                    Column(modifier = Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight((cents.toFloat() / max).coerceIn(0.02f, 1f))
+                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                    .background(MaterialTheme.colorScheme.primary),
+                            )
+                        }
+                        // L'anno sotto la sua colonna: con molti anni un elenco a parte non starebbe allineato.
+                        Hint(year.toString(), Modifier.padding(top = 4.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendTile(label: String, value: String, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        // I valori stanno in basso in entrambi i riquadri: con "Average per item" su due righe il numero di sinistra restava più in alto.
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Hint(label)
+        Text(value, style = sansTitleMedium().copy(fontSize = 20.sp, fontWeight = FontWeight.Medium))
+    }
+}

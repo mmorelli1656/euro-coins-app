@@ -21,7 +21,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
+import com.michele.eurocoins.data.CoinQuality
 import com.michele.eurocoins.data.CoinRepository
+import com.michele.eurocoins.data.GoalStore
 import com.michele.eurocoins.data.RegularIssueRepository
 import com.michele.eurocoins.data.backup.AutoBackup
 import com.michele.eurocoins.data.backup.BackupService
@@ -35,11 +37,16 @@ import com.michele.eurocoins.ui.settings.UserSettings
 import com.michele.eurocoins.ui.backup.BackupViewModel
 import com.michele.eurocoins.ui.browse.BrowseScreen
 import com.michele.eurocoins.ui.browse.BrowseViewModel
+import com.michele.eurocoins.data.BadgeTarget
+import com.michele.eurocoins.data.MilestoneTarget
+import com.michele.eurocoins.data.SpentTarget
 import com.michele.eurocoins.ui.detail.CoinDetailScreen
 import com.michele.eurocoins.ui.detail.CoinDetailViewModel
 import com.michele.eurocoins.ui.detail.CoinPagerSession
 import com.michele.eurocoins.ui.home.HomeScreen
 import com.michele.eurocoins.ui.home.HomeViewModel
+import com.michele.eurocoins.ui.insights.InsightsScreen
+import com.michele.eurocoins.ui.insights.InsightsViewModel
 import com.michele.eurocoins.ui.list.CoinFilter
 import com.michele.eurocoins.ui.list.CoinListScreen
 import com.michele.eurocoins.ui.list.CoinListViewModel
@@ -58,17 +65,28 @@ import com.michele.eurocoins.ui.theme.ThemePreference
 private const val ROUTE_HOME = "home"
 private const val ROUTE_BROWSE = "browse"
 private const val ROUTE_SETTINGS = "settings"
+private const val ROUTE_INSIGHTS = "insights"
 private const val ROUTE_SETTINGS_CATALOGS = "settings/catalogs"
-private const val ROUTE_COINS = "coins/{kind}/{value}"
+// `missing` (facoltativo, falso se manca): la lista si apre già filtrata su "Missing".
+// `quality` (facoltativo): la lista parte su "Owned" in quella finitura (nome di `CoinQuality`).
+// `owned` (facoltativo): la lista parte su "Owned", in qualunque finitura.
+private const val ROUTE_COINS = "coins/{kind}/{value}?missing={missing}&quality={quality}&owned={owned}"
 private const val ROUTE_DETAIL = "detail/{coinId}"
 private const val ROUTE_REGULAR_ISSUES = "regular-issues"
-private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}"
+// `owned` (facoltativo): si apre sulla scheda All già su "Owned" (da Insights, "Your collection").
+private const val ROUTE_REGULAR_ISSUES_PATTERN = "regular-issues?owned={owned}"
+// `series` (facoltativo, 1-based): la schermata si apre già su quella serie.
+private const val ROUTE_REGULAR_ISSUE_COUNTRY = "regular-issues/{paese}?series={series}"
 private const val ROUTE_REGULAR_DENOMINATION = "regular-issues/{paese}/{ordine}/{taglio}"
 // Un taglio in tutti i paesi (elenco), non il dettaglio di un taglio di una serie.
-private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}"
+private const val ROUTE_REGULAR_DENOMINATION_LIST = "regular-denominations/{taglio}?missing={missing}"
 private const val ARG_TOUR = "tour"
 private const val ARG_KIND = "kind"
 private const val ARG_VALUE = "value"
+private const val ARG_MISSING = "missing"
+private const val ARG_QUALITY = "quality"
+private const val ARG_OWNED = "owned"
+private const val ARG_SERIES = "series"
 private const val ARG_COIN_ID = "coinId"
 private const val ARG_PAESE = "paese"
 private const val ARG_ORDINE = "ordine"
@@ -77,6 +95,7 @@ private const val ARG_TAGLIO = "taglio"
 private const val KIND_YEAR = "year"
 private const val KIND_YEAR_COMMON = "year-common"
 private const val KIND_COUNTRY = "country"
+private const val KIND_ALL = "all"
 
 /** Porta alle Impostazioni (dove sta la card Pro): l'invito "Go Pro" delle viste riservate al Pro. */
 fun NavController.openSettings() {
@@ -97,6 +116,7 @@ fun EuroCoinsNavHost(
     autoBackup: AutoBackup,
     themePreference: ThemePreference,
     userSettings: UserSettings,
+    goalStore: GoalStore,
     monetization: Monetization,
 ) {
     // Elenco ordinato della lista da cui si apre un dettaglio (per scorrere tra le monete): vedi CoinPagerSession.
@@ -153,6 +173,7 @@ fun EuroCoinsNavHost(
                 viewModel = viewModel,
                 onCommemorativeClick = { navController.navigate(ROUTE_BROWSE) },
                 onRegularIssuesClick = { navController.navigate(ROUTE_REGULAR_ISSUES) },
+                onInsightsClick = { navController.navigate(ROUTE_INSIGHTS) },
                 onSettingsClick = { navController.navigate(ROUTE_SETTINGS) },
                 showAds = adsEnabled,
                 banner = monetization.banner,
@@ -181,6 +202,63 @@ fun EuroCoinsNavHost(
                 monetization = monetization,
                 tour = tour,
                 onCatalogsClick = { navController.navigate(ROUTE_SETTINGS_CATALOGS) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(ROUTE_INSIGHTS) {
+            val viewModel: InsightsViewModel = viewModel(
+                factory = viewModelFactory { initializer { InsightsViewModel(repository, regularIssueRepository, userSettings, goalStore) } },
+            )
+            // Un paese in "By country": la lista già su "Missing" (commemorative) o la schermata del paese (Regular).
+            val openCommemorativeCountry = { paese: String ->
+                navController.navigate("coins/$KIND_COUNTRY/${Uri.encode(paese)}?$ARG_MISSING=true")
+            }
+            val openRegularSeries = { paese: String, number: Int ->
+                navController.navigate("regular-issues/${Uri.encode(paese)}?$ARG_SERIES=$number")
+            }
+            // Un anno di "Progress": la lista già su "Missing" (l'anno con emissione comune ha la sua, come in Years).
+            val openYear = { year: Int, joint: Boolean ->
+                val kind = if (joint) KIND_YEAR_COMMON else KIND_YEAR
+                navController.navigate("coins/$kind/$year?$ARG_MISSING=true")
+            }
+            // Una voce di "Most expensive" (e certe medaglie): il dettaglio di quella moneta, a pagina sola (nessuna lista di provenienza).
+            val openSpent = { target: SpentTarget ->
+                when (target) {
+                    is SpentTarget.Commemorative -> {
+                        pagerSession.openSingle()
+                        navController.navigate("detail/${target.coinId}")
+                    }
+                    is SpentTarget.Denomination -> {
+                        regularPagerSession.open(listOf(RegularPageKey(target.paese, target.ordine, target.taglio)), onShown = {})
+                        navController.navigate("regular-issues/${Uri.encode(target.paese)}/${target.ordine}/${Uri.encode(target.taglio)}")
+                    }
+                }
+            }
+            InsightsScreen(
+                viewModel = viewModel,
+                onCommemorativeCountryClick = openCommemorativeCountry,
+                onRegularCountryClick = { paese -> navController.navigate("regular-issues/${Uri.encode(paese)}") },
+                onRegularSeriesClick = openRegularSeries,
+                onYearClick = openYear,
+                onValueClick = { taglio -> navController.navigate("regular-denominations/${Uri.encode(taglio)}?$ARG_MISSING=true") },
+                // Una riga di "Your collection": ciò che si possiede in quel catalogo (le commemorative nella scheda All, le Regular nella sua).
+                onCommemorativeOwnedClick = { navController.navigate("coins/$KIND_ALL/all?$ARG_OWNED=true") },
+                onRegularOwnedClick = { navController.navigate("regular-issues?$ARG_OWNED=true") },
+                // Una finitura di "By finish": tutte le commemorative possedute in quella finitura.
+                onFinishClick = { quality -> navController.navigate("coins/$KIND_ALL/all?$ARG_QUALITY=${quality.name}") },
+                onSpentItemClick = openSpent,
+                // Il tasto di una medaglia non conquistata: le stesse destinazioni di Milestones e di "Most expensive".
+                onBadgeClick = { target ->
+                    when (target) {
+                        is BadgeTarget.Spent -> openSpent(target.target)
+                        BadgeTarget.AllMissing -> navController.navigate("coins/$KIND_ALL/all?$ARG_MISSING=true")
+                        is BadgeTarget.Milestone -> when (val t = target.target) {
+                            is MilestoneTarget.CommemorativeCountry -> openCommemorativeCountry(t.paese)
+                            is MilestoneTarget.Year -> openYear(t.anno, t.joint)
+                            is MilestoneTarget.RegularCountry -> openRegularSeries(t.paese, t.seriesNumber)
+                        }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
@@ -225,18 +303,27 @@ fun EuroCoinsNavHost(
             arguments = listOf(
                 navArgument(ARG_KIND) { type = NavType.StringType },
                 navArgument(ARG_VALUE) { type = NavType.StringType },
+                navArgument(ARG_MISSING) { type = NavType.BoolType; defaultValue = false },
+                navArgument(ARG_QUALITY) { type = NavType.StringType; defaultValue = "" },
+                navArgument(ARG_OWNED) { type = NavType.BoolType; defaultValue = false },
             ),
         ) { backStackEntry ->
             val kind = backStackEntry.arguments?.getString(ARG_KIND) ?: return@composable
             val value = backStackEntry.arguments?.getString(ARG_VALUE) ?: return@composable
+            val missing = backStackEntry.arguments?.getBoolean(ARG_MISSING) ?: false
+            val owned = backStackEntry.arguments?.getBoolean(ARG_OWNED) ?: false
+            val quality = backStackEntry.arguments?.getString(ARG_QUALITY)?.let { name -> CoinQuality.entries.firstOrNull { it.name == name } }
             val filter = when (kind) {
                 KIND_YEAR -> CoinFilter.Year(value.toInt())
                 KIND_YEAR_COMMON -> CoinFilter.Year(value.toInt(), commonOnly = true)
+                KIND_ALL -> CoinFilter.All
                 else -> CoinFilter.Country(value)
             }
             val viewModel: CoinListViewModel = viewModel(
-                key = "coins-$kind-$value",
-                factory = viewModelFactory { initializer { CoinListViewModel(repository, filter) } },
+                key = "coins-$kind-$value-$missing-$quality-$owned",
+                factory = viewModelFactory {
+                    initializer { CoinListViewModel(repository, filter, startMissing = missing, startQuality = quality, startOwned = owned) }
+                },
             )
             CoinListScreen(
                 viewModel = viewModel,
@@ -271,9 +358,15 @@ fun EuroCoinsNavHost(
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(ROUTE_REGULAR_ISSUES) {
+        composable(
+            route = ROUTE_REGULAR_ISSUES_PATTERN,
+            arguments = listOf(navArgument(ARG_OWNED) { type = NavType.BoolType; defaultValue = false }),
+        ) { backStackEntry ->
+            val owned = backStackEntry.arguments?.getBoolean(ARG_OWNED) ?: false
             val viewModel: RegularIssuesViewModel = viewModel(
-                factory = viewModelFactory { initializer { RegularIssuesViewModel(regularIssueRepository, userSettings.defaultRegularTab.value) } },
+                factory = viewModelFactory {
+                    initializer { RegularIssuesViewModel(regularIssueRepository, userSettings.defaultRegularTab.value, startOwned = owned) }
+                },
             )
             RegularIssuesScreen(
                 viewModel = viewModel,
@@ -296,12 +389,18 @@ fun EuroCoinsNavHost(
         }
         composable(
             route = ROUTE_REGULAR_DENOMINATION_LIST,
-            arguments = listOf(navArgument(ARG_TAGLIO) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(ARG_TAGLIO) { type = NavType.StringType },
+                navArgument(ARG_MISSING) { type = NavType.BoolType; defaultValue = false },
+            ),
         ) { backStackEntry ->
             val taglio = backStackEntry.arguments?.getString(ARG_TAGLIO) ?: return@composable
+            val missing = backStackEntry.arguments?.getBoolean(ARG_MISSING) ?: false
             val viewModel: RegularDenominationListViewModel = viewModel(
-                key = "regular-denomination-list-$taglio",
-                factory = viewModelFactory { initializer { RegularDenominationListViewModel(regularIssueRepository, taglio) } },
+                key = "regular-denomination-list-$taglio-$missing",
+                factory = viewModelFactory {
+                    initializer { RegularDenominationListViewModel(regularIssueRepository, taglio, startMissing = missing) }
+                },
             )
             RegularDenominationListScreen(
                 taglio = taglio,
@@ -322,12 +421,18 @@ fun EuroCoinsNavHost(
         }
         composable(
             route = ROUTE_REGULAR_ISSUE_COUNTRY,
-            arguments = listOf(navArgument(ARG_PAESE) { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument(ARG_PAESE) { type = NavType.StringType },
+                navArgument(ARG_SERIES) { type = NavType.IntType; defaultValue = 1 },
+            ),
         ) { backStackEntry ->
             val paese = backStackEntry.arguments?.getString(ARG_PAESE) ?: return@composable
+            val seriesNumber = backStackEntry.arguments?.getInt(ARG_SERIES) ?: 1
             val viewModel: RegularIssueCountryViewModel = viewModel(
-                key = "regular-issue-country-$paese",
-                factory = viewModelFactory { initializer { RegularIssueCountryViewModel(regularIssueRepository, paese) } },
+                key = "regular-issue-country-$paese-$seriesNumber",
+                factory = viewModelFactory {
+                    initializer { RegularIssueCountryViewModel(regularIssueRepository, paese, startIndex = seriesNumber - 1) }
+                },
             )
             RegularIssueCountryScreen(
                 viewModel = viewModel,

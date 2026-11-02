@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -86,6 +87,7 @@ fun HomeScreen(
     viewModel: HomeViewModel,
     onCommemorativeClick: () -> Unit,
     onRegularIssuesClick: () -> Unit,
+    onInsightsClick: () -> Unit,
     onSettingsClick: () -> Unit,
     showAds: Boolean,
     banner: BannerAd,
@@ -159,6 +161,9 @@ fun HomeScreen(
                 colors = appBarColors(),
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    IconButton(onClick = onInsightsClick) {
+                        Icon(Icons.Outlined.Insights, contentDescription = "Insights")
+                    }
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
                     }

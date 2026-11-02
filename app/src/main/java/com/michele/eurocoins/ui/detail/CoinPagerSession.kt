@@ -22,6 +22,12 @@ class CoinPagerSession : ViewModel() {
         origin = from
     }
 
+    /** Dettaglio aperto fuori da una lista (Insights): una pagina sola, senza la lista di una apertura precedente. */
+    fun openSingle() {
+        ids = emptyList()
+        origin = null
+    }
+
     /** Le pagine del dettaglio di [coinId]: l'elenco fotografato, o la sola moneta se non ne fa parte. */
     fun idsFor(coinId: Long): List<Long> = if (coinId in ids) ids else listOf(coinId)
 

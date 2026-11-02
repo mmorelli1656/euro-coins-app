@@ -94,10 +94,14 @@ class RegularIssuesViewModel(
     private val repository: RegularIssueRepository,
     /** Scheda che si apre per prima, scelta in Impostazioni: letta una volta alla creazione, come in `BrowseViewModel`. */
     initialMode: RegularBrowseMode = RegularBrowseMode.COUNTRIES,
+    /** Si apre sulla scheda All già su "Owned" (da Insights, "Your collection": tocco su Regular Issues). */
+    startOwned: Boolean = false,
 ) : ViewModel() {
 
-    private val mode = MutableStateFlow(initialMode)
-    private val prefs = MutableStateFlow(RegularGridPrefs())
+    private val mode = MutableStateFlow(if (startOwned) RegularBrowseMode.ALL else initialMode)
+    private val prefs = MutableStateFlow(
+        if (startOwned) RegularGridPrefs(allOwnership = OwnershipFilter.OWNED) else RegularGridPrefs(),
+    )
 
     val uiState: StateFlow<RegularIssuesUiState> = combine(
         repository.series,

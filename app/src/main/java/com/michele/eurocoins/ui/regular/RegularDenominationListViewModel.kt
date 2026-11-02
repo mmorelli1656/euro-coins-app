@@ -47,10 +47,12 @@ data class RegularDenominationListUiState(
 class RegularDenominationListViewModel(
     private val repository: RegularIssueRepository,
     private val taglio: String,
+    /** La lista parte già su "Missing" (da Insights, card Progress: tocco su un taglio = cosa manca). */
+    startMissing: Boolean = false,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
-    private val ownership = MutableStateFlow(OwnershipFilter.ALL)
+    private val ownership = MutableStateFlow(if (startMissing) OwnershipFilter.MISSING else OwnershipFilter.ALL)
 
     val uiState: StateFlow<RegularDenominationListUiState> = combine(
         repository.series,

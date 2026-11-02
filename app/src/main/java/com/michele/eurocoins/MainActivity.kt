@@ -113,6 +113,7 @@ class MainActivity : ComponentActivity() {
                             autoBackup = app.autoBackup,
                             themePreference = app.themePreference,
                             userSettings = app.userSettings,
+                            goalStore = app.goalStore,
                             monetization = app.monetization,
                         )
                     }

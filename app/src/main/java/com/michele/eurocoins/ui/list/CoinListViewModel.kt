@@ -38,10 +38,23 @@ sealed interface CoinFilter {
 class CoinListViewModel(
     private val repository: CoinRepository,
     private val filter: CoinFilter,
+    /** La lista parte già filtrata su "Missing" (da Insights, "By country": tocco su un paese = cosa manca). */
+    startMissing: Boolean = false,
+    /** La lista parte già su "Owned" in questa finitura (da Insights, "By finish": tocco su Standard / BU / Proof). */
+    startQuality: CoinQuality? = null,
+    /** La lista parte già su "Owned", in qualunque finitura (da Insights, "Your collection": tocco su Commemorative). */
+    startOwned: Boolean = false,
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
-    private val options = MutableStateFlow(CoinListOptions())
+    private val options = MutableStateFlow(
+        when {
+            startQuality != null -> CoinListOptions(ownership = OwnershipFilter.OWNED, qualities = setOf(startQuality))
+            startOwned -> CoinListOptions(ownership = OwnershipFilter.OWNED)
+            startMissing -> CoinListOptions(ownership = OwnershipFilter.MISSING)
+            else -> CoinListOptions()
+        },
+    )
 
     val sortChoices: List<CoinSort> = filter.sortChoices()
     val defaultSort: CoinSort = filter.defaultSort()
