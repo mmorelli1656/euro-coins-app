@@ -34,6 +34,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,10 +46,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.BadgeTarget
 import com.michele.eurocoins.data.CollectionStats
@@ -225,7 +228,11 @@ private fun NewMilestoneSheet(stats: CollectionStats, ui: GoalsUi, onDismiss: ()
                         shape = SegmentedButtonDefaults.itemShape(index = index, count = GoalKind.entries.size),
                         // Nessuna spunta: sposterebbe l'etichetta (come negli altri selettori dell'app).
                         icon = {},
-                        label = { Text(k.title(), maxLines = 1) },
+                        // Quattro segmenti in una riga: con il font al 130% "Country" si tagliava in "Countr". Le etichette crescono al massimo del 115%.
+                        label = {
+                            val capped = LocalDensity.current.let { Density(it.density, fontScale = it.fontScale.coerceAtMost(1.15f)) }
+                            CompositionLocalProvider(LocalDensity provides capped) { Text(k.title(), maxLines = 1) }
+                        },
                     )
                 }
             }
