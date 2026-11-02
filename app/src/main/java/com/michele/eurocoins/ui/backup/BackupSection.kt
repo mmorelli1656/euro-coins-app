@@ -47,6 +47,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.michele.eurocoins.data.backup.BackupStatus
 import com.michele.eurocoins.data.backup.EMPTY_COLLECTION_MESSAGE
@@ -207,13 +210,17 @@ private fun AccountRow(account: GoogleAccount, signOutEnabled: Boolean, onSignOu
                 style = MaterialTheme.typography.titleMedium,
             )
         }
-        Text(
-            text = account.email,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        // Con il font al 130% l'email (che identifica l'account, non si legge in lungo) arrivava a "jacko1656@gmai…" (anche al 115%: "jacko1656@gmail.c…"): resta a corpo normale, il resto della riga segue il font.
+        val capped = LocalDensity.current.let { Density(it.density, fontScale = it.fontScale.coerceAtMost(1.0f)) }
+        CompositionLocalProvider(LocalDensity provides capped) {
+            Text(
+                text = account.email,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         TextButton(
             onClick = onSignOut,
             enabled = signOutEnabled,

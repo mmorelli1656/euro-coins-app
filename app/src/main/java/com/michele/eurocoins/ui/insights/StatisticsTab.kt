@@ -274,7 +274,8 @@ private fun InviteCard(onGoPro: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(top = 4.dp),
             )
             Text(
-                text = "Your collection in numbers. No ads.",
+                // Spazio non separabile tra "No" e "ads.": a font grande "ads." restava da sola sulla seconda riga.
+                text = "Your collection in numbers. No ads.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
@@ -654,6 +655,8 @@ private fun SpendTile(label: String, value: String, modifier: Modifier) {
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 12.dp, vertical = 10.dp),
+        // I valori stanno in basso in entrambi i riquadri: con "Average per item" su due righe il numero di sinistra restava più in alto.
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Hint(label)
         Text(value, style = sansTitleMedium().copy(fontSize = 20.sp, fontWeight = FontWeight.Medium))
